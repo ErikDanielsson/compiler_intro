@@ -62,14 +62,9 @@ int main() {
 		printf(">>> ");
 		fflush(stdout);
 		get_next_token();
-		S();
+		R();
 	}
 
-}
-
-
-void S() {
-	R();
 }
 
 void R() {
@@ -81,7 +76,7 @@ void R() {
 	match(')');
 	get_next_token();
 
-	S();
-	S();
+	R();
+	R();
 
 }
