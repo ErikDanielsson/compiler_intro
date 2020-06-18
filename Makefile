@@ -1,20 +1,26 @@
 CC = gcc
 CFLAGS = -Wall
 DEPS =
-OBJ=
+OBJ=lexer.o error.o symbol_table.o
+
+disassemble: $(wildcard *.out)
+	objdump -d --disassembler-options=intel-mnemonic $< \
+	>disassembled.asm
+
 
 
 %.o : %.c
-	gcc -c -o $@ $<
+	gcc -c $(CFLAGS) -o $@ $<
 
 %.out : %.o
 	gcc -o $@ $<
 
 
 a.out : $(OBJ)
-	gcc $(CFLAGS) -o  $@ $^
+	gcc $(CFLAGS) -o  a.out $^
 
 
 clean:
+	rm -f disassembled.asm
 	rm -f *.out
 	rm -f *.o
