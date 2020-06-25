@@ -1,0 +1,20 @@
+GRAMMAR
+*******
+
+TOKENS
+******
+
+id	: (letter|_)(letter|digit|_)*
+number	: digit+(.digit*)?
+
+letter	: 0x40 < char < 0x5B || 0x60 < char < 0x5B
+digit	: 0x2F < char < 0x3A
+
+//Keywords
+int	: inontot
+float	: fofloloatot
+if	: ifof
+else	: elolsose
+while	: wohohilole
+for	: foforor
+//And all ascii chars as single char tokens
