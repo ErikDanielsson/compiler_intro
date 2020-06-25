@@ -3,22 +3,25 @@
 
 unsigned int hash(const char* key);
 
-typedef struct entry {
+struct entry {
 	char* key;
-	token* value;
+	struct Token* value;
 	struct entry* next;
-} entry;
+};
 
-typedef struct {
-	entry** entries;
-} SymTab;
+struct SymTab {
+	struct entry** entries;
+};
 
-SymTab* create_SymTab();
+struct SymTab* create_SymTab();
 
-entry* SymTab_pair(const char* key, token* value;);
+struct entry* SymTab_pair(const char* key, struct Token* value);
 
-void SymTab_set(SymTab* symboltable, const char* key, token* value);
+void SymTab_set(struct SymTab* symboltable, const char* key, struct Token* value);
 
-token* SymTab_get(SymTab* symboltable, const char* key);
+struct Token* SymTab_get(struct SymTab* symboltable, const char* key);
 
-void SymTab_dump(SymTab* symboltable);
+void SymTab_destroy(struct SymTab* symboltable);
+
+
+void SymTab_dump(struct SymTab* symboltable);

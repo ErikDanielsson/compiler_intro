@@ -19,6 +19,9 @@ disassemble: $(wildcard *.out)
 a.out : $(OBJ)
 	gcc $(CFLAGS) -o  a.out $^
 
+a_op.out : $(OBJ)
+	gcc $(CFLAGS) -O3 -o  a_op.out $^
+
 
 clean:
 	rm -f disassembled.asm

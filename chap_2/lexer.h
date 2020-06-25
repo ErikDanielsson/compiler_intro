@@ -1,18 +1,20 @@
 #pragma once
-typedef enum TokenType {
+enum TokenType {
 	NUM = 256,
 	ID,
 	TRUE,
 	FALSE,
-} TokenType;
+};
 
-typedef struct Token {
+struct Token {
 	enum TokenType type;
+	int line;
+	int column;
 	union {
 		char string[256];
 		int value;
 	};
-} token;
+};
 
-void initLexer();
-token* Lexer();
+void init_lexer();
+struct Token* lexer();

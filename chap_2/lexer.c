@@ -9,48 +9,82 @@
 #define MAX_ID_LEN 64
 
 
-
-
+char eof = 0;
+FILE *input;
 char peek;
-int line = 1;
-SymTab* symboltable;
+const char** keyword;
 
-void init() {
-	peek = getchar();
+int line = 1;
+int column = 1;
+struct SymTab* symboltable;
+
+static inline void get_next_char();
+void init_lexer()
+{
+	get_next_char();
+
 	symboltable = create_SymTab();
+
+	struct Token* True = malloc(sizeof(struct Token));
+	True->type = TRUE;
+	True->value = 1;
+	struct Token* False = malloc(sizeof(struct Token));
+	False->type = FALSE;
+	False->value = 0;
+
+	SymTab_set(symboltable, "true", True);
+	SymTab_set(symboltable, "false", False);
 }
 
+static inline void get_next_char()
+{
+	int c;
+	c = fgetc(input);
+	if (!feof(input)) {
 
+		peek = (char)c;
+		if (peek == '\n') {
+			line++;
+			column = 0;
+		}
+		column++;
+	}
+	else {
+		eof = 1;
+		peek = 0x00;
+	}
+}
 
-token* Lexer() {
-
+struct Token* Lexer()
+{
 	// Skip whitespace, and increment line num
-	for ( ; ; peek = getchar()) {
+	for(;;get_next_char()) {
 		if (peek == ' ' || peek == '\t')
 			continue;
 		else if (peek == '\n') line++;
 		else break;
+
 	}
 	// Skip comments
 	if (peek == '/') {
-		peek = getchar();
+		get_next_char();
 		if (peek == '/')
 			while (peek != '\n')
-				peek = getchar();
+				get_next_char();
 		else if (peek == '*') {
 				while (1) {
-					peek = getchar();
+					get_next_char();
 					if (peek == '*') {
-						peek = getchar();
+						get_next_char();
 						if (peek == '/') {
-							peek = getchar();
+							get_next_char();
 							break;
 						}
 					}
 				}
 			}
 		else {
-			token* ptr = malloc(sizeof(token));
+			struct Token* ptr = malloc(sizeof(struct Token));
 			find_ptr_error(ptr);
 			ptr->type = '/';
 			return ptr;
@@ -61,10 +95,10 @@ token* Lexer() {
 		int num = 0;
 		do {
 			num = 10*num + peek-0x30;
-			peek = getchar();
+			get_next_char();
 		}
 		while (isdigit(peek));
-		token* ptr = malloc(sizeof(token));
+		struct Token* ptr = malloc(sizeof(struct Token));
 		find_ptr_error(ptr);
 		ptr->type = NUM;
 		ptr->value = num;
@@ -73,11 +107,11 @@ token* Lexer() {
 	if (isalpha(peek) || (peek == 0x5F)) {
 		char string[MAX_ID_LEN] = {0};
 		string[0] = peek;
-		peek = getchar();
+		get_next_char();
 		int i = 1;
 		for (; isalnum(peek) && i < MAX_ID_LEN-1; i++) {
 		   string[i] = peek;
-		   peek = getchar();
+		   get_next_char();
 		}
 		if (isalnum(peek)) {
 			fprintf(stderr, "ERROR: identifier too long");
@@ -85,40 +119,60 @@ token* Lexer() {
 		}
 		i++;
 		string[i] = 0x00;
-		token* t = SymTab_get(symboltable, string);
+		struct Token* t = SymTab_get(symboltable, string);
 		if (t != NULL) {
 			return t;
 		}
-		token* ptr = malloc(sizeof(token));
+
+		struct Token* ptr = malloc(sizeof(struct Token));
+
 		find_ptr_error(ptr);
+
 		ptr->type = ID;
 		strcpy(ptr->string, string);
+
 		SymTab_set(symboltable, string, ptr);
+
 		return ptr;
 	}
-	token* ptr = malloc(sizeof(token));
+	struct Token* ptr = malloc(sizeof(struct Token));
 	find_ptr_error(ptr);
+	ptr->line = line;
+	ptr->column = column;
 	ptr->type = peek;
 	peek=' ';
 	return ptr;
 }
 
 
-int main() {
-	init();
-	while (1) {
-		token* temp = Lexer();
+int main(int argc, const char** argv) {
+	if (argc == 1) {
+		fprintf(stderr, "error: To few arguments\n");
+		return 0;
+	}
+	input = fopen(argv[1], "r");
+	init_lexer();
+	if (input == NULL)
+		return 0;
+	while (!eof) {
+		struct Token* temp = Lexer();
 		find_ptr_error(temp);
 		if (temp->type == ID) {
 			printf("String: %s\n", temp->string);
 		}
 		else if (temp->type == NUM) {
 			printf("Num: %d\n", temp->value);
+			//free(temp);
 		}
 		else {
-			printf("Char token: %c\n", temp->type);
+			printf("Char struct Token: %c\n", temp->type);
+			//free(temp);
 		}
-		SymTab_dump(symboltable);
 
 	}
+	SymTab_dump(symboltable);
+	getchar();
+	SymTab_destroy(symboltable);
+	fclose(input);
+
 }

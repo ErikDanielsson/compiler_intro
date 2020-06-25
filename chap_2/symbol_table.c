@@ -4,7 +4,7 @@
 #include <limits.h>
 #include "symbol_table.h"
 #include "lexer.h"
-#define TABLE_SIZE 1000
+#define TABLE_SIZE 1
 
 unsigned int hash( const char* key) {
 	// FVN (Fowler / Noll / Vo) hash function:
@@ -19,40 +19,38 @@ unsigned int hash( const char* key) {
 	return h % TABLE_SIZE;
 }
 
-SymTab* create_SymTab(void) {
-	SymTab* symboltable = malloc(sizeof(SymTab) * 1);
+struct SymTab* create_SymTab() {
+	struct SymTab* symboltable = malloc(sizeof(struct SymTab) * 1);
 
-	symboltable->entries = malloc(sizeof(entry*)*TABLE_SIZE);
+	symboltable->entries = malloc(sizeof(struct entry*) * TABLE_SIZE);
 
 	for (int i = 0; i < TABLE_SIZE; i++) {
 		symboltable->entries[i] = NULL;
 	}
+
 	return symboltable;
 }
-entry* SymTab_pair(const char* key, token* value) {
-	entry* entry = malloc(sizeof(entry) * 1);
+struct entry* SymTab_pair(const char* key, struct Token* value) {
+	struct entry* entry = malloc(sizeof(struct entry) * 1);
 	entry->key = malloc(sizeof(strlen(key))+1);
-	entry->value = malloc(sizeof(token*));
 	strcpy(entry->key, key);
-	entry->value = value;
+	entry->value = value;		// Since already mallocated when created
 
 	entry->next = NULL;
 	return entry;
 }
-void SymTab_set(SymTab* symboltable, const char* key, token* value) {
+void SymTab_set(struct SymTab* symboltable, const char* key, struct Token* value) {
 	unsigned int slot = hash(key);
-	entry* entry = symboltable->entries[slot];
+	struct entry* entry = symboltable->entries[slot];
 	struct entry* prev;
 	if (entry == NULL) {
 		symboltable->entries[slot] = SymTab_pair(key, value);
 		return;
 	}
-
-
 	while (entry != NULL) {
 		if (strcmp(entry->key, key) == 0) {
 			free(entry->value);
-			entry->value = malloc(sizeof(token*));
+			//entry->value = malloc(sizeof(struct Token*));
 			entry->value = value;
 			return;
 		}
@@ -62,9 +60,9 @@ void SymTab_set(SymTab* symboltable, const char* key, token* value) {
 	prev->next = SymTab_pair(key, value);
 }
 
-token* SymTab_get(SymTab* symboltable, const char* key) {
+struct Token* SymTab_get(struct SymTab* symboltable, const char* key) {
 	unsigned int slot = hash(key);
-	entry* entry = symboltable->entries[slot];
+	struct entry* entry = symboltable->entries[slot];
 
 	while (entry != NULL) {
 		if (strcmp(entry->key, key) == 0) {
@@ -75,11 +73,40 @@ token* SymTab_get(SymTab* symboltable, const char* key) {
 	return NULL;
 }
 
-void SymTab_dump(SymTab* symboltable) {
+void SymTab_destroy(struct SymTab* symboltable) {
+	if (symboltable == NULL)
+		return;
+	if (symboltable->entries != NULL) {
+		size_t i = 0;
+		while (i < TABLE_SIZE) {
+			struct entry* head = symboltable->entries[i];
+			while (head != NULL) {
+				struct entry* tmp = head;
+				if (tmp->key != NULL) {
+					free(tmp->key);
+					tmp->key = NULL;
+				}
+				if (tmp->value != NULL) {
+					free(tmp->value);
+					tmp->value = NULL;
+				}
+				head = head->next;
+				free(tmp);
+			}
+			i++;
+		}
+		free(symboltable->entries);
+		symboltable->entries = NULL;
+	}
+	free(symboltable);
+	symboltable = NULL;
+}
+
+void SymTab_dump(struct SymTab* symboltable) {
 	printf("\n");
 	printf("Symbol table:\n");
 	for (int i = 0; i < TABLE_SIZE; i++) {
-		entry* entry = symboltable->entries[i];
+		struct entry* entry = symboltable->entries[i];
 		if (entry == NULL) {
 			continue;
 		}
@@ -94,5 +121,4 @@ void SymTab_dump(SymTab* symboltable) {
 		printf("\n");
 	}
 	printf("\n");
-
 }
