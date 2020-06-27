@@ -9,17 +9,15 @@ enum TokenType {
 	ELSE,
 	WHILE,
 	FOR,
-	EOF
+	_EOF
 };
 
 struct Token {
 	enum TokenType type;
 	int line;
 	int column;
-	union {
-		char* string;
-		int value;
-	};
+	char* lexeme;
+
 };
 
 void init_lexer();
