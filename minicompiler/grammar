@@ -1,20 +1,138 @@
 GRAMMAR
-*******
+
+single_line_comment : SINGLE_LINE_COMMENT
+block_comment : MULTI_LINE_COMMENT
+
+program : PROGRAM ID LCBRACK compound_statement RCBRACK
+compound_statement : (statement)*
+statement : variable_declaration SEMI
+          | function_declaration
+          | return_statement SEMI
+          | assignment_statement SEMI
+          | function_call SEMI
+          | if-else_statement
+          | while_loop
+		  | for_loop
+          | empty
+variable_declaration : type ID (ASSIGN expr)?
+function_declaration : DEFINE ID LPAREN
+                     (param_decl (COMMA param_decl)*)?
+                     RPAREN
+                     LCBRACK compound_statement RETURN expr RCBRACK
+return_statement : RETURN expr
+params : (param_decl (COMMA param_decl)*)?
+param_decl : type ID
+type : INTEGER | FLOAT
+expr : term ((PLUS|MINUS) term)*
+term : factor ((MUL|DIV|MOD) factor)*
+factor : expiand ((EXP) expiand)*
+
+expiand : expr
+        | NUM
+        | ID
+        | function_call
+        | PLUS expiand
+        | MINUS expiand
+
+assignment_statement : ID ((ASSIGN|crement) expr)|signle_crement) SEMI
+N_crement :
+		| INCREMENT_N
+        | DECREMENT_N
+        | MULTIMENT_N
+        | DIVIMENT_N
+        | MODUMENT
+        | EXPONENT
+single_crement : INCREMENT_1
+			   | DECREMENT_1
+			   | MULTIMENT_2
+			   | DIVIMENT_2
+
+
+function_call : ID LPAREN actual_params RPAREN
+actual_params : (expr (COMMA expr)*)?
+if-elif-else_statement : if_statement
+                         elif_statement*
+                         (else_statement)?
+if_statement : IF boolean_expr LCBRACK compound_statement RCBRACK
+elif_statement : ELIF boolean_expr LCBRACK compound_statement RCBRACK
+else_statement : ELSE LCBRACK compound_statement RCBRACK
+while_loop : WHILE boolean_expr LCBRACK compound_statement RCBRACK
+for_loop  : FOR variable_declaration COMMA
+				boolean_expr COMMA
+				assignment_statement
+				LCBRACK compound_statement RCBRACK
+boolean_expr : rel_expr ((bool_op rel_expr)|LPAREN boolean RPAREN)*
+
+rel_expr : expr rel_op expr
+
+rel_op : EQUAL
+       | STRICTLY_BIGGER
+       | BIGGER_EQUAL
+       | STRICTLY_SMALLER
+       | SMALLER EQUAL
+       | NOT_EQUAL
+
+bool_op : NAND
+
+
 
 TOKENS
-******
 
-id	: (letter|_)(letter|digit|_)*
-number	: digit+(.digit*)?
+SINGLE_LINE_COMMENT : '#'
+MULTI_LINE_COMMENT : #o# .* #o#
 
-letter	: 0x40 < char < 0x5B || 0x60 < char < 0x5B
-digit	: 0x2F < char < 0x3A
+variable_types
+INTEGER : \d+
+FLOAT : \d+\.\d+
+STRING : \".*\" OR \'.*\'
 
-//Keywords
-int	: inontot
-float	: fofloloatot
-if	: ifof
-else	: elolsose
-while	: wohohilole
-for	: foforor
-//And all ascii chars as single char tokens
+keywords:
+UTILIZING : "utotilolizinongog"
+PROGRAM : "poprorogogroramom"
+FLOAT_TYPE : "fofloloatot"
+INT_TYPE : "inontot"
+NAND : "naand"
+IF : "ifof"
+ELIF : "elolifof"
+ELSE : "elolsose"
+WHILE : "wowhohilole"
+FOR : "foforor"
+DEFINE : "dodefofinone"
+RETURN : "roretoturornon"
+STD_IN : "inonpoputot"
+STD_OUT : "poprorinontot"
+
+single_chars:
+PLUS : "+"
+MINUS : "-"
+MUL : "*"
+DIV : "/"
+EXP : "^"
+MOD : "%"
+SEMI : ";"
+COLON : ":"
+DOT : "."
+COMMA : ","
+ASSIGN : "="
+STRICTLY_BIGGER : ">"
+STRICTLY_SMALLER : "<"
+LPAREN : "("
+RPAREN : ")"
+LCBRACK : "{"
+RCBRACK : "}"
+
+double_chars:
+INCREMENT_N : "+="
+DECREMENT_N : "-="
+MULTIMENT_N : "*=:"
+DIVIMENT_N : "/="
+EXPONENT : "^="
+MODUMENT : "%="
+INCREMENT_1 : "++"
+DECREMENT_1 : "--"
+MULTIMENT_2 : "**"
+DIVIMENT_2 : "//"
+EQUAL : "=="
+NOT_EQUAL : "!="
+SMALLER_EQUAL : "<="
+BIGGER_EQUAL : ">="
