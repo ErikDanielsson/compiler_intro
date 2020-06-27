@@ -3,12 +3,29 @@
 enum TokenType {
 	NUM = 256,
 	ID,
-	INT,
-	FLOAT,
+	ICONST,
+	FCONST,
+	SCONST,
+	//Keywords
+	UTILIZING,
+	PROGRAM,
+	FLOAT_TYPE,
+	INT_TYPE,
+	NAND,
 	IF,
+	ELIF,
 	ELSE,
 	WHILE,
 	FOR,
+	DEFINE,
+	RETURN,
+	INPUT,
+	OUTPUT,
+
+	ASSIGN,
+	RELOP,
+	SUFFIXOP,
+
 	_EOF
 };
 
@@ -17,7 +34,6 @@ struct Token {
 	int line;
 	int column;
 	char* lexeme;
-
 };
 
 void init_lexer();
