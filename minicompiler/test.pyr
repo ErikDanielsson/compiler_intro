@@ -1,0 +1,16 @@
+poprorogogroramom func_test {
+    dodefofinone func(inontot n, inontot p)
+    {
+    #oifof (n == 0 naand n == 0) naand
+         (n == 1 naand n == 1) {
+        p %= n;
+        }
+    elolsose {
+        wowhohilole p > 0
+        {
+          p -= 1;
+        }
+        }
+    }
+
+}
