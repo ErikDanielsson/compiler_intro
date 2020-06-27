@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall
 DEPS =
-OBJ=lexer.o error.o symbol_table.o
+OBJ=lexer.o symbol_table.o
 
 disassemble: $(wildcard *.out)
 	objdump -d --disassembler-options=intel-mnemonic $< \
