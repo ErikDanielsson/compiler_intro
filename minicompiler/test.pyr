@@ -1,7 +1,7 @@
 poprorogogroramom func_test {
     dodefofinone func(inontot n, inontot p)
     {
-    #oifof (n == 0 naand n == 0) naand
+    ifof (n == 0 naand n == 0) naand
          (n == 1 naand n == 1) {
         p %= n;
         }
