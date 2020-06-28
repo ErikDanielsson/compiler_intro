@@ -8,10 +8,11 @@
 #include "symbol_table.h"
 
 #define BUFFERSIZE 4096
+#define LINELENGTH 256
 #define FALSE 0
 #define TRUE 1
 
-
+char* filename;
 int file_desc;
 char read_done = FALSE;
 
@@ -19,53 +20,55 @@ char read_done = FALSE;
 char buffer[2*BUFFERSIZE+2];
 char* forward = buffer;// + 2*BUFFERSIZE+1;
 char* lexeme_begin = buffer;// + 2*BUFFERSIZE+1;
+char last_line[LINELENGTH];
+char curr_line[LINELENGTH];
 int line_num = 1;
 int column_num = 0;
 
 struct SymTab* symbol_table;
 int error_flag = 0;
 
-char* backtrack(int steps) {
-	char *backer = forward;
-	for (int i = 0; i < steps; i++) {
-		if (backer > buffer) {
-			backer--;
-			if (*backer == 0x04)
-				backer --;
-		} else {
-			backer = buffer+2*BUFFERSIZE;
-		}
-	}
-	char* str = malloc(steps+1);
-	for (int i = 0;backer != forward;i++) {
-		str[i] = *backer;
-		if (backer < buffer+2*BUFFERSIZE) {
-			backer++;
-			if (*backer == 0x04)
-				backer++;
-		} else {
-			backer = buffer;
-		}
-	}
-	str[steps] = 0x00;
-	return str;
-}
-
-void token_error() {
-	perror("error: Unidentified token!");
+void token_error(int length, char* expected) {
+	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: unidentified token at %d:%d\nexpected%s\n", filename, line_num, column_num-length, expected);
 	error_flag = -1;
-	char *str = backtrack(20);
-	printf("%s", str);
-	free(str);
-
+	fprintf(stderr, " ... |\n");
+	if (line_num > 1)
+		fprintf(stderr, "%4d |%s\n", line_num-1, last_line);
+	char* curr_i = curr_line;
+	fprintf(stderr, "%4d |", line_num);
+	while (*curr_i != 0x00) {
+		//printf("i: %ld, g: %d\n", curr_line-curr_i, column_num-length);
+		if (curr_i-curr_line+1 == column_num-length)
+			fprintf(stderr, "\033[1;31m");
+		fprintf(stderr, "%c", *curr_i);
+		curr_i++;
+	}
+	fprintf(stderr, "\033[0m\n");
+	fprintf(stderr, " ... |");
+	curr_i = curr_line;
+	while (*curr_i != 0x00) {
+		if (curr_i-curr_line+1 == column_num-length) {
+			fprintf(stderr, "\033[1;31m");
+			fprintf(stderr, "^");
+		} else if (curr_i-curr_line+1 > column_num-length) {
+			fprintf(stderr, "~");
+		} else {
+		fprintf(stderr, " ");
+		}
+		curr_i++;
+	}
+	fprintf(stderr, "\033[0m\n\n");
 }
-
 
 void get_char() {
 	forward++;
 	if (*forward == '\n') {
 		line_num++;
-		column_num = 0;
+		strcpy(last_line, curr_line);
+		for (int i = 0; i < column_num; i++)
+			curr_line[i] = 0x00;
+		column_num = 1;
+		return;
 	}
 
 	if (*forward == 0x04) {
@@ -82,25 +85,16 @@ void get_char() {
 			return;
 		}
 	}
+	curr_line[column_num-1] = *forward;
 	column_num++;
-}
-char peek() {
-	char* tmp = forward;
-	int col = column_num;
-	int lin = line_num;
-	get_char();
-	char tmp2 = *forward;
-	forward = tmp;
-	column_num = col;
-	line_num = lin;
-	return tmp2;
 }
 
 void init_lexer() {
 	// Initialize last char of both buffers to eof
 	int r = read(file_desc, buffer, BUFFERSIZE);
 	buffer[r] = 0x04;
-
+	for (int i = 0; i < LINELENGTH; i++)
+		curr_line[i] = 0x00;
 
 	symbol_table = create_SymTab();
 	SymTab_set(symbol_table, "utotilolizinongog", UTILIZING);
@@ -175,7 +169,6 @@ struct Token* get_token() {
 			token->lexeme = lexeme;
 			int type = SymTab_get(symbol_table, lexeme);
 			if (type != -1) {
-				printf("\nGot it! %s\n\n", lexeme);
 				token->type = type;
 			} else {
 				SymTab_set(symbol_table, lexeme, ID);
@@ -216,22 +209,20 @@ struct Token* get_token() {
 				switch(*forward) {
 					case 'o':
 						get_char();
-						if (*forward != '#') {
-							token_error();
+						if (*forward == '#') {						 
+							get_char();
+							char last_last = *forward;
+							get_char();
+							char last = *forward;
+							get_char();
+							while (!(last_last == '#' && last == 'o' && *forward == '#')) {
+								last_last = last;
+								last = *forward;
+								get_char();
+							}
+							get_char();
 							break;
 						}
-						get_char();
-						char last_last = *forward;
-						get_char();
-						char last = *forward;
-						get_char();
-						while (!(last_last == '#' && last == 'o' && *forward == '#')) {
-							last_last = last;
-							last = *forward;
-							get_char();
-						}
-						get_char();
-						break;
 					default:
 						while (*forward != '\n')
 							get_char();
@@ -265,8 +256,9 @@ struct Token* get_token() {
 					return token;
 				} else {
 					lexeme = get_lexeme();
-					if (strlen(lexeme) > 1)
-						token_error();
+					int len = strlen(lexeme);
+					if (len > 1)
+						token_error(len, " single char token.");
 					token->lexeme = lexeme;
 					token->type = *lexeme;
 					token->line = line_num;
@@ -291,8 +283,9 @@ struct Token* get_token() {
 					return token;
 				} else {
 					lexeme = get_lexeme();
-					if (strlen(lexeme) > 1)
-						token_error();
+					int len = strlen(lexeme);
+					if (len > 1)
+						token_error(len, " single char token.");
 					token->lexeme = lexeme;
 					token->type = *lexeme;
 					token->line = line_num;
@@ -319,8 +312,9 @@ struct Token* get_token() {
 			default:
 				get_char();
 				lexeme = get_lexeme();
-				if (strlen(lexeme) > 1)
-					token_error();
+				int len = strlen(lexeme);
+				if (len > 1)
+					token_error(len, " single char token.");
 				token->lexeme = lexeme;
 				token->type = *lexeme;
 				token->line = line_num;
@@ -337,6 +331,7 @@ struct Token* get_token() {
 int main(int argc, char** argv) {
 	file_desc = open(argv[1], O_RDONLY);
 	init_lexer();
+	filename = argv[1];
 	struct Token* token;
 	while (!read_done) {
 		token = get_token();
