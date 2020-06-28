@@ -38,3 +38,4 @@ struct Token {
 
 void init_lexer();
 struct Token* lexer();
+void token_error(int length, char* expected);
