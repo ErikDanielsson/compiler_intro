@@ -21,6 +21,8 @@ void SymTab_set(struct SymTab* symboltable, const char* key, enum TokenType type
 
 enum TokenType SymTab_get(struct SymTab* symboltable, const char* key);
 
+char* closest_key(struct SymTab* symboltable, const char* string);
+
 void SymTab_destroy(struct SymTab* symboltable);
 
 void SymTab_dump(struct SymTab* symboltable);

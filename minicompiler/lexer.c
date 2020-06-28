@@ -37,7 +37,6 @@ void token_error(int length, char* expected) {
 	char* curr_i = curr_line;
 	fprintf(stderr, "%4d |", line_num);
 	while (*curr_i != 0x00) {
-		//printf("i: %ld, g: %d\n", curr_line-curr_i, column_num-length);
 		if (curr_i-curr_line+1 == column_num-length)
 			fprintf(stderr, "\033[1;31m");
 		fprintf(stderr, "%c", *curr_i);
@@ -209,7 +208,7 @@ struct Token* get_token() {
 				switch(*forward) {
 					case 'o':
 						get_char();
-						if (*forward == '#') {						 
+						if (*forward == '#') {
 							get_char();
 							char last_last = *forward;
 							get_char();
@@ -333,7 +332,7 @@ int main(int argc, char** argv) {
 	init_lexer();
 	filename = argv[1];
 	struct Token* token;
-	while (!read_done) {
+	while (0){//!read_done) {
 		token = get_token();
 		switch (token->type) {
 			case ID:
@@ -435,7 +434,10 @@ int main(int argc, char** argv) {
 		token = NULL;
 
 	}
+
+	printf("entered: %s, closest: %s\n", argv[2], closest_key(symbol_table, argv[2]));
 	SymTab_dump(symbol_table);
+
 	SymTab_destroy(symbol_table);
 	return error_flag;
 }
