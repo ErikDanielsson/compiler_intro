@@ -1,0 +1,87 @@
+e := epsilon unless otherwise indicated
+
+Exercise 4.4.1: For each of the following grammars, devise predictive parsers
+and show the parsing tables. You may left-factor and/or eliminate left-recursion
+from your grammars first.
+a) The grammar of Exercise 4.2.2(a):
+
+	S -> 0S1 | 01
+	<=>
+	S --> 0S'
+	S' -> S1 | 1
+
+	-------------------------------------
+	|    Non-   |      Input symbol     |
+	|  terminal |     0     |     1     |
+	|-----------------------------------|
+	|     S     | S  -> 0S' |           |
+	|     S'    | S' -> S1  | S' -> 1   |
+	-------------------------------------
+
+b) The grammar of Exercise 4.2.2(b).
+
+	S -> +SS | *SS | a
+
+	-------------------------------------------------
+	|    Non-   |            Input symbol           |
+	|  terminal |     +     |     *     |     a     |
+	|-----------------------------------------------|
+	|     S     | S -> +SS  | S -> *SS  | S -> a    |
+	-------------------------------------------------
+
+
+c) The grammar of Exercise 4.2.2(c).
+
+	S -> S(S)S|e
+	<=>
+	S -> (S)S|e
+
+	-------------------------------------------------
+	|    Non-   |            Input symbol           |
+	|  terminal |     (     |     )     |     $     |
+	|-----------------------------------------------|
+	|     S     | S -> (S)S | S -> e    | S -> e    |
+	-------------------------------------------------
+
+d) The grammar of Exercise 4.2.2(d).
+
+	S -> S+S|SS|(S)|S*|a
+	<=>
+	S -> aS|(S)S|S+SS|S*S
+	<=>
+	S -> aS|(S)S|aS'|(S)S'
+	S'-> +S|*|e
+	<=>
+	S -> aA|(S)A
+	A -> S|S'
+	S'-> +S|*|e
+
+-------------------------------------------------------------------------
+|    Non-   |                              Input symbol                 |
+|  terminal |    a    |    (    |    )    |    +    |    *    |    $    |
+|-----------------------------------------------------------------------|
+|     S     | S -> aA | S->(S)A |         |         |         |         |
+|     A     | A -> S  |         | A -> S' | A -> S' | A -> S' | A -> S' |
+|     S'    |         |         | S'-> e  | S'-> +S | S'-> +S | S'-> e  |
+------------------------------------------------------------------------|
+
+
+e) The grammar of Exercise 4.2.2(e).
+f) The grammar of Exercise 4.2.2(g).
+
+!! Exercise 4.4.2: Is it possible, by modifying the grammar in any way, to
+construct a predictive parser for the language of Exercise 4.2.1 (postfix
+expressions with operand a)?
+
+Exercise 4.4.3: Compute FIRST and FOLLOW for the grammar of Exercise 4.2.1.
+
+Exercise 4.4.4: Compute FIRST and FOLLOW for each of the grammars of
+Exercise 4.2.2.
+
+Exercise 4.4.5: The grammar S -> a S a | a a generates all even-length strings
+of a's. We can devise a recursive-descent parser with backtrack for this
+grammar. If we choose to expand by production S -> a a first, then we shall
+only recognize the string aa. Thus, any reasonable recursive-descent parser will
+try S -> a S a first.
+a) Show that this recursive-descent parser recognizes inputs aa, aaaa, and
+aaaaaaaa, but not aaaaaa.

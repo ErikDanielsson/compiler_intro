@@ -1,0 +1,133 @@
+Exercise 4.3.1 : The following is a grammar for regular expressions over sym­
+bols a and b only, using + in place of I for union, to avoid conflict with the use
+of vertical bar as a metasymbol in grammars:
+
+		rexpr    -> rexpr + rterm | rterm
+		rterm    -> rterm rfactor | rfactor
+		rfactor  -> rfactor * | rprimary
+		rprimary -> a | b
+
+a) Left factor this grammar.
+No left factor other than trivial, epsilon case.
+
+b ) Does left factoring make the grammar suitable for top-down parsing?
+No
+c) In addition to left factoring, eliminate left recursion from the original
+grammar.
+		rexpr    -> rterm rexpr'
+		rexpr'   -> + rterm rexpr' | epsilon
+		rterm    -> rfactor rterm'
+		rterm'   -> rfactor rterm' | epsilon
+		rfactor  -> rprimary rfactor'
+		rfactor' -> *rfactor | epsilon
+		rprimary -> a | b
+
+
+d) Is the resulting grammar suitable for top-down parsing?
+Exercise 4.3.2 : Repeat Exercise 4.3. 1 on the following grammars:
+Yes
+
+Exercise 4.3.2 : Repeat Exercise 4.3. 1 on the following grammars:
+1) The grammar of Exercise 4.2.1:
+
+	S -> SS+ | SS* | a
+
+	a)
+	S -> SA|a
+	A -> S+|S*
+	b)
+	No, left recursive.
+	c)
+	S  -> a Z
+	Z -> A Z
+	A  -> a Z + | a Z *
+	d)
+	Yes.
+2) The grammar of Exercise 4.2.2(a):
+
+	S -> 0S1 | 01
+
+	a)
+	Nothing to do.
+	b)
+	Yes.
+	c)
+	Noting to do.
+	d)
+	Yes.
+
+3) The grammar of Exercise 4.2.2(c).
+
+	S -> S(S)S | epsilon
+
+	a)
+	Nothing to do.
+	b)
+	No
+	c)
+	S -> (S)S | epsilon
+	d)
+	Yes.
+
+4) The grammar of Exercise 4.2.2(e).
+
+	S -> ( L ) | a
+	L -> L , S | S
+
+	a)
+	Nothing to do.
+	b)
+	No.
+	c)
+	S -> ( L ) | a
+	L -> S K
+	K -> , S K | epsilon
+	d)
+	Yes.
+
+5) The grammar of Exercise 4.2.2(g):
+
+	bexpr   -> bexpr or bterm | bterm
+   	bterm   -> bterm and bfactor | bfactor
+   	bfactor -> not bfactor | (bexpr) | true | false
+
+	a)
+	Nothing to do.
+	b)
+	No.
+	c)
+	bexpr   -> bterm bexpr'
+	bexpr'  -> or bterm bexpr' | epsilon
+	bterm   -> bfactor bterm'
+	bterm'  -> and bfactor bterm' | epsilon
+	bfactor -> not bfactor | (bexpr) |true | false
+	d)
+	Yes.
+
+! Exercise 4.3.3 : The following grammar is proposed to remove the "dangling­
+else ambiguity" discussed in Section 4.3.2:
+		stmt --------> if expr then stmt
+			     | matchedStmt
+
+		matchedStmt -> if expr then matchedStmt else stmt
+			     | other
+
+Show that this grammar is still ambiguous.
+
+if E1 then
+	if E2 then
+		S1
+	else
+		if E3 then
+			S2
+		else
+			S3
+
+if E1 then
+	if E2 then
+		S1
+	else
+		if E3 then
+			S2
+else
+	S3
