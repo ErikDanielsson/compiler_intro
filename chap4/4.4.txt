@@ -66,17 +66,69 @@ d) The grammar of Exercise 4.2.2(d).
 -------------------------------------------------------------------------
 
 
-e) The grammar of Exercise 4.2.2(e).
-f) The grammar of Exercise 4.2.2(g).
+e) The grammar of Exercise 4.2.2(e):
+
+	S -> (L) | a
+	L -> L,S | S
+	<=>
+	S -> (L) | a
+	L -> SL'
+	L'-> ,SL' | e
+
+---------------------------------------------------------------
+|    Non-   |                        Input symbol             |
+|  terminal |    a    |    (    |    )    |    ,    |    $    |
+|-------------------------------------------------------------|
+|     S     | S -> a  | S-> (L) |         |         |         |
+|     L     | L'-> e  |         |         |         |         |
+|     L'    |         |         | L'-> e  |L'-> ,SL'| L'-> e  |
+---------------------------------------------------------------
+
+f) The grammar of Exercise 4.2.2(g):
+	bexpr -> bexpr or bterm | bterm
+	bterm -> bterm and bfactor | bfactor
+	bfactor -> not bfactor | (bexpr) | true | false
+	<=>
+	bexpr   -> bterm bexpr'
+	bexpr'  -> or bterm bexpr' | epsilon
+	bterm   -> bfactor bterm'
+	bterm'  -> and bfactor bterm' | epsilon
+	bfactor -> not bfactor | (bexpr) |true | false
+	<=>
+	E -> T E'
+	E'-> or T E' | e
+	T -> F T'
+	T'-> and F T'| e
+	F -> not F | (E) | 1 | 0
+
+-------------------------------------------------------------------------------------------------------
+|    Non-   |                                    Input symbol                                         |
+|  terminal |     or     |    and     |   not    |    (     |    )    |    1     |    0     |    $    |
+|-----------------------------------------------------------------------------------------------------|
+|     E     |            |            |E -> T E' | E -> T E'|         | E -> T E'| E -> T E'|         |
+|     E'    |E'-> or T E'|            |          |          | E' -> e |          |          | E' -> e |
+|     T     |            |            |T -> F T' | T -> F T'|         | T -> F T'| T -> F T'|         |
+|     T'    |   T' -> e  |T'->and F T'|          |          | T' -> e |          |          | T' -> e |
+|     F     |            |            |F -> not F| F -> (E) |         | F -> 1   | F -> 1   |         |
+-------------------------------------------------------------------------------------------------------
 
 !! Exercise 4.4.2: Is it possible, by modifying the grammar in any way, to
 construct a predictive parser for the language of Exercise 4.2.1 (postfix
 expressions with operand a)?
 
-Exercise 4.4.3: Compute FIRST and FOLLOW for the grammar of Exercise 4.2.1.
+	S -> SS+ | SS* | a
+	<=>
+	S -> aS'
+	S'-> S+|S*
+	<=>
+	S -> aS'
+	S'-> SLS'|e
+	L -> +|*
 
-Exercise 4.4.4: Compute FIRST and FOLLOW for each of the grammars of
-Exercise 4.2.2.
+
+Exercise 4.4.3: Compute FIRST and FOLLOW for the grammar of Exercise 4.2.1.
+	FIRST(S) = {a}
+	FOLLOW(S) = {a,+,*,$}
 
 Exercise 4.4.5: The grammar S -> a S a | a a generates all even-length strings
 of a's. We can devise a recursive-descent parser with backtrack for this
@@ -85,3 +137,24 @@ only recognize the string aa. Thus, any reasonable recursive-descent parser will
 try S -> a S a first.
 a) Show that this recursive-descent parser recognizes inputs aa, aaaa, and
 aaaaaaaa, but not aaaaaa.
+
+	aa:
+		S => a S a => aa S aa => a S a => e => aa
+		  f        b           b       b
+
+	aaaa:
+	  	S => a S a => aa S aa => aaa S aaa => aaaa S aaaa =>
+	  	  f        f           f           f              b
+		aaa S aaa => aa S aa => a S a => aaaa
+		          b          b        f
+	aaaaaa:
+	    	S => a S a => aa S aa => aaa S aaa => aaaa S aaaa =>
+	    	  f        f           f           f              f
+		S => aaaaa S aaaaa => aaaaaa S aaaaaa => => aaaaa S aaaaa =>
+		  f                f                  b
+	  	aaaa S aaaa => aaa S aaa => aa S aa => aaaaaa
+	  	            b             b         f
+	Why doesn't this work?
+
+!! b) What language does this recursive-descent parser recognize?
+	Nope.
