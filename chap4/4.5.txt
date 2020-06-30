@@ -1,0 +1,54 @@
+
+Exercise 4.5.1: For the grammar
+
+	S -> 0 S 1 | 0 1
+
+of Exercise 4.2.2 (a), indicate the handle in each of the following
+right-sentential forms:
+a) 000111.
+	S -> 01
+b) 00S11.
+	S -> 0S1
+
+Exercise 4.5.2: Repeat Exercise 4.5.1 for the grammar
+
+	S -> SS+ | SS* | a
+
+of Exercise 4.2.1 and the following right-sentential forms:
+a) SSS+a*+ .
+	S -> SS+
+b) SS+a*a+.
+	S -> SS+
+c) aaa*a++.
+	S ->
+Exercise 4.5.3 : Give bottom-up parses for the following input strings and
+grammars:
+a) The input 000111 according to the grammar of Exercise 4.5.1.
+	Stack		Input
+	$		000111$
+	$0		 00111$
+	$00		  0111$
+	$000		   111$
+	$0001		    11$
+	$00S		    11$
+	$00S1		     1$
+	$0S		     1$
+	$0S1		      $
+	$S		      $
+b) The input  according to the grammar of Exercise 4.5.2.
+	Stack		Input
+	$		aaa*a++$
+	$a		 aa*a++$
+	$S		 aa*a++$
+	$Sa		  a*a++$
+	$SS		  a*a++$
+	$SSa		   *a++$
+	$SSS		   *a++$
+	$SSS*		    a++$
+	$SS		    a++$
+	$SSa		     ++$
+	$SSS		     ++$
+	$SSS+		      +$
+	$SS		      +$
+	$SS+		       $
+	$S		       $
