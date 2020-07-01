@@ -9,9 +9,9 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="149.25433mm"
+   height="76.218376mm"
+   viewBox="0 0 149.25433 76.218376"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
@@ -21,129 +21,138 @@
     <marker
        inkscape:stockid="TriangleOutL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="marker1507"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1505"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleOutL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="marker1427"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1425"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleOutL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="marker1403"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1401"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleOutL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="marker1393"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1391"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleOutL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="marker1362"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1062"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleInL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="marker1359"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1357"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(-0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(-0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleInL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="TriangleInL"
        style="overflow:visible"
        inkscape:isstock="true">
       <path
          id="path1053"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(-0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(-0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:isstock="true"
        style="overflow:visible"
        id="marker1290"
-       refX="0.0"
-       refY="0.0"
+       refX="0"
+       refY="0"
        orient="auto"
        inkscape:stockid="TriangleOutL">
       <path
          transform="scale(0.8)"
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         id="path1288" />
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path1288"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleOutL"
        orient="auto"
-       refY="0.0"
-       refX="0.0"
+       refY="0"
+       refX="0"
        id="TriangleOutL"
        style="overflow:visible"
        inkscape:isstock="true"
        inkscape:collect="always">
       <path
          id="path994"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
-         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         transform="scale(0.8)"
+         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="TriangleInL"
@@ -559,8 +568,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2"
-     inkscape:cx="340.00652"
-     inkscape:cy="694.28777"
+     inkscape:cx="337.446"
+     inkscape:cy="88.525823"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -577,14 +586,22 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     id="layer1">
+     id="layer1"
+     transform="translate(-13.165369,-98.436829)">
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:markers stroke fill"
+       id="rect1427"
+       width="171.05312"
+       height="92.736458"
+       x="8.1382856"
+       y="93.295822" />
     <circle
        id="path10"
        cx="21.165369"
@@ -632,7 +649,7 @@
          style="font-size:2.46944451px;stroke-width:0.26458332">S'→·S</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="35.666283"
        y="115.59081"
        id="text1237"><tspan
@@ -640,10 +657,10 @@
          id="tspan1235"
          x="35.666283"
          y="115.59081"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="38.940334"
        y="126.44773"
        id="text1237-5"><tspan
@@ -651,10 +668,10 @@
          id="tspan1235-3"
          x="38.940334"
          y="126.44773"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="31.125723"
        y="141.51286"
        id="text1237-56"><tspan
@@ -662,7 +679,7 @@
          id="tspan1235-2"
          x="31.125723"
          y="141.51286"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <circle
        id="path10-3"
        cx="88.583633"
@@ -726,7 +743,7 @@
        inkscape:connector-curvature="0" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="72.476929"
        y="105.93304"
        id="text1366"><tspan
@@ -734,7 +751,7 @@
          id="tspan1364"
          x="72.476929"
          y="105.93304"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">a</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">a</tspan></text>
     <circle
        id="path10-6-6"
        cx="97.453751"
@@ -754,7 +771,7 @@
          style="font-size:2.46944451px;stroke-width:0.26458332">S→S·S+</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="75.957596"
        y="127.82526"
        id="text1397"><tspan
@@ -762,7 +779,7 @@
          id="tspan1395"
          x="75.957596"
          y="127.82526"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">S</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">S</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1403);paint-order:markers stroke fill"
        id="path1399"
@@ -777,7 +794,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="72.973846"
        y="139.98073"
        id="text1397-1"><tspan
@@ -785,7 +802,7 @@
          id="tspan1395-8"
          x="72.973846"
          y="139.98073"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker1427)"
        d="m 24.121075,135.43557 10.765658,14.91035"
@@ -819,7 +836,7 @@
        transform="scale(-1)" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="38.335125"
        y="138.38458"
        id="text1397-1-8"><tspan
@@ -827,10 +844,10 @@
          id="tspan1395-8-9"
          x="38.335125"
          y="138.38458"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="51.299709"
        y="146.65282"
        id="text1397-1-7"><tspan
@@ -838,7 +855,7 @@
          id="tspan1395-8-3"
          x="51.299709"
          y="146.65282"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <circle
        id="path10-6-6-6"
        cx="87.814621"
@@ -864,7 +881,7 @@
        sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="62.725498"
        y="161.75047"
        id="text1397-3"><tspan
@@ -872,7 +889,7 @@
          id="tspan1395-6"
          x="62.725498"
          y="161.75047"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">S</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">S</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1507-3);paint-order:markers stroke fill"
        id="path1503-6"
@@ -888,7 +905,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="65.858322"
        y="118.38068"
        id="text1397-1-1"><tspan
@@ -896,7 +913,7 @@
          id="tspan1395-8-5"
          x="65.858322"
          y="118.38068"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1507-5);paint-order:markers stroke fill"
        id="path1503-7"
@@ -924,7 +941,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="74.790375"
        y="119.78679"
        id="text1397-1-5"><tspan
@@ -932,10 +949,10 @@
          id="tspan1395-8-2"
          x="74.790375"
          y="119.78679"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="67.591621"
        y="148.53757"
        id="text1397-1-54"><tspan
@@ -943,7 +960,7 @@
          id="tspan1395-8-7"
          x="67.591621"
          y="148.53757"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1403-4);paint-order:markers stroke fill"
        id="path1399-3"
@@ -958,7 +975,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="45.368584"
        y="174.60088"
        id="text1397-1-0"><tspan
@@ -966,7 +983,7 @@
          id="tspan1395-8-78"
          x="45.368584"
          y="174.60088"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1507-9-4);paint-order:markers stroke fill"
        id="path1503-2-1"
@@ -982,7 +999,7 @@
        transform="scale(-1)" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="70.397957"
        y="149.19237"
        id="text1397-1-54-4"><tspan
@@ -990,7 +1007,7 @@
          id="tspan1395-8-7-9"
          x="70.397957"
          y="149.19237"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.19022104;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1362-2)"
        d="m 65.835991,128.3116 22.574796,2.47176"
@@ -1012,7 +1029,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="77.963005"
        y="113.94891"
        id="text1397-1-1-6"><tspan
@@ -1020,7 +1037,7 @@
          id="tspan1395-8-5-6"
          x="77.963005"
          y="113.94891"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <circle
        id="path10-6-6-6-0"
        cx="124.41833"
@@ -1069,7 +1086,7 @@
        sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="102.01411"
        y="150.52516"
        id="text1397-6"><tspan
@@ -1077,17 +1094,17 @@
          id="tspan1395-1"
          x="102.01411"
          y="150.52516"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">S</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">S</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="116.04577"
-       y="122.74249"
+       x="112.60619"
+       y="126.57895"
        id="text1397-5"><tspan
          sodipodi:role="line"
          id="tspan1395-9"
-         x="116.04577"
-         y="122.74249"
+         x="112.60619"
+         y="126.57895"
          style="font-size:2.46944451px;stroke-width:0.26458332">S</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1507-4);paint-order:markers stroke fill"
@@ -1103,7 +1120,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="32.418961"
        y="131.79314"
        id="text1237-5-9"><tspan
@@ -1111,7 +1128,7 @@
          id="tspan1235-3-1"
          x="32.418961"
          y="131.79314"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1403-7);paint-order:markers stroke fill"
        id="path1399-1"
@@ -1126,7 +1143,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="103.25097"
        y="115.22486"
        id="text1397-1-59"><tspan
@@ -1134,7 +1151,7 @@
          id="tspan1395-8-77"
          x="103.25097"
          y="115.22486"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <path
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.17;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1403-4-6);paint-order:markers stroke fill"
        id="path1399-3-3"
@@ -1149,7 +1166,7 @@
        sodipodi:open="true" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944444px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.46944451px;line-height:1.25;font-family:MathJax_Math;-inkscape-font-specification:MathJax_Math;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        x="98.31855"
        y="171.39474"
        id="text1397-1-0-6"><tspan
@@ -1157,7 +1174,7 @@
          id="tspan1395-8-78-5"
          x="98.31855"
          y="171.39474"
-         style="stroke-width:0.26458332;font-size:2.46944444px;">ε</tspan></text>
+         style="font-size:2.46944451px;stroke-width:0.26458332">ε</tspan></text>
     <circle
        id="path10-6-6-6-0-6"
        cx="144.24538"
@@ -1225,12 +1242,6 @@
        style="fill:none;stroke:#000000;stroke-width:0.19022104;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1362-2-2-85-9)"
        d="m 131.44464,152.02992 4.41,3.31413"
        id="path1355-6-2-1-4"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
-    <path
-       style="fill:none;stroke:#000000;stroke-width:0.71894568;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1362-2-2-85-8)"
-       d="M 0.29956198,0.19870415 10.249773,15.199422"
-       id="path1355-6-2-1-0"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <text
