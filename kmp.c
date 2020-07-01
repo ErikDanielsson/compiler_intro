@@ -60,7 +60,6 @@ char* fibstring(int n) {
 		strcat(c, a);
 		strcpy(a, b);
 		strcpy(b, c);
-		strrev(c);
 	}
 	return c;
 }
@@ -82,7 +81,7 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < s_len; i++) {
 		if (i == index) {
 			printf("\033[1;31m");
-			for (int j; j < k_len; j++) {
+			for (int j = 0; j < k_len; j++) {
 				printf("%c", string[i]);
 				i++;
 			}
