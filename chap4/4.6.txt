@@ -373,7 +373,7 @@ the grammar?
 	| {2,4,5,6,8,9,10} |      D     | B | E | F | D |
 	|       {7}        |      E     |   |   |   |   |
 	|       {11}       |      F     |   |   |   |   |
-	------------------------------------------------
+	-------------------------------------------------
 
 	I0: {S'->.S, S -> SS+, S -> SS*, S -> .a}
 	I1: {S -> a.}
@@ -406,8 +406,8 @@ items.
 	iteration of the algorithm, while item set construction computes it
 	implicitly.
 	Not wordy:
-	CLOSURE = epsilon closure
-	GOTO = epsilon-closure(move)
+	CLOSURE <=> epsilon-closure
+	GOTO <=> epsilon-closure(move)
 
 ! Exercise 4.6.9 : The following is an ambiguous grammar:
 		S -> A S | b
