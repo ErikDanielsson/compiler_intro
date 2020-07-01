@@ -1,5 +1,5 @@
-CC = gcc
-CFLAGS = -Wall
+CC = gcc-10
+CFLAGS = -Wall -O3
 DEPS =
 OBJ=lexer.o symbol_table.o
 
@@ -10,17 +10,20 @@ disassemble: $(wildcard *.out)
 
 
 %.o : %.c
-	gcc -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.out : %.o
-	gcc -o $@ $<
+	$(CC) -o $@ $<
 
 
 a.out : $(OBJ)
-	gcc $(CFLAGS) -o  a.out $^
+	$(CC) $(CFLAGS) -o  a.out $^
+	rm -f *.o
 
 a_op.out : $(OBJ)
-	gcc $(CFLAGS) -O3 -o  a_op.out $^
+	$(CC) $(CFLAGS) -O3 -o  a_op.out $^
+	rm -f *.o
+
 
 
 clean:
