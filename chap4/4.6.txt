@@ -424,16 +424,18 @@ actions on input abab.
 	A -> S A
 	A -> a
 
-	I0: {S'-> .S, S -> .A S, A -> .S A, S -> .a, S -> .b}
-	I1: {S -> a.}
+	I0: {S'-> .S, S -> .A S, A -> .S A, A -> .a, S -> .b}
+	I1: {A -> a.}
 	I2: {S -> b.}
-	I3: {S'-> S., A -> S.A, A ->.S A, S -> .a, S -> .b}
-	I4: {S -> A.S, S ->.A S, S -> .a, S -> .b}
-	I5: {A -> S.A, A ->.S A, S -> .a, S -> .b}
+	I3: {S'-> S., A -> S.A, A ->.S A, A -> .a, S -> .b}
+	I4: {S -> A.S, S ->.A S, A -> .a, S -> .b}
+	I5: {A -> S.A, A ->.S A, A -> .a, S -> .b}
 	I6: {A -> SA.}
 	I7: {S -> AS,}
-	I8: {S -> A.S, S -> .AS, S -> .a, S -> .b}
+	I8: {S -> A.S, S -> .AS, A -> .a, S -> .b}
 
+	There is a shift/reduce conflict in that several of the item sets
+	resolve both directly to a terminal and via a nonterminal
 
 
 	S' => S => A S => A A S >= A A b => A S A b => A S ab => A bab => abab
