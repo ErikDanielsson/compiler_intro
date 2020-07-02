@@ -1,5 +1,5 @@
 CC = gcc-10
-CFLAGS = -Wall -O3
+CFLAGS = -Wall
 DEPS =
 OBJ=lexer.o symbol_table.o
 
