@@ -414,3 +414,8 @@ The resulting set of LALR(1) items looks like this:
 	I10: {[S -> Bc., $]}
 	I12: {[S -> bAc.,$]}
 	I13: {[S -> bBa.,$]}
+
+While there is an unique action for each of the sets of items for the LR(1)
+items, which implies that the grammar is LR(1), there is a reduce/reduce
+conflict for the LALR(1) in item I0407, since both items reduce to d on
+lookahead c/d. 
