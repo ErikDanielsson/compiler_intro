@@ -338,8 +338,79 @@ A -> d
 is LALR(1) but not SLR(1).
 
 
+There is a shift/reduce conflict on initial input 'd', since the SLR parser can
+either reduce the symbol to and A or shift to the item S -> d.c. This conflict
+doesn't exist for the LALR(1) grammar since the items [A -> .d, a] and
+[S -> .dc, c] have different lookahead symbols. Since this is the only conflict
+causing the grammar to not be SLR(1), and LALR(1) is a superset of SLR(1), we
+conclude that the grammar must be LALR.
+
 ! Exercise 4.7.5: Show that the following grammar
 S -> Aa|bAc|Bc|bBa
 A -> d
 B -> d
-is LR (1) but not LALR (1).
+is LR(1) but not LALR(1).
+The canonical collection of LR(1) items on the augmented grammar:
+	I00: {[S'-> .S, $],
+	      [S -> .Aa, $],
+	      [A -> .d, a],
+	      [S -> .bAc, $],
+	      [S -> .Bc, $],
+	      [B -> .d, c],
+	      [S -> .bBa, $]}
+
+	I01: {[S'-> S., $]}
+
+	I02: {[S -> A.a, $]}
+	I03: {[S -> B.c, $]}
+
+	I04: {[A -> d., a],
+	      [B -> d., c]}
+
+	I05: {[S -> b.Ac, $],
+	      [A -> .d, c],
+	      [S -> b.Ba, $],
+	      [B -> .d, a]}
+
+	I06: {[S -> bA.c,$]}
+
+	I07: {[A -> d., c],
+	      [B -> d., a]}
+
+	I08: {[S -> bB.a,$]}
+
+	I09: {[S -> Aa., $]}
+	I10: {[S -> Bc., $]}
+	I12: {[S -> bAc.,$]}
+	I13: {[S -> bBa.,$]}
+
+The resulting set of LALR(1) items looks like this:
+	I00: {[S'-> .S, $],
+	      [S -> .Aa, $],
+	      [A -> .d, a],
+	      [S -> .bAc, $],
+	      [S -> .Bc, $],
+	      [B -> .d, c],
+	      [S -> .bBa, $]}
+
+	I01: {[S'-> S., $]}
+
+	I02: {[S -> A.a, $]}
+	I03: {[S -> B.c, $]}
+
+	I0407: {[A -> d., a/c],
+	      [B -> d., c/a]}
+
+	I05: {[S -> b.Ac, $],
+	      [A -> .d, c],
+	      [S -> b.Ba, $],
+	      [B -> .d, a]}
+
+	I06: {[S -> bA.c,$]}
+
+	I08: {[S -> bB.a,$]}
+
+	I09: {[S -> Aa., $]}
+	I10: {[S -> Bc., $]}
+	I12: {[S -> bAc.,$]}
+	I13: {[S -> bBa.,$]}
