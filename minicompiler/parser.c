@@ -1,0 +1,9 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+#include <ctype.h>
+#include "lexer.h"
+#include "symbol_table.h"
+#include "parser.h"

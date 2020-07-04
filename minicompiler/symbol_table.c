@@ -81,7 +81,6 @@ char* closest_key(struct SymTab* symboltable, const char* string) {
 	for (int i = 0; i < MAX_ID_SIZE; i++)
 		tmp1[i] = 0x20;
 	tmp1[MAX_ID_SIZE] = 0x00;
-
 	int shortest_diff = 2147483647;
 	for (int q = 0; q< TABLE_SIZE; q++) {
 		struct entry* c_entry = symboltable->entries[q];

@@ -9,8 +9,9 @@ enum TokenType {
 	//Keywords
 	UTILIZING,
 	PROGRAM,
-	FLOAT_TYPE,
-	INT_TYPE,
+	FTYPE,
+	ITYPE,
+	STYPE,
 	NAND,
 	IF,
 	ELIF,
@@ -35,7 +36,12 @@ struct Token {
 	int column;
 	char* lexeme;
 };
+extern char* filename;
+extern int file_desc;
+extern struct SymTab* symbol_table;
+extern int error_flag;
 
 void init_lexer();
 struct Token* lexer();
 void token_error(int length, char* expected);
+struct Token* get_token();
