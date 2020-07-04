@@ -1,0 +1,110 @@
+4.8.4
+Exercises for Section 4.8
+! Exercise 4.8.1: The following is an ambiguous (augmented) grammar for
+expressions with n binary, infix operators, at n different levels of precedence:
+		E'-> E
+		E -> E O1 E | E O2 E | ... E On E | (E) | id
+
+a) As a function of n, what are the SLR sets of items?
+f(n) in pseudo(code|mathematics)
+f(n) : {
+	I0: {E' -> .E,			I4: {E -> (E.),
+	     E -> .E O1 E,		     E -> E. O1 E,
+	     E -> .E O2 E,		     E -> E. O2 E,
+	     ...			     ...
+	     E -> .E On E,		     E -> E. On E}
+	     E -> .(E),
+	     E -> .id}			I5: {E -> (E).}
+
+	I1: {E' -> E.,			for i = 1...n:
+	     E -> E. O1 E,			I(5+i):   {E -> E Oi. E
+	     E -> E. O2 E,				   E -> .E O1 E,
+	     ...					   E -> .E O2 E,
+	     E -> E. On E}				   ...
+							   E -> .E On E,
+	I2: {E -> id.}				    	   E -> .(E),
+							   E -> .id}
+	I3: {E -> (.E),
+	     E -> .E O1 E,			I(5+n+i): {E -> E O1. E,
+	     E -> .E O2 E,				   E -> E. O2 E,
+	     ...					   ...
+	     E -> .E On E,				   E -> E. On E}
+	     E -> .(E),
+	     E -> .id}
+}
+
+b) How would you resolve the conflicts in the SLR items so that all oper­ators
+are left associative, and O1 takes precedence over O2, which takes
+precedence over O3, and so on?
+
+The general case can be resolve it in the same fashion as explained on
+pages 279-280. Lets say the parser has reached the configuration (in terms of
+the above defined sets of items):
+
+	PREFIX    STACK              INPUT
+	E Ok E    0 1 (5+k) (5+n+k)  O(5+p) id
+
+If p > 0, which means that the next operand in the input has higher precedence
+than last operand which is already on the stack, the parser would shift to state
+I(5+k+p). Analogously, if p <= k, which means that the next operand has lower or
+equal precedence, the parser would reduce the production to E.
+
+c) Show the SLR parsing table that results from your decisions in part (b).
+The grammar is labeled as follows:
+(1) E -> id
+(2) E -> (E)
+(2+k) E -> E Ok E
+-----------------------------------------------------------------------------------
+| STATE |               ACTION                                             | GOTO  |
+|       | id | (  |   )    |    O1    |    O2    | ... |    On    |   $    |       |
+|----------------------------------------------------------------------------------|
+|   0   | s2 | s3 |        |          |          |     |          |        |   1   |
+|   1   |    |    |        | s(5+n+1) | s(5+n+1) | ... | s(5+n+n) |   acc  |       |
+|   2   |    |    |        |    r1    |    r1    | ... |    r1    |   r1   |       |
+|   3   | s2 | s3 |        |          |          |     |          |        |   4   |
+|   4   |    |    |   s5   | s(5+n+1) | s(5+n+2) | ... | s(5+n+n) |        |       |
+|   5   |    |    |        |    r2    |    r2    | ... |    r2    |   r2   |       |
+|  5+1  | s2 | s3 |        |          |          |     |          |        | 5+n+1 |
+|  5+2  | s2 | s3 |        |          |          |     |          |        | 5+n+2 |
+|  ...  | s2 | s3 |        |          |          |     |          |        |  ...  |
+|  5+n  | s2 | s3 |        |          |          |     |          |        | 5+n+n |
+| 5+n+1 |    |    | r(2+1) | r(2+1)   |  s(5+2)  | ... |  s(5+n)  | r(2+1) |       |
+| 5+n+2 |    |    | r(2+2) | r(2+2)   |  s(5+3)  | ... |  s(5+n)  | r(2+2) |       |
+|  ...  |    |    | r(2+i) | r(2+i)   |  r(2+i)  | ... |  s(5+n)  | r(2+i) |       |
+| 5+n+n |    |    | r(2+n) | r(2+n)   |  r(2+n)  | ... |  r(2+n)  | r(2+n) |       |
+------------------------------------------------------------------------------------
+Note: The ... column in next to last row is r(2+1) if i <= k for the operator Ok
+else it is s(5+k).
+
+d) Repeat parts (a) and (c) for the unambiguous grammar, which defines
+the same set of expressions, shown in Fig. 4.55.
+The grammar is (augmented):
+
+	E'     -> E1
+	E1     -> E1 O1 E2 | E2
+	E2     -> E2 O2 E3 | E3
+	      ...
+	En     -> En On E(n+1) | E(n+1)
+	E(n+1) -> (E1) | id
+Which gives the following collection of SLR sets:
+I0: {E' -> .E1,
+     E1 -> .E1 O1 E2,
+     E1 -> .E2,
+     E2 -> .E2 O1 E3
+     E2 -> .E3,
+     ...
+     En -> .En On E(n+1),
+     En -> .E(n+1),
+     E(n+1) ->  .(E1),
+     E(n+1) -> .id}
+
+I1: {E' -> E1.,
+     E1 -> E1. O1 E2}
+for i = 2...n:
+	for j = i...n:
+
+
+e) How do the counts of the number of sets of items and the sizes of the tables
+for the two (ambiguous and unambiguous) grammars compare? What
+does that comparison tell you about the use of ambiguous expression
+grammars?
