@@ -4,7 +4,7 @@ single_line_comment ->  SINGLE_LINE_COMMENT
 block_comment -> MULTI_LINE_COMMENT
 
 program -> PROGRAM ID LCBRACK compound_statement RCBRACK
-compound_statement -> (statement)*
+compund_statement -> statement_list statement | statement
 statement -> variable_declaration SEMI
           | function_declaration
           | return_statement SEMI
@@ -12,29 +12,41 @@ statement -> variable_declaration SEMI
           | function_call SEMI
           | if-else_statement
           | while_loop
-		  | for_loop
+	  | for_loop
           | empty
-variable_declaration -> type ID (ASSIGN expr)?
-function_declaration -> DEFINE ID LPAREN
+variable_declaration -> type ID
+                      | type ID ASSIGN expr
+
+function_declaration -> DEFINE ID (params) { compund statement}
                      (param_decl (COMMA param_decl)*)?
                      RPAREN
                      LCBRACK compound_statement RETURN expr RCBRACK
+
 return_statement -> RETURN expr
-params -> (param_decl (COMMA param_decl)*)?
+
+params -> param_decl param_list | param_decl | epsilon
+param_list -> , param_list | para_decl
+
 param_decl -> type ID
-type -> INTEGER | FLOAT
-expr -> term ((PLUS|MINUS) term)*
-term -> factor ((MUL|DIV|MOD) factor)*
-factor -> expiand ((EXP) expiand)*
 
-expiand -> expr
-        | NUM
-        | ID
-        | function_call
-        | PLUS expiand
-        | MINUS expiand
+type -> STYPE | ITYPE | FTYPE
 
-assignment_statement -> ID ((ASSIGN|crement) expr)|signle_crement) SEMI
+expr -> expr - expr
+      | expr + expr
+      | expr / expr
+      | expr % expr
+      | expr * expr
+      | expr ^ expr
+      | (expr)
+      | ICONST
+      | FCONST
+      | ID
+      | function_call
+      | + expr
+      | - expr
+
+
+assignment_statement -> ID (ASSIGN expr)|SUFFIXOP) ;
 N_crement ->
 		| INCREMENT_N
         | DECREMENT_N
@@ -81,16 +93,19 @@ TOKENS
 SINGLE_LINE_COMMENT : '#'
 MULTI_LINE_COMMENT : #o# .* #o#
 
+epsilon : ""
+
 variable_types
-INTEGER : \d+
-FLOAT : \d+\.\d+
-STRING : \".*\" OR \'.*\'
+ICONST : \d+
+FCONST : \d+\.\d+
+SCONST : \".*\" OR \'.*\'
 
 keywords:
 UTILIZING : "utotilolizinongog"
 PROGRAM : "poprorogogroramom"
-FLOAT_TYPE : "fofloloatot"
-INT_TYPE : "inontot"
+FTYPE : "fofloloatot"
+ITYPE : "inontot"
+STYPE : "sostotrorinongog"
 NAND : "naand"
 IF : "ifof"
 ELIF : "elolifof"
@@ -103,25 +118,25 @@ STD_IN : "inonpoputot"
 STD_OUT : "poprorinontot"
 
 single_chars:
-PLUS : "+"
-MINUS : "-"
-MUL : "*"
-DIV : "/"
-EXP : "^"
-MOD : "%"
-SEMI : ";"
-COLON : ":"
-DOT : "."
-COMMA : ","
-ASSIGN : "="
-STRICTLY_BIGGER : ">"
-STRICTLY_SMALLER : "<"
-LPAREN : "("
-RPAREN : ")"
-LCBRACK : "{"
-RCBRACK : "}"
+"+" : "+"
+"-" : "-"
+"*" : "*"
+"/" : "/"
+"^" : "^"
+"%" : "%"
+";" : ";"
+":" : ":"
+"." : "."
+"," : ","
+"=" : "="
+">" : ">"
+"<" : "<"
+"(" : "("
+")" : ")"
+"{" : "{"
+"}" : "}"
 
-relop_tokens:
+ASSIGN:
 INCREMENT_N : "+="
 DECREMENT_N : "-="
 MULTIMENT_N : "*=:"
