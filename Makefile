@@ -1,11 +1,11 @@
 CC = gcc-10
-CFLAGS = -Wall
+CFLAGS = -Wall -O3
 DEPS =
-OBJ=lexer.o symbol_table.o
+OBJ=main.o lexer.o symbol_table.o
 
 disassemble: $(wildcard *.out)
 	objdump -d --disassembler-options=intel-mnemonic $< \
-	>disassembled.asm
+	>$(basename $<).asm
 
 
 
@@ -21,7 +21,7 @@ a.out : $(OBJ)
 	rm -f *.o
 
 a_op.out : $(OBJ)
-	$(CC) $(CFLAGS) -O3 -o  a_op.out $^
+	$(CC) $(CFLAGS) -o  a_op.out $^
 	rm -f *.o
 
 
