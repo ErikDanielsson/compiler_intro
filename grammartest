@@ -1,0 +1,8 @@
+start ->  E
+E -> E '+' E
+E -> 'id'
+E -> '(' E ')'
+E -> L
+L -> A X
+X -> 'q'
+A -> 'a'
