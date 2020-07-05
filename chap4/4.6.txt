@@ -60,9 +60,9 @@ the parsing table for this grammar. Is the grammar SLR?
 | STATE |     ACTION	    | GOTO |
 |	| a  | +  | *  | $  |  S   |
 |----------------------------------|
-|   0   | s1 |    |    | ac |  2   |
+|   0   | s1 |    |    |    |  2   |
 |   1   | r3 | r3 | r3 |    |      |
-|   2   | s1 |    |    |    |  3   |
+|   2   | s1 |    |    | ac |  3   |
 |   3   |    | s4 | s5 |    |      |
 |   4   | r1 | r1 | r1 | r1 |      |
 |   5   | r2 | r2 | r2 | r2 |      |
