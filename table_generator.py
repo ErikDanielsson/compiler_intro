@@ -1,11 +1,12 @@
 class SLR_item:
-	def __init__(self, head, body):
+	def __init__(self, head, body, production_number):
 		self.head = head
 		self.body = body
+		self.production_number = production_number
 	def __str__(self):
 		return f"'{self.head} -> {self.body}'"
 	def __repr__(self):
-		return f"{self.body}"
+		return self.__str__()
 	def __getitem__(self, index):
 		return self.body[index]
 	def next_symbol(self):
@@ -49,7 +50,7 @@ def first_and_follow(productions, nonterminals, terminals):
 		first[terminal] = {terminal}
 		nullable[terminal] = False
 		follow[terminal] = set()
-
+	follow['start'] = {'$'}
 	last_hash = 0
 	curr_hash = ffnhash(first, follow, nullable)
 	while curr_hash != last_hash:
@@ -75,6 +76,7 @@ def first_and_follow(productions, nonterminals, terminals):
 						follow[b] |= first[body[i+1]]
 		last_hash = curr_hash
 		curr_hash = ffnhash(first, follow, nullable)
+
 	return first, follow, nullable
 
 def ffnhash(first, follow, nullable):
@@ -95,104 +97,83 @@ def ffnhash(first, follow, nullable):
 def generate_SLR_items():
 		items = dict()
 		nonterminals = set()
-		terminals = set()
+		terminals = {'$'}
 		productions = dict()
+		rules = list()
 		with open("grammartest", "r", encoding="utf-8") as f:
+			prod_num = 0
 			for s in f:
 				if s == '\n':
 					continue
 				prod_head = ""
-
 				i = 0
 				while (s[i] != ' ' and s[i] != '-'):
 					prod_head += s[i]
 					i += 1
-
 				while (s[i] == ' ' or s[i] == '-' or s[i] == '>'):
 						i += 1
 				s_i = i
 				if (items.get(prod_head) == None):
 					items[prod_head] = set()
 					productions[prod_head] = set()
-				#Add the first item which always begins with a '.'
-				item = SLR_item(prod_head, s[s_i:i] + '.' + s[i:-1])
-				items[prod_head].add(item)
-				last_i = i
-				while (s[i] != "\n"):
-					# For each symbols in production, make one item.
-					while (s[i] == ' ' or s[i] == '\t'):
-						if (s[i] == "\n"):
-							break
-						i += 1
+				or_productions = [or_production.strip()
+								  for or_production in s[s_i:-1].split('|')]
+				for or_production in or_productions:
+					print(f"'{or_production}'")
+					rules.append((prod_head, or_production))
+					#Add the first item which always begins with a '.'
+					item = SLR_item(prod_head, '.' + or_production, prod_num)
+					items[prod_head].add(item)
 					last_i = i
-
-					while (s[i] != ' ' and s[i] != '\t'):
-						if (s[i] == "\n"):
-							break
-						i += 1
-					symbol = s[last_i:i]
-					if symbol:
+					symbols = or_production.split(' ')
+					for i, symbol in enumerate(symbols):
+						print(prod_head, "'"+" ".join(symbols[:i+1]) + '. ' + " ".join(symbols[i+1:]).strip()+"'")
 						if (symbol[0] == "'" and symbol[-1] == "'"):
 							terminals.add(symbol)
 						else:
 							nonterminals.add(symbol)
-					body = s[s_i:i] + '.' + s[i:-1]
-					item = SLR_item(prod_head, body)
-					items[prod_head].add(item)
-				productions[prod_head].add(s[s_i:-1])
-		return items, productions, nonterminals, terminals
-
-def generate_SLR_sets(items, terminals, nonterminals):
-
-	collection = set()
-	new_sets = set()
-	new_sets.add(frozenset(CLOSURE({SLR_item("start", ".E")}, items)))
-	while True:
-		tmp_sets = set()
-		for item_set in new_sets:
-			for symbol in symbols:
-				tmp = GOTO(item_set, symbol, items)
-				if tmp is not None:
-					tmp = frozenset(tmp)
-					if tmp not in collection.union(new_sets):
-						tmp_sets.add(frozenset(tmp))
-		if tmp_sets == set():
-			break
-		collection = collection.union(new_sets)
-		new_sets = set(tmp_sets)
-	return collection
-
-
+						item = SLR_item(prod_head,
+										(" ".join(symbols[:i+1]) + '. ' + " ".join(symbols[i+1:])).strip(),
+										prod_num)
+						items[prod_head].add(item)
+					prod_num += 1
+					productions[prod_head].add(or_production)
+				print(prod_head, items[prod_head])
+		return rules, items, productions, nonterminals, terminals
 
 def generate_SLR_parsing_table(items, nonterminals, terminals, follow):
 	table = list()
 	collection = list()
 	new_sets = list()
-	new_sets.append(frozenset(CLOSURE({SLR_item("start", ".E")}, items)))
+	new_sets.append(frozenset(CLOSURE({SLR_item("start", ".S", 0)}, items)))
+	j = 0
 	while True:
 		tmp_sets = list()
 		i = len(collection)+len(new_sets)
 		for item_set in new_sets:
 			tmp_row = dict()
 			tmp_row[0] = item_set
+			j += 1
 			for terminal in terminals:
 				tmp = GOTO(item_set, terminal, items)
 
 				if tmp is not None:
 					tmp = frozenset(tmp)
 					if tmp in collection:
-						tmp_row[terminal] = collection.index(tmp)
+						tmp_row[terminal] = (0, collection.index(tmp))
 					else:
 						if tmp in new_sets:
-							tmp_row[terminal] = new_sets.index(tmp)+len(collection)
+							tmp_row[terminal] = (0, new_sets.index(tmp)+len(collection))
+
 						else:
-							tmp_row[terminal] = i
+							tmp_row[terminal] = (0, i)
 							tmp_sets.append(tmp)
 							i += 1
-				for item in item_set:
-					if item.body[-1] == '.':
-						if terminal in follow[item.head]:
-							tmp_row[terminal] = item.head
+				else:
+					for item in item_set:
+						if item.body[-1] == '.':
+							if terminal in follow[item.head]:
+								tmp_row[terminal] = (1, item.production_number)
 
 
 			for nonterminal in nonterminals:
@@ -200,22 +181,20 @@ def generate_SLR_parsing_table(items, nonterminals, terminals, follow):
 				if tmp is not None:
 					tmp = frozenset(tmp)
 					if tmp in collection:
-						tmp_row[nonterminal] = collection.index(tmp)
+						tmp_row[nonterminal] = (0, collection.index(tmp))
 					else:
 						if tmp in new_sets:
-							tmp_row[nonterminal] = new_sets.index(tmp)+len(collection)
+							tmp_row[nonterminal] = (0, new_sets.index(tmp)+len(collection))
 						else:
-							tmp_row[terminal] = i
+							tmp_row[nonterminal] = (0, i)
 							tmp_sets.append(tmp)
 							i += 1
+
+				else:
 					for item in item_set:
 						if item.body[-1] == '.':
 							if nonterminal in follow[item.head]:
-								tmp_row[terminal] = item.head
-			print()
-			for k, s in tmp_row.items():
-				print(k, s)
-			print()
+								tmp_row[terminal] = (1, item.production_number)
 			table.append(tmp_row)
 		if tmp_sets == list():
 			break
@@ -248,52 +227,113 @@ def CLOSURE(current_set, items):
 def GOTO(current_set, symbol, items):
 	# The GOTO function for SLR explained in the dragon book
 	next_set = set()
+	print(set(current_set))
 	for item in current_set:
 		next_symbol = item.next_symbol()
+		print(f"Goto {symbol} on item {item} : {next_symbol}")
 		if symbol == next_symbol:
 			next_body = item.str_of_next_item()
+			print(next_body)
 			for next_item in items[item.head]:
+				print(next_item)
 				if next_item.body == next_body:
 					next_set.add(next_item)
 					break
+	print(next_set)
 	if next_set:
 		return CLOSURE(next_set, items)
 	return None
 
-items, productions, nonterminals, terminals = generate_SLR_items()
-print("productions:", productions)
-print("item:", items)
+rules, items, productions, nonterminals, terminals = generate_SLR_items()
+print("rules", rules)
+print("productions", productions)
 print("nonterminals", nonterminals)
-nonterminals.add('start')
 print("terminals", terminals)
+nonterminals.add('start')
 first, follow, nullable = first_and_follow(productions, nonterminals, terminals)
-print("first: ")
-for key, symbols in first.items():
-	print(f"{key}: {symbols}")
-print("follow: ")
-
-for key, symbols in follow.items():
-	print(f"{key}: {symbols}")
-
-#for key, symbols in compute_follow(production_bodies, nonterminals, terminals).items():
-	#print(f"{key}: {symbols}")
-#collection = generate_SLR_sets(items, nonterminals, terminals)
-#for s in collection:
-#        print(s)
 
 c, t = generate_SLR_parsing_table(items, nonterminals, terminals, follow)
-for s in c:
-	print(c)
-	print()
-print("table")
-for i, r in enumerate(t):
-	for f in r[0]:
-		print(f, end = " ")
-	print()
-	print("action")
 
-	for key, value in r.items():
-		if key == 0:
-			continue
-		print(key, value)
+def LR_parsing_algorithm(parsing_table, reduction_rules, input):
+	reduction_rules = [(r[0], r[1].split()) for r in reduction_rules]
+	stack = list()
+	stack.append(0)
+
+	input = "'" + input.replace(" ", "' '") + "'"
+	input = input.split()
+	i = 0
+	symbol_stack = input[0]
+	while 1:
+		a = input[i] if i < len(input) else '$'
+		action = parsing_table[stack[-1]].get(a)
+		if action == None:
+			print(f"error in state {stack[-1]} on symbol {a}")
+			break
+		elif action[0] == 0:
+			stack.append(action[1])
+			i += 1
+		else:
+			if action[1] == 0:
+				print("parsing done")
+				break
+			else:
+				r = reduction_rules[action[1]]
+				for _ in range(len(r[1])):
+					stack.pop()
+				stack.append(parsing_table[stack[-1]].get(r[0])[1])
+				print(r[0] + " -> " + " ".join(r[1]))
+				print("stack:", stack, "left to parse:", input[i:])
+
+
+
+print("ITEM SET")
+for i, r in enumerate(t):
+	print(f"I{i}")
+	for f in r[0]:
+		print(f)
 	print()
+for i, rule in enumerate(rules):
+	print(f"({i}) {rule[0]} -> {rule[1]}")
+n_terminals = len(terminals)
+n_nonterminals = len(nonterminals)
+print("\u250C"+("\u2500"*7+"\u252C")+("\u2500")*(n_terminals*8-1)+"\u252C"+"\u2500"*(n_nonterminals*8-1)+"\u2510")
+print("\u2502 STATE \u2502 ", end="\t")
+print("\t"*(n_terminals-n_terminals//2-2)+"      "\
+	"ACTION"+"  "+"\t"*(n_terminals//2), end = "")
+print("\u2502"+"\t "*(n_nonterminals-n_nonterminals//2-1)+\
+	"      GOTO"+"\t"*(n_nonterminals//2)+"\u2502")
+print("\u2502", end="\t")
+print("\u251C"+7*"\u2500"+("\u252C"+7*"\u2500")*(n_terminals-1)+"\u253C"+(7*"\u2500"+"\u252C")*(n_nonterminals-1)+7*"\u2500"+"\u2524")
+print("\u2502", end="\t")
+
+for terminal in terminals:
+	print(f"\u2502 {terminal}", end="\t")
+for nonterminal in nonterminals:
+	print(f"\u2502 {nonterminal}", end="\t")
+print("\u2502")
+print("\u251C"+("\u2500"*7+"\u253C")*(n_terminals+n_nonterminals)+"\u2500"*7+"\u2524")
+for i, r in enumerate(t):
+	print(f"\u2502 {i}", end="\t")
+	for terminal in terminals:
+		if r.get(terminal):
+			x = r[terminal]
+			if x[0] == 0:
+				print(f"\u2502 s{x[1]}", end="\t")
+			else:
+				print(f"\u2502 r{x[1]}", end="\t")
+		else:
+			print("\u2502", 	end="\t")
+	for nonterminal in nonterminals:
+		if r.get(nonterminal):
+			x = r[nonterminal]
+			if x[0] == 0:
+				print(f"\u2502 s{x[1]}", end="\t")
+			else:
+				print(f"\u2502 r{x[1]}", end="\t")
+		else:
+			print("\u2502", end="\t")
+	print("\u2502")
+print("\u2514"+("\u2500"*7+"\u2534")*(n_terminals+n_nonterminals)+"\u2500"*7+"\u2518")
+while True:
+	i = input()
+	LR_parsing_algorithm( t, rules, i)
