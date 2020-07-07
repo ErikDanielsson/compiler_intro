@@ -121,7 +121,7 @@ class LR_item_set():
 	def __getitem__(self, index):
 		return self.set[index]
 	def __contains__(self, item):
-		# Bit of a stretch for incapsulation...
+		# Bit of a stretch for encapsulation...
 		if not item in self.set:
 			return False
 		elif not self.set[self.set.index(item)].lookaheads.intersection(item.lookaheads):
