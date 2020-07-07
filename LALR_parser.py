@@ -37,25 +37,22 @@ class item:
 		self.prod_num = prod_num
 	def __len__(self):
 		return self.length
-
-class SLR_item(item):
-	def __init__(self, head, body, index, prod_num):
-		super().__init__(head, body, index, prod_num)
 	def next_symbol(self):
 		index = self.index
 		if index < self.length:
 			return self.body[index]
 		return None
-	def next_next_symbol(self):
-		index = self.index
-		if index < self.length-1:
-			return self.body[index+1]
-		return None
+
+class SLR_item(item):
+	def __init__(self, head, body, index, prod_num):
+		super().__init__(head, body, index, prod_num)
 	def next_item(self):
 		index = self.index
 		if index < self.length:
 			return (self.body, index+1)
 		return None
+	def __eq__(self, item):
+		return self.head == item.head and self.body == item.body and self.index == item.index
 	def get_LR_item(self):
 		return LR_item(self.head, self.body, self.index, self.prod_num)
 	def __str__(self):
@@ -65,13 +62,17 @@ class SLR_item(item):
 		       f"{s2}]")
 	def __repr__(self):
 		return self.__str__()
+	def __hash__(self):
+		return hash((self.index, self.prod_num))
 
 class LR_item(item):
 	def __init__(self, head, body, index, prod_num):
-		super().__init__(self, head, body, index, prod_num)
+		super().__init__(head, body, index, prod_num)
 		self.lookaheads = set()
 	def add(self, lookahead):
 		self.lookaheads.add(lookahead)
+	def union(self, other_set):
+		self.lookaheads.update(other_set)
 	def __len__(self):
 		return len(self.lookaheads)
 	def __contains__(self, lookahead):
@@ -84,6 +85,20 @@ class LR_item(item):
 		       f"{s2}, {s3}]")
 	def __repr__(self):
 		return self.__str__()
+	def __eq__(self, item):
+		return self.head == item.head and self.body == item.body and \
+			   self.index == item.index
+	def join(self, item):
+		if self.head == item.head and self.body == item.body and \
+			   self.index == item.index:
+			self.union(item.lookaheads)
+			return True
+		return False
+	def next_next_symbol(self):
+		index = self.index
+		if index < self.length-1:
+			return self.body[index+1]
+		return None
 
 class LR_item_set():
 	def __init__(self, *args):
@@ -96,20 +111,37 @@ class LR_item_set():
 		else:
 			self.set = list()
 	def add(self, lr_item):
-		if lr_item not in self.set:
-			self.set.append(lr_item)
+		for item in self.set:
+			if item.join(lr_item):
+				return
+		self.set.append(lr_item)
 	def union(self, item_set):
 		for item in item_set:
 			self.add(item)
 	def __getitem__(self, index):
 		return self.set[index]
+	def __contains__(self, item):
+		# Bit of a stretch for incapsulation...
+		if not item in self.set:
+			return False
+		elif not self.set[self.set.index(item)].lookaheads.intersection(item.lookaheads):
+			return False
+		return True
 	def __len__(self):
 		return len(self.set)
+	def __str__(self):
+		return '\t'+'\n\t'.join([item.__str__() for item in self.set])
+	def __repr__(self):
+		return self.__str_
+	def __eq__(self, item_set):
+		return self.set == item_set.set
+	def __hash__(self):
+		return hash(tuple(self.set))
 
 class SLR_item_set:
 	def __init__(self, *args):
 		if args:
-			self.set = args[0].set.copy()
+			self.set = list(args[0].set)
 		else:
 			self.set = list()
 	def add(self, slr_item):
@@ -122,10 +154,14 @@ class SLR_item_set:
 		return self.set[index]
 	def __len__(self):
 		return len(self.set)
+	def __eq__(self, item_set):
+		return self.set == item_set.set
 	def __str__(self):
 		return '\t'+'\n\t'.join([item.__str__() for item in self.set])
 	def __repr__(self):
 		return self.__str__()
+	def __hash__(self):
+		return hash(tuple(self.set))
 
 class SLR_collection:
 	def __init__(self, *args):
@@ -142,6 +178,11 @@ class SLR_collection:
 			self.add(item_set)
 	def __getitem__(self, index):
 		return self.collection[index]
+	def __contains__(self, item):
+		for i in self.collection:
+			if i == item:
+				return True
+		return False
 	def __len__(self):
 		return len(self.collection)
 	def __nonzero__(self):
@@ -156,6 +197,7 @@ class SLR_collection:
 		return "Collection:\n"+ "\n\n".join([str(i) for i in self.collection])
 	def __repr__(self):
 		return self.__str__()
+
 class Parsing_table:
 	def __init__(self):
 		self.table = list()
@@ -168,7 +210,9 @@ class Parsing_table:
 	def index(self, value):
 		return self.collection.index(value)
 	def __str__(self):
-		return str(self.table)
+		s = '\n'.join((str(i) for i in self.table))
+		return s
+
 class custom_set:
 	def __init__(self, *args):
 		if args:
@@ -207,14 +251,15 @@ def construct_SLR_items_terminals_and_nonterminals():
 			if prod[0] == '\n':
 				continue
 			prod_head = prod[0].strip()
+			nonterminals.add(prod_head)
 			if items.get(prod_head) == None:
 				items[prod_head] = set()
-				prods[prod_head] = custom_set()
+				prods[prod_head] = set()
 			or_prods = prod[1].strip().split(' | ')
 			for or_prod in or_prods:
 				symbols = or_prod.split(' ')
 				rules.append((prod_head, or_prod))
-				prods[prod_head].add(symbols)
+				prods[prod_head].add(tuple(symbols))
 				item = SLR_item(prod_head, symbols, 0, prod_num)
 				items[prod_head].add(item)
 				for i, symbol in enumerate(symbols):
@@ -234,25 +279,27 @@ def generate_collection_and_GOTO_table(items, nonterminals, terminals):
 	tmp_set = SLR_item_set()
 	tmp_set.add(SLR_item("start", ['S'], 0, 0))
 	new_sets.add(SLR_CLOSURE(tmp_set, items))
-	for q in range(4):
-		tmp_sets = SLR_item_set()
-		print(q, new_sets)
-
+	while True:#for _ in range(2):
+		tmp_sets = SLR_collection()
 		i = len(collection)+len(new_sets)
 		for item_set in new_sets:
 			row = dict()
 			for terminal in terminals:
 				tmp = SLR_GOTO(item_set, terminal, items)
+
 				if tmp is not None:
 					if tmp in collection:
 						row[terminal] = (0, collection.index(tmp))
 					else:
+
 						if tmp in new_sets:
+							print("hej")
 							row[terminal] = (0, new_sets.index(tmp)+len(collection))
 						else:
 							row[terminal] = (0, i)
 							tmp_sets.add(tmp)
 							i += 1
+
 			for nonterminal in nonterminals:
 				tmp = SLR_GOTO(item_set, nonterminal, items)
 				if tmp is not None:
@@ -260,16 +307,16 @@ def generate_collection_and_GOTO_table(items, nonterminals, terminals):
 						row[terminal] = (0, collection.index(tmp))
 					else:
 						if tmp in new_sets:
-							row[terminal] = (0, new_sets.index(tmp)+len(collection))
+							row[nonterminal] = (0, new_sets.index(tmp)+len(collection))
 						else:
-							row[terminal] = (0, i)
+							row[nonterminal] = (0, i)
 							tmp_sets.add(tmp)
 							i += 1
 			table.append(row)
 		collection.union(new_sets)
 		if not tmp_sets:
 			break
-		new_sets = SLR_item_set(tmp_sets)
+		new_sets = SLR_collection(tmp_sets)
 	return collection, table
 
 def SLR_GOTO(slr_set, symbol, items):
@@ -314,13 +361,13 @@ def SLR_kernel(slr_collection):
 			kernel_set.add(item)
 		elif item.index > 0:
 			kernel_set.add(item)
-	kernel_collection.append(kernel_set)
+	kernel_collection.add(kernel_set)
 	for item_set in slr_collection[1:]:
 		kernel_set = SLR_item_set()
 		for item in item_set:
 			if item.index > 0:
 				kernel_set.add(item)
-		kernel_collection.append(kernel_set)
+		kernel_collection.add(kernel_set)
 	return kernel_collection
 
 class Lookahead_table:
@@ -334,85 +381,88 @@ class Lookahead_table:
 	def insert_spont(self, index, items):
 		self.spontaneous_table[index].append(items)
 
-
-def determine_lookahead_types(slr_kernel, goto_table):
+def determine_lookahead_types(slr_kernel, goto_table, first, nullable):
 	table = Lookahead_table(len(slr_kernel))
-	for kernel_set in enumerate(slr_kernel):
+	for i, kernel_set in enumerate(slr_kernel):
 		for kernel in kernel_set:
 			LR_kernel = kernel.get_LR_item()
 			LR_kernel.add('#')
-			J = LR_CLOSURE(LR_kernel)
-			for B in J:
-				print(B)
-
+			J = LR_CLOSURE(LR_kernel, first, nullable)
+			print()
+			print(f"Closure on {LR_kernel}: {{ \n{J}}}")
+			#for B in J:
+			#	print(B)
 
 def LR_CLOSURE(lalr_set, first, nullable):
 	closure = LR_item_set(lalr_set)
 	added = True
 	while added:
+		print()
 		added = False
 		tmp_set = LR_item_set()
 		for item in closure:
+			#print("Closure item", item)
 			next_symbol = item.next_symbol()
+			#print(next_symbol)
 			if (items.get(next_symbol) != None):
-				for item in items[next_symbol]:
-					if item.index == 0:
-						new_item = item.get_LR_item()
+				for slr_item in items[next_symbol]:
+					if slr_item.index == 0:
+						new_item = slr_item.get_LR_item()
 						next_next_symbol = item.next_next_symbol()
 						if next_next_symbol is not None:
 							for terminal in first[next_next_symbol]:
 								new_item.add(terminal)
 							if nullable[next_next_symbol]:
-								new_item.add(terminal)
+								new_item.union(item.lookaheads)
 						else:
-							new_item.add(terminal)
-						tmp_set.append(new_item)
-						added = True
+							new_item.union(item.lookaheads)
+						if new_item not in closure:
+							tmp_set.add(new_item)
+							added = True
 		closure.union(tmp_set)
 	return closure
 
 def first_follow_nullable(productions, nonterminals, terminals):
-	first = {nonterminal : set() for nonterminal in nonterminals}.update(
-			{terminal : set() for terminal in terminals})
-	follow = {nonterminal : set() for nonterminal in nonterminals}.update(
-			{terminal : set() for terminal in terminals})
-	nullable = {nonterminal : False for nonterminal in nonterminals}.update(
-			{terminal : False for terminal in terminals})
+	first = {nonterminal : set() for nonterminal in nonterminals}
+	first.update({terminal : {terminal} for terminal in terminals})
+
+	follow = {nonterminal : set() for nonterminal in nonterminals}
+	follow.update({terminal : set() for terminal in terminals})
+	nullable = {nonterminal : False for nonterminal in nonterminals}
+	nullable.update({terminal : False for terminal in terminals})
 	follow['start'] = {'$'}
 	last_hash = 0
 	curr_hash = ffnhash(first, follow, nullable)
 	while curr_hash != last_hash:
-		for symbol, productions in productions.items():
+		for symbol, products in productions.items():
 			for production in products:
 				l = len(production)
 				i = 0
-				while i < l and nullable[body[i]]:
+				while i < l and nullable[production[i]]:
 					i += 1
 				if i == l:
 					nullable[symbol] = True
 					continue
 
-				if i < l-1:
-					follow[body[i]] |= first[body[i+1]]
-				first[symbol] |= first[body[i]]
+				first[symbol] |= first[production[i]]
 				i = l-1
-				while i >= 0 and nullable[body[i]]:
+				while i >= 0 and nullable[production[i]]:
 					i -= 1
-				follow[body[i]] |= follow[symbol]
+				follow[production[i]] |= follow[symbol]
+				for i, b in enumerate(production):
+					while i < l and nullable[production[i]]:
+						i += 1
+					if i < l-1:
+						follow[b] |= first[production[i+1]]
 		last_hash = curr_hash
 		curr_hash = ffnhash(first, follow, nullable)
+
 	return first, follow, nullable
+
 def ffnhash(first, follow, nullable):
-	hash = 0x811c9dc5
-	for s in first.values():
-		hash = (hash ^ len(s))*0x01000193
-	hash %= 10000000
-	for s in follow.values():
-		hash = (hash ^ len(s))*0x01000193
-	hash %= 10000000
-	for s in nullable.values():
-		hash = (hash ^ s)*0x01000193
-	return hash % 10000000
+	return hash(sum(sum(hash(i) for i in s) for s in first.values())+\
+			sum(sum(hash(i) for i in s) for s in follow.values())+\
+			sum(i for i in nullable.values()))
 
 def propagate_lookaheads(unfinished_lalr_kernel, lookahead_table):
 	pass
@@ -427,5 +477,10 @@ collection, table = generate_collection_and_GOTO_table(items, nonterminals, term
 """for k, v in items.items():
 	s = "\n\t".join([i.__str__() for i in v])
 	print(f"{k}:\t{s}")"""
-print(items)
 print(collection)
+slr_kernel = SLR_kernel(collection)
+first, follow, nullable = first_follow_nullable(prods, nonterminals, terminals)
+print(first)
+print(follow)
+print(nullable)
+determine_lookahead_types(slr_kernel, table, first, nullable)
