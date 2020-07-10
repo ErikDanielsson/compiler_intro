@@ -63,7 +63,7 @@ class SLR_item(item):
 	def next_item(self):
 		index = self.index
 		if index < self.length:
-			return SLR_item(self.head, self.body, index+1, self.prod_num)
+			return (self.head, self.body, index+1)
 		return None
 	def __hash__(self):
 		return hash((self.index, self.prod_num))
@@ -390,44 +390,45 @@ def construct_SLR_items_terminals_and_nonterminals():
 					prod_num += 1
 	return rules, items, prods, nonterminals, terminals, precedence, nullable
 
-def generate_collection_and_GOTO_table(items, nonterminals, terminals, nullable):
+def generate_collection_and_GOTO_table(items, nonterminals, terminals):
 	table = list()#Parsing_table(terminals, nonterminals)
 	collection = SLR_collection()
 	new_sets = SLR_collection()
 	tmp_set = SLR_item_set()
 	tmp_set.add(SLR_item("start", ['S'], 0, 0))
-	new_sets.add(SLR_CLOSURE(tmp_set, items, nullable))
+	new_sets.add(SLR_CLOSURE(tmp_set, items))
 	while True:
 		tmp_sets = SLR_collection()
 		i = len(collection)+len(new_sets)
 		for item_set in new_sets:
 			row = dict()
 			for terminal in terminals:
-				tmp = SLR_GOTO(item_set, terminal, items, nullable)
+				tmp = SLR_GOTO(item_set, terminal, items)
 				if tmp is not None:
 					if tmp in collection:
 						row[terminal] = collection.index(tmp)
+					elif tmp in new_sets:
+						row[terminal] = new_sets.index(tmp)+len(collection)
+					elif tmp in tmp_sets:
+						row[terminal] = tmp_sets.index(tmp) + len(collection)+len(new_sets)
 					else:
-
-						if tmp in new_sets:
-							row[terminal] = new_sets.index(tmp)+len(collection)
-						else:
-							row[terminal] = i
-							tmp_sets.add(tmp)
-							i += 1
+						row[terminal] = i
+						tmp_sets.add(tmp)
+						i += 1
 
 			for nonterminal in nonterminals:
-				tmp = SLR_GOTO(item_set, nonterminal, items, nullable)
+				tmp = SLR_GOTO(item_set, nonterminal, items)
 				if tmp is not None:
 					if tmp in collection:
 						row[nonterminal] = collection.index(tmp)
+					elif tmp in new_sets:
+						row[nonterminal] = new_sets.index(tmp)+len(collection)
+					elif tmp in tmp_sets:
+						row[nonterminal] = tmp_sets.index(tmp) + len(collection)+len(new_sets)
 					else:
-						if tmp in new_sets:
-							row[nonterminal] = new_sets.index(tmp)+len(collection)
-						else:
-							row[nonterminal] = i
-							tmp_sets.add(tmp)
-							i += 1
+						row[nonterminal] = i
+						tmp_sets.add(tmp)
+						i += 1
 			table.append(row)
 		collection.union(new_sets)
 		if not tmp_sets:
@@ -435,7 +436,7 @@ def generate_collection_and_GOTO_table(items, nonterminals, terminals, nullable)
 		new_sets = SLR_collection(tmp_sets)
 	return collection, table
 
-def SLR_GOTO(slr_set, symbol, items, nullable):
+def SLR_GOTO(slr_set, symbol, items):
 	# The GOTO function for SLR explained in the dragon book
 	next_set = SLR_item_set()
 	for item in slr_set:
@@ -444,15 +445,15 @@ def SLR_GOTO(slr_set, symbol, items, nullable):
 			next_item = item.next_item()
 			if next_item is not None:
 				for prod_item in items[item.head]:
-					if prod_item.body == next_item.body and \
-					   prod_item.index == next_item.index:
+					if prod_item.body == next_item[1] and \
+					   prod_item.index == next_item[2]:
 					   next_set.add(prod_item)
 					   break
 	if next_set:
-		return SLR_CLOSURE(next_set, items, nullable)
+		return SLR_CLOSURE(next_set, items)
 	return None
 
-def SLR_CLOSURE(slr_set, items, nullable):
+def SLR_CLOSURE(slr_set, items):
 	# The CLOSURE function for SLR explained in the dragon book
 	closure = SLR_item_set(slr_set)
 	added = True
@@ -465,12 +466,6 @@ def SLR_CLOSURE(slr_set, items, nullable):
 					for _item in items[next_symbol]:
 						if _item.index == 0 and _item not in closure:
 							tmp_set.add(_item)
-							while nullable.get(_item.next_symbol()):
-								_item = _item.next_item()
-								tmp_set.add(_item)
-							else:
-								tmp_set.add(_item)
-
 							added = True
 		closure.union(tmp_set)
 	return closure
@@ -511,6 +506,7 @@ def determine_lookahead_types(slr_kernel, goto_table, first, nullable):
 				sponts = set()
 				if '#' in B:
 					propagators.add((_i, _j))
+
 				for lookahead in B:
 					if lookahead == '#':
 						continue
@@ -668,29 +664,22 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 	stack.append(0)
 	input = "'" + input.replace(" ", "' '") + "'"
 	input = input.split()
-	if input[0] == "'V'":
-		verbose = True
-	else:
-		verbose = False
-	input = input[1:]
 	i = 0
 	while True:
 		a = input[i] if i < len(input) else '$'
 		action = parsing_table[stack[-1]].get(a)
-		if verbose:
-			s = str(stack)
-			s1 = "".join(input[i:])
-			print("STACK\t" + s[1:-1])
-			print("INPUT\t" + s1+"$")
-			print("ACTION", end="\t")
+		s = str(stack)
+		s1 = "".join(input[i:])
+		print("STACK\t" + s[1:-1])
+		print("INPUT\t" + s1+"$")
+		print("ACTION", end="\t")
 		if action == None:
 			print(f"error in state {stack[-1]} on symbol {a}: stack {stack}")
 			print("".join(input[i:]))
 			break
 		elif action >= 0:
 			stack.append(action)
-			if verbose:
-				print(f"shift to {action}\n")
+			print(f"shift to {action}\n")
 			i += 1
 		else:
 			if action == -1:
@@ -701,13 +690,10 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 				for _ in range(len(r[1])):
 					stack.pop()
 				stack.append(parsing_table[stack[-1]].get(r[0]))
-				if verbose:
-					print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
+				print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
 
 rules, items, prods, nonterminals, terminals, pres, nullable = construct_SLR_items_terminals_and_nonterminals()
-collection, table = generate_collection_and_GOTO_table(items, nonterminals, terminals, nullable)
-
-
+collection, table = generate_collection_and_GOTO_table(items, nonterminals, terminals)
 slr_kernel = SLR_kernel(collection)
 first, follow, nullable = first_follow_nullable(prods, nonterminals, terminals, nullable)
 
