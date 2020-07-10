@@ -388,7 +388,6 @@ def construct_SLR_items_terminals_and_nonterminals():
 					if nullable.get(prod_head) == None:
 						nullable[prod_head] = False
 					prod_num += 1
-	print(nullable)
 	return rules, items, prods, nonterminals, terminals, precedence, nullable
 
 def generate_collection_and_GOTO_table(items, nonterminals, terminals, nullable):
@@ -443,7 +442,6 @@ def SLR_GOTO(slr_set, symbol, items, nullable):
 		next_symbol = item.next_symbol()
 		if symbol == next_symbol:
 			next_item = item.next_item()
-			print(next_item)
 			if next_item is not None:
 				for prod_item in items[item.head]:
 					if prod_item.body == next_item.body and \
@@ -466,19 +464,15 @@ def SLR_CLOSURE(slr_set, items, nullable):
 			if (items.get(next_symbol) != None):
 					for _item in items[next_symbol]:
 						if _item.index == 0 and _item not in closure:
-							print(_item)
 							tmp_set.add(_item)
 							while nullable.get(_item.next_symbol()):
 								_item = _item.next_item()
-								print(_item)
 								tmp_set.add(_item)
 							else:
 								tmp_set.add(_item)
 
 							added = True
 		closure.union(tmp_set)
-		print(closure)
-		print()
 	return closure
 
 def SLR_kernel(slr_collection):
@@ -511,9 +505,7 @@ def determine_lookahead_types(slr_kernel, goto_table, first, nullable):
 			LR_kernel.add('#')
 			J = LR_CLOSURE(LR_kernel, first, nullable)
 			propagators = set()
-			print("j", J)
 			for B in J:
-				print(B.next_symbol(), GOTO, B)
 				_i = GOTO[B.next_symbol()]
 				_j = lr_kernel[_i].index(B.next_item())
 				sponts = set()
@@ -574,7 +566,6 @@ def first_follow_nullable(productions, nonterminals, terminals, nullable):
 				l = len(production)
 				if l > 0:
 					i = 0
-					print()
 					while i < l and nullable[production[i]]:
 						first[symbol] |= first[production[i]]
 						i += 1
@@ -672,25 +663,34 @@ def generate_parse_table(lalr_kernel, goto_table, terminals, nonterminals, first
 
 def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 	print("parsing...")
+
 	stack = list()
 	stack.append(0)
 	input = "'" + input.replace(" ", "' '") + "'"
 	input = input.split()
+	if input[0] == "'V'":
+		verbose = True
+	else:
+		verbose = False
+	input = input[1:]
 	i = 0
 	while True:
 		a = input[i] if i < len(input) else '$'
 		action = parsing_table[stack[-1]].get(a)
-		s = str(stack)
-		s1 = "".join(input[i:])
-		print("STACK\t" + s[1:-1])
-		print("INPUT\t" + s1+"$")
-		print("ACTION", end="\t")
+		if verbose:
+			s = str(stack)
+			s1 = "".join(input[i:])
+			print("STACK\t" + s[1:-1])
+			print("INPUT\t" + s1+"$")
+			print("ACTION", end="\t")
 		if action == None:
-			print(f"error in state {stack[-1]} on symbol {a}")
+			print(f"error in state {stack[-1]} on symbol {a}: stack {stack}")
+			print("".join(input[i:]))
 			break
 		elif action >= 0:
 			stack.append(action)
-			print(f"shift\n")
+			if verbose:
+				print(f"shift to {action}\n")
 			i += 1
 		else:
 			if action == -1:
@@ -700,9 +700,9 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 				r = reduction_rules[-(action+1)]
 				for _ in range(len(r[1])):
 					stack.pop()
-				print(stack)
 				stack.append(parsing_table[stack[-1]].get(r[0]))
-				print(r[0] + " -> "+" ".join(r[1])+"\n")
+				if verbose:
+					print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
 
 rules, items, prods, nonterminals, terminals, pres, nullable = construct_SLR_items_terminals_and_nonterminals()
 collection, table = generate_collection_and_GOTO_table(items, nonterminals, terminals, nullable)
@@ -710,8 +710,7 @@ collection, table = generate_collection_and_GOTO_table(items, nonterminals, term
 
 slr_kernel = SLR_kernel(collection)
 first, follow, nullable = first_follow_nullable(prods, nonterminals, terminals, nullable)
-print("first", first)
-print("null", nullable)
+
 lr_kernel, spontaneous, propagator_table = determine_lookahead_types(slr_kernel, table, first, nullable)
 
 lr_kernel = propagate_lookaheads(lr_kernel, spontaneous, propagator_table)
@@ -721,6 +720,7 @@ for i, rule in enumerate(rules):
 		print(f"({i}) {rule[0]}" + " -> "+" ".join(rule[1]))
 print(collection)
 print(parse_table)
+print(sys.getsizeof(parse_table.table))
 while True:
 	i = input().strip()
 	LR_parsing_algorithm(parse_table, rules, i)
