@@ -19,7 +19,6 @@ generate LALR parsing table:
 	compute LR CLOSURE on kernels to generate full sets
 	generate table according to algorithm 4.56.
 
-
 """
 import sys
 import argparse
@@ -316,31 +315,6 @@ class Parsing_table:
 			"\u2500"*7+"\u2518"
 		return l
 
-class Production:
-	def __init__(self):
-		self.prod = set()
-		self.nullable = False
-	def get(self):
-		return self.nullable
-	def set(self, value):
-		self.nullable = value
-	def add(self, item):
-		self.prod.add(item)
-	def union(self, other_set):
-		return self.prod.union(other_set)
-	def update(self, other_set):
-		self.prod.update(other_set)
-	def __contains__(self, item):
-		return item in self.prod
-	def __len__(self):
-		return len(self.prod)
-	def __iter__(self):
-		return iter(self.prod)
-	def __str__(self):
-		return str(self.prod)+" epsilon: "+str(self.nullable)
-	def __repr__(self):
-		return str(self)
-
 #algorithms:
 def construct_SLR_items_terminals_and_nonterminals():
 	items = dict()
@@ -353,6 +327,8 @@ def construct_SLR_items_terminals_and_nonterminals():
 	prod_num = 0
 	with open(cmd_line_args.infile, "r", encoding="utf-8") as f:
 		for i, line in enumerate(f):
+			if line[0] == '#':
+				continue
 			if line[:11] == "precedence:":
 				preces = line[11:].split(',')
 				for pre in preces:
@@ -676,21 +652,21 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 		if action == None:
 			print(f"error in state {stack[-1]} on symbol {a}: stack {stack}")
 			print("".join(input[i:]))
-			break
+			return
 		elif action >= 0:
 			stack.append(action)
 			print(f"shift to {action}\n")
 			i += 1
+		elif action == -1:
+			print("accept\n\n")
+			return
 		else:
-			if action == -1:
-				print("accept\n\n")
-				return
-			else:
-				r = reduction_rules[-(action+1)]
-				for _ in range(len(r[1])):
-					stack.pop()
-				stack.append(parsing_table[stack[-1]].get(r[0]))
-				print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
+			r = reduction_rules[-(action+1)]
+			for _ in range(len(r[1])):
+				stack.pop()
+			stack.append(parsing_table[stack[-1]].get(r[0]))
+			print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
+
 
 rules, items, prods, nonterminals, terminals, pres, nullable = construct_SLR_items_terminals_and_nonterminals()
 collection, table = generate_collection_and_GOTO_table(items, nonterminals, terminals)
@@ -710,7 +686,7 @@ print(sys.getsizeof(parse_table.table))
 print(cmd_line_args)
 
 def token_type_parser(infile, default_chars):
-	value = default_chars*255
+	value = default_chars*127
 	types = dict()
 	if default_chars:
 		types = {
@@ -812,7 +788,7 @@ def token_type_parser(infile, default_chars):
 		}
 
 	with open(infile, 'r') as f:
-		for line in f:
+		for i, line in enumerate(f):
 			token_types = line.split(',')
 			removed = True
 			while removed:
@@ -826,7 +802,8 @@ def token_type_parser(infile, default_chars):
 			for token_type in token_types:
 				a = token_type.split('=')
 				if types.get(a[0]) != None:
-					print(f"error: Double declaration of {a[0]}")
+					print(f"error: Double declaration of {a[0]} at {i}")
+					print(types.get(a[0]))
 					quit()
 				l = len(a)
 				if l == 1:
@@ -843,11 +820,67 @@ def token_type_parser(infile, default_chars):
 				else:
 					print("error: Something fishy is going on, why several '='?")
 					quit()
-	return types
+	return types, value
 
 if cmd_line_args.write:
-	token_types = token_type_parser(cmd_line_args.write[1], cmd_line_args.default_chars)
-	
+	token_types, max = token_type_parser(cmd_line_args.write[1], cmd_line_args.default_chars)
+	converted_table = list()
+	for row in parse_table.table:
+		new_row = dict()
+		for key, value in row.items():
+			if key == '$':
+				new_row[0x04] = value # 0x04 is "always" the value of EOF
+			elif key in terminals:
+				new_key = token_types.get(key[1:-1])
+
+				if new_key == None:
+					print(f"Was unable to find mapping of termninal {key} to token type")
+					for key, value in token_types.items():
+						print(str(key)+":"+str(value))
+					quit()
+				new_row[new_key] = value
+		converted_table.append(new_row)
+	nonterminal_to_num = dict()
+	for i, nonterminal in enumerate(nonterminals):
+		nonterminal_to_num[nonterminal] = i
+	reduction_rules = list()
+	for r in rules:
+		reduction_rules.append((nonterminal_to_num[r[0]], len(r[1])))
+	goto_table = [list() for _ in range(len(nonterminals))]
+	for i, row in enumerate(table):
+		for nonterminal in nonterminals:
+			map = nonterminal_to_num[nonterminal]
+			value = row.get(nonterminal)
+			if value != None:
+				goto_table[map].append((i, value))
+
+	f = open(cmd_line_args.write[0], 'w')
+	print(cmd_line_args.write[0])
+	f.write('R\n')
+	for i, rule in enumerate(rules):
+		f.write(f"{i}: {rule[0]} -> "+" ".join(rule[1])+"\n")
+	f.write('A\n')
+	f.write(f'{max}\n')
+	for i, row in enumerate(converted_table):
+		for key, value in row.items():
+			f.write(f"{key},{value} ")
+		f.write("\n")
+	f.write('r\n')
+	for reduction_rule in reduction_rules:
+		f.write(f'{reduction_rule[0]},')
+	f.write('\n')
+	for reduction_rule in reduction_rules:
+		f.write(f'{reduction_rule[1]},')
+	f.write('\n')
+
+	f.write('G\n')
+	for gotos in goto_table:
+		for goto in gotos:
+			f.write(f'{goto[0]},{goto[1]} ')
+		f.write('\n')
+	f.close()
+
+
 while True:
 	i = input().strip()
 	LR_parsing_algorithm(parse_table, rules, i)
