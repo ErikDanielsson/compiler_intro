@@ -329,7 +329,6 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 	input = "'" + input.replace(" ", "' '") + "'"
 	input = input.split()
 	i = 0
-	symbol_stack = input[0]
 	while 1:
 		a = input[i] if i < len(input) else '$'
 		action = parsing_table[stack[-1]].get(a)
@@ -401,7 +400,7 @@ for i, r in enumerate(t):
 			else:
 				print(f"\u2502 r{x[1]}", end="\t")
 		else:
-			print("\u2502", 	end="\t")
+			print("\u2502", end="\t")
 	for nonterminal in nonterminals:
 		if r.get(nonterminal):
 			x = r[nonterminal]
