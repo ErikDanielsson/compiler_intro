@@ -22,7 +22,13 @@ generate LALR parsing table:
 
 """
 import sys
+import argparse
 
+cmd_line_parser = argparse.ArgumentParser()
+cmd_line_parser.add_argument('infile')
+cmd_line_parser.add_argument('-w','--write', nargs=2)
+cmd_line_parser.add_argument('-c', '--default-chars', action="store_true")
+cmd_line_args = cmd_line_parser.parse_args()
 
 class item:
 	def __init__(self, head, body, index, prod_num):
@@ -46,7 +52,6 @@ class item:
 		if index < self.length:
 			return self.body[index]
 		return None
-
 
 class SLR_item(item):
 	def __init__(self, head, body, index, prod_num):
@@ -336,13 +341,8 @@ class Production:
 	def __repr__(self):
 		return str(self)
 
-
-
 #algorithms:
 def construct_SLR_items_terminals_and_nonterminals():
-	if len(sys.argv) < 2:
-		print("To few arguments. Grammar file needed")
-		quit()
 	items = dict()
 	nonterminals = set()
 	terminals = {'$'}
@@ -351,7 +351,7 @@ def construct_SLR_items_terminals_and_nonterminals():
 	nullable = dict()
 	rules = list()
 	prod_num = 0
-	with open(sys.argv[1], "r", encoding="utf-8") as f:
+	with open(cmd_line_args.infile, "r", encoding="utf-8") as f:
 		for i, line in enumerate(f):
 			if line[:11] == "precedence:":
 				preces = line[11:].split(',')
@@ -707,6 +707,147 @@ for i, rule in enumerate(rules):
 print(collection)
 print(parse_table)
 print(sys.getsizeof(parse_table.table))
+print(cmd_line_args)
+
+def token_type_parser(infile, default_chars):
+	value = default_chars*255
+	types = dict()
+	if default_chars:
+		types = {
+			' ' : 32,
+			'!' : 33,
+			'"' : 34,
+			'#' : 35,
+			'$' : 36,
+			'%' : 37,
+			'&' : 38,
+			'\'' : 39,
+			'(' : 40,
+			')' : 41,
+			'*' : 42,
+			'+' : 43,
+			',' : 44,
+			'-' : 45,
+			'.' : 46,
+			'/' : 47,
+			'0' : 48,
+			'1' : 49,
+			'2' : 50,
+			'3' : 51,
+			'4' : 52,
+			'5' : 53,
+			'6' : 54,
+			'7' : 55,
+			'8' : 56,
+			'9' : 57,
+			':' : 58,
+			';' : 59,
+			'<' : 60,
+			'=' : 61,
+			'>' : 62,
+			'?' : 63,
+			'@' : 64,
+			'A' : 65,
+			'B' : 66,
+			'C' : 67,
+			'D' : 68,
+			'E' : 69,
+			'F' : 70,
+			'G' : 71,
+			'H' : 72,
+			'I' : 73,
+			'J' : 74,
+			'K' : 75,
+			'L' : 76,
+			'M' : 77,
+			'N' : 78,
+			'O' : 79,
+			'P' : 80,
+			'Q' : 81,
+			'R' : 82,
+			'S' : 83,
+			'T' : 84,
+			'U' : 85,
+			'V' : 86,
+			'W' : 87,
+			'X' : 88,
+			'Y' : 89,
+			'Z' : 90,
+			'[' : 91,
+			'\\' : 92,
+			']' : 93,
+			'^' : 94,
+			'_' : 95,
+			'`' : 96,
+			'a' : 97,
+			'b' : 98,
+			'c' : 99,
+			'd' : 100,
+			'e' : 101,
+			'f' : 102,
+			'g' : 103,
+			'h' : 104,
+			'i' : 105,
+			'j' : 106,
+			'k' : 107,
+			'l' : 108,
+			'm' : 109,
+			'n' : 110,
+			'o' : 111,
+			'p' : 112,
+			'q' : 113,
+			'r' : 114,
+			's' : 115,
+			't' : 116,
+			'u' : 117,
+			'v' : 118,
+			'w' : 119,
+			'x' : 120,
+			'y' : 121,
+			'z' : 122,
+			'{' : 123,
+			'|' : 124,
+			'}' : 125,
+			'~' : 126,
+		}
+
+	with open(infile, 'r') as f:
+		for line in f:
+			token_types = line.split(',')
+			removed = True
+			while removed:
+				removed = False
+				for item in token_types:
+					if item.isspace() or item == '':
+						token_types.remove(item)
+						removed = True
+						break
+
+			for token_type in token_types:
+				a = token_type.split('=')
+				if types.get(a[0]) != None:
+					print(f"error: Double declaration of {a[0]}")
+					quit()
+				l = len(a)
+				if l == 1:
+					types[a[0].strip()] = value
+					value += 1
+				elif l == 2:
+					i = int(a[1])
+					if i >= value:
+						value = i
+						types[a[0].strip()] = value
+					else:
+						print(f"error: value to low in {token_type}")
+						quit()
+				else:
+					print("error: Something fishy is going on, why several '='?")
+					quit()
+	return types
+
+if cmd_line_args.write:
+	token_types = token_type_parser(cmd_line_args.write[1], cmd_line_args.default_chars)
+	
 while True:
 	i = input().strip()
 	LR_parsing_algorithm(parse_table, rules, i)
