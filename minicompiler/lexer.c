@@ -12,7 +12,7 @@
 #define FALSE 0
 #define TRUE 1
 
-char* filename;
+const char* filename;
 int file_desc;
 char read_done = FALSE;
 
@@ -91,6 +91,7 @@ void get_char() {
 void init_lexer() {
 	// Initialize last char of both buffers to eof
 	int r = read(file_desc, buffer, BUFFERSIZE);
+	printf("hejsan\n");
 	buffer[r] = 0x04;
 	for (int i = 0; i < LINELENGTH; i++)
 		curr_line[i] = 0x00;
@@ -267,10 +268,6 @@ struct Token* get_token() {
 				}
 			case '%':
 			case '^':
-			case '=':
-			case '<':
-			case '>':
-			case '!':
 				get_char();
 				if (*forward == '=') {
 					get_char();
@@ -287,6 +284,31 @@ struct Token* get_token() {
 						token_error(len, " single char token.");
 					token->lexeme = lexeme;
 					token->type = *lexeme;
+					token->line = line_num;
+					token->column = column_num-1;
+					set_lexeme_ptr();
+					return token;
+				}
+			case '=':
+			case '<':
+			case '>':
+			case '!':
+				get_char();
+				if (*forward == '=') {
+					get_char();
+					token->type = RELOP;
+					token->lexeme = get_lexeme();
+					token->line = line_num;
+					token->column = column_num-2;
+					set_lexeme_ptr();
+					return token;
+				} else {
+					lexeme = get_lexeme();
+					int len = strlen(lexeme);
+					if (len > 1)
+						token_error(len, " single char token.");
+					token->lexeme = lexeme;
+					token->type = RELOP;
 					token->line = line_num;
 					token->column = column_num-1;
 					set_lexeme_ptr();
@@ -323,6 +345,6 @@ struct Token* get_token() {
 		}
 
 	}
-	token->type = _EOF;
+	token->type = 0x04;
 	return token;
 }
