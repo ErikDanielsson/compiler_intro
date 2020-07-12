@@ -807,8 +807,8 @@ def token_type_parser(infile, default_chars):
 					quit()
 				l = len(a)
 				if l == 1:
-					types[a[0].strip()] = value
 					value += 1
+					types[a[0].strip()] = value
 				elif l == 2:
 					i = int(a[1])
 					if i >= value:
