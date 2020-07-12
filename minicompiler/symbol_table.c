@@ -33,7 +33,7 @@ struct SymTab* create_SymTab() {
 }
 struct entry* SymTab_pair(const char* key, enum TokenType type) {
 	struct entry* entry = malloc(sizeof(struct entry) * 1);
-	entry->key = malloc(sizeof(strlen(key))+1);
+	entry->key = malloc(sizeof(char)*strlen(key)+1);
 	strcpy(entry->key, key);
 	entry->type = type;
 	entry->next = NULL;
