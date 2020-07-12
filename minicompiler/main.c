@@ -10,10 +10,11 @@
 int main(int argc, char** argv) {
 	file_desc = open(argv[1], O_RDONLY);
 	init_lexer();
+	close(file_desc);
 	filename = argv[1];
 	struct Token* token;
 	token = get_token();
-	while (token->type != _EOF) {
+	while (token->type != 0x04) {
 		switch (token->type) {
 			case ID:
 				printf("ID: \'%s\' at line: %d, column: %d\n",
@@ -110,7 +111,7 @@ int main(int argc, char** argv) {
 
 		}
 
-		if (token->type != _EOF)
+		if (token->type != 0x04)
 			free(token->lexeme);
 		free(token);
 		token = NULL;
