@@ -1,0 +1,63 @@
+TOKENS
+
+SINGLE_LINE_COMMENT : '#'
+MULTI_LINE_COMMENT : #o# .* #o#
+
+epsilon : ""
+
+variable_types
+ICONST : \d+
+FCONST : \d+\.\d+
+SCONST : \".*\" OR \'.*\'
+
+keywords:
+UTILIZING : "utotilolizinongog"
+PROGRAM : "poprorogogroramom"
+FTYPE : "fofloloatot"
+ITYPE : "inontot"
+STYPE : "sostotrorinongog"
+NAND : "naand"
+IF : "ifof"
+ELIF : "elolifof"
+ELSE : "elolsose"
+WHILE : "wowhohilole"
+FOR : "foforor"
+DEFINE : "dodefofinone"
+RETURN : "roretoturornon"
+STD_IN : "inonpoputot"
+STD_OUT : "poprorinontot"
+
+single_chars:
+"+" : "+"
+"-" : "-"
+"*" : "*"
+"/" : "/"
+"^" : "^"
+"%" : "%"
+";" : ";"
+":" : ":"
+"." : "."
+"," : ","
+"=" : "="
+">" : ">"
+"<" : "<"
+"(" : "("
+")" : ")"
+"{" : "{"
+"}" : "}"
+
+ASSIGN:
+INCREMENT_N : "+="
+DECREMENT_N : "-="
+MULTIMENT_N : "*=:"
+DIVIMENT_N : "/="
+EXPONENT : "^="
+MODUMENT : "%="
+INCREMENT_1 : "++"
+DECREMENT_1 : "--"
+MULTIMENT_2 : "**"
+DIVIMENT_2 : "//"
+EQUAL : "=="
+NOT_EQUAL : "!="
+SMALLER_EQUAL : "<="
+BIGGER_EQUAL : ">="
