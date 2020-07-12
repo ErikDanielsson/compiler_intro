@@ -28,8 +28,8 @@ int column_num = 0;
 struct SymTab* symbol_table;
 int error_flag = 0;
 
-void token_error(int length, char* expected) {
-	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: unidentified token at %d:%d\nexpected%s\n", filename, line_num, column_num-length, expected);
+void token_error(int length, char* expected, int fatal) {
+	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: unidentified token at %d:%d\n%s\n", filename, line_num, column_num-length, expected);
 	error_flag = -1;
 	fprintf(stderr, " ... |\n");
 	if (line_num > 1)
@@ -57,6 +57,8 @@ void token_error(int length, char* expected) {
 		curr_i++;
 	}
 	fprintf(stderr, "\033[0m\n\n");
+	if (fatal)
+		exit(-1);
 }
 
 void get_char() {
@@ -91,7 +93,6 @@ void get_char() {
 void init_lexer() {
 	// Initialize last char of both buffers to eof
 	int r = read(file_desc, buffer, BUFFERSIZE);
-	printf("hejsan\n");
 	buffer[r] = 0x04;
 	for (int i = 0; i < LINELENGTH; i++)
 		curr_line[i] = 0x00;
@@ -174,6 +175,7 @@ struct Token* get_token() {
 				SymTab_set(symbol_table, lexeme, ID);
 				token->type = ID;
 			}
+			printf("type: %d, program: %d, id: %d", type, PROGRAM, ID);
 			token->line = line_num;
 			token->column = column_num-strlen(lexeme);
 			return token;
@@ -219,6 +221,8 @@ struct Token* get_token() {
 								last_last = last;
 								last = *forward;
 								get_char();
+								if (read_done)
+									token_error(0, "End of file when scanning multi line comment", 1);
 							}
 							get_char();
 							break;
@@ -258,7 +262,7 @@ struct Token* get_token() {
 					lexeme = get_lexeme();
 					int len = strlen(lexeme);
 					if (len > 1)
-						token_error(len, " single char token.");
+						token_error(len, "expected single char token.", 0);
 					token->lexeme = lexeme;
 					token->type = *lexeme;
 					token->line = line_num;
@@ -281,7 +285,7 @@ struct Token* get_token() {
 					lexeme = get_lexeme();
 					int len = strlen(lexeme);
 					if (len > 1)
-						token_error(len, " single char token.");
+						token_error(len, "expected single char token.", 0);
 					token->lexeme = lexeme;
 					token->type = *lexeme;
 					token->line = line_num;
@@ -290,6 +294,27 @@ struct Token* get_token() {
 					return token;
 				}
 			case '=':
+				get_char();
+				if (*forward == '=') {
+					get_char();
+					token->type = RELOP;
+					token->lexeme = get_lexeme();
+					token->line = line_num;
+					token->column = column_num-2;
+					set_lexeme_ptr();
+					return token;
+				} else {
+					lexeme = get_lexeme();
+					int len = strlen(lexeme);
+					if (len > 1)
+						token_error(len, "expected single char token.", 0);
+					token->lexeme = lexeme;
+					token->type = *lexeme;
+					token->line = line_num;
+					token->column = column_num-1;
+					set_lexeme_ptr();
+					return token;
+				}
 			case '<':
 			case '>':
 			case '!':
@@ -306,7 +331,7 @@ struct Token* get_token() {
 					lexeme = get_lexeme();
 					int len = strlen(lexeme);
 					if (len > 1)
-						token_error(len, " single char token.");
+						token_error(len, "expected single char token.", 0);
 					token->lexeme = lexeme;
 					token->type = RELOP;
 					token->line = line_num;
@@ -318,10 +343,19 @@ struct Token* get_token() {
 			case '\'':
 				tmp0 = *forward;
 				get_char();
+				tmp1 = *forward;
 				set_lexeme_ptr();
-				while (*forward != tmp0) {
+				while (tmp1 != tmp0) {
 					get_char();
+					if ((tmp1 = *forward) == '\n') {
+						int len = strlen(get_lexeme());
+						token_error(len, "End of line while scanning string literal", 0);
+						break;
+					}
+
 				}
+				if (tmp1 == '\n')
+					break;
 				lexeme = get_lexeme();
 				get_char();
 				set_lexeme_ptr();
@@ -335,7 +369,7 @@ struct Token* get_token() {
 				lexeme = get_lexeme();
 				int len = strlen(lexeme);
 				if (len > 1)
-					token_error(len, " single char token.");
+					token_error(len, "expected single char token.", 0);
 				token->lexeme = lexeme;
 				token->type = *lexeme;
 				token->line = line_num;
@@ -343,7 +377,6 @@ struct Token* get_token() {
 				set_lexeme_ptr();
 				return token;
 		}
-
 	}
 	token->type = 0x04;
 	return token;
