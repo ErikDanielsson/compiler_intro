@@ -1,7 +1,8 @@
 
 #pragma once
+
 enum TokenType {
-	NUM = 256,
+	NUM = 128,
 	ID,
 	ICONST,
 	FCONST,
@@ -36,7 +37,7 @@ struct Token {
 	int column;
 	char* lexeme;
 };
-extern char* filename;
+extern const char* filename;
 extern int file_desc;
 extern struct SymTab* symbol_table;
 extern int error_flag;
