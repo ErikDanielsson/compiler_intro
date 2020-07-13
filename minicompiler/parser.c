@@ -17,7 +17,6 @@
  * from the lexer.
  */
 
-
 void lr_parser(char verbose)
 /*
  * Uses variables rules, reduction_rules, n_pop_states, action table,
@@ -38,7 +37,7 @@ void lr_parser(char verbose)
 			printf("Stack depth %ld\n", s_ptr-stack);
 		if (action >= n_states) {
 			printf("error in state %d on input %s\n", *s_ptr, a->lexeme);
-			token_error(10, "");
+			token_error(strlen(a->lexeme), "", 0);
 			return;
 		} else if (action >= 0) {
 			s_ptr++;
@@ -64,7 +63,7 @@ void lr_parser(char verbose)
 }
 
 int main(int argc, const char** argv) {
-	const char* table_file = "parsing_table.txt";
+	const char* table_file = "parse_table.txt";
 	filename = argv[1];
 	file_desc = open(filename, O_RDONLY);
 	init_lexer();
