@@ -315,7 +315,28 @@ class Parsing_table:
 			"\u2500"*7+"\u2518"
 		return l
 
-#algorithms:
+class Node:
+	def __init__(self, type):
+		self.type = type
+		self.nodes = list()
+	def __str__(self):
+		s = "".join(i.string(1) for i in self.nodes)
+		return str(self.type)+str(self.type) + ": " + s
+	def string(self, n):
+		s = "".join(i.string(n+1) for i in self.nodes)
+		return str(self.type)+"\n"+' '*n + s
+	def append(self, node):
+		self.nodes.append(node)
+
+class Leaf:
+	def __init__(self, value):
+		self.value = value
+	def __str__(self):
+		return str(self.value)
+	def string(self, n):
+		return "\n" + ' '*n + str(self.value)
+
+
 def construct_SLR_items_terminals_and_nonterminals():
 	items = dict()
 	nonterminals = set()
@@ -637,6 +658,7 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 	print("parsing...")
 
 	stack = list()
+	symbol_stack = list()
 	stack.append(0)
 	input = "'" + input.replace(" ", "' '") + "'"
 	input = input.split()
@@ -655,16 +677,21 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
 			return
 		elif action >= 0:
 			stack.append(action)
+			symbol_stack.append(Leaf(a))
 			print(f"shift to {action}\n")
 			i += 1
 		elif action == -1:
 			print("accept\n\n")
+			print(symbol_stack[-1])
 			return
 		else:
 			r = reduction_rules[-(action+1)]
+			n = Node(r[0])
 			for _ in range(len(r[1])):
+				n.append(symbol_stack.pop())
 				stack.pop()
 			stack.append(parsing_table[stack[-1]].get(r[0]))
+			symbol_stack.append(n)
 			print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
 
 
