@@ -76,10 +76,10 @@ L -> B		L.n = 1
 B -> 0		B.val = 0
 B -> 1		B.val = 1
 
-!! Exercise 5 .2.6 : Implement Algorithm 3.23, which converts a regular expres­
-sion into a nondeterministic finite automaton, by an L-attributed SDD on a
+!! Exercise 5.2.6: Implement Algorithm 3.23, which converts a regular
+expres­sion into a nondeterministic finite automaton, by an L-attributed SDD on a
 top-down parsable grammar. Assume that there is a token char representing
 any character, and that char.lexval is the character it represents. You may also
-assume the existence of a function new O that returns a new state, that is, a
+assume the existence of a function new() that returns a new state, that is, a
 state never before returned by this function. Use any convenient notation to
 specify the transitions of the NFA
