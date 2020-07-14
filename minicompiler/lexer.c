@@ -175,7 +175,6 @@ struct Token* get_token() {
 				SymTab_set(symbol_table, lexeme, ID);
 				token->type = ID;
 			}
-			printf("type: %d, program: %d, id: %d", type, PROGRAM, ID);
 			token->line = line_num;
 			token->column = column_num-strlen(lexeme);
 			return token;

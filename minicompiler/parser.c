@@ -28,7 +28,6 @@ void lr_parser(char verbose)
 	int stack[STACK_SIZE];
 	int* s_ptr = stack;
 	struct Token* a = get_token();
-	printf("%s\n", a->lexeme);
 	*s_ptr = 0;
 	int action;
 	while (1) {
@@ -46,6 +45,8 @@ void lr_parser(char verbose)
 				free(a->lexeme);
 			free(a);
 			a = get_token();
+			printf("token: %s\n", a->lexeme);
+
 		} else if (action == -1) {
 			printf("parse done\n");
 			free(a);
@@ -63,7 +64,7 @@ void lr_parser(char verbose)
 }
 
 int main(int argc, const char** argv) {
-	const char* table_file = "parse_table.txt";
+	const char* table_file = "parsing_table.txt";
 	filename = argv[1];
 	file_desc = open(filename, O_RDONLY);
 	init_lexer();
