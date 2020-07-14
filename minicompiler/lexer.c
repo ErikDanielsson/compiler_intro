@@ -32,44 +32,52 @@ int column_num = 1;
 struct SymTab* symbol_table;
 int error_flag = 0;
 
-void error(const char* type_msg, int length, const char* expected, int fatal) {
-	printf("current line: %s\n", curr_line);
-	printf("length: ");
-	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: %s at %d:%d\n%s\n", filename, type_msg, line_num, column_num-length, expected);
+void error(const char* type_msg, int length, const char* expected, int fatal, int line, int column) {
+	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: %s at %d:%d\n%s\n", filename, type_msg, line, column, expected);
 	error_flag = -1;
 	fprintf(stderr, " ... |\n");
-	if (line_num > 1)
-		fprintf(stderr, "%4d |%s\n", line_num-1, last_line);
+	if (line > 1)
+		fprintf(stderr, "%4d |%s", line-1, last_line);
+	fprintf(stderr, "     |\n");
 	char* curr_i = curr_line;
-	fprintf(stderr, "%4d |", line_num);
+	fprintf(stderr, "%4d |", line);
 	while (*curr_i != 0x00) {
-		if (curr_i-curr_line+2 == column_num-length)
+		if (curr_i-curr_line+1 == column)
 			fprintf(stderr, "\033[1;31m");
+		if (curr_i-curr_line+1 == column+length)
+			fprintf(stderr, "\033[0m");
 		fprintf(stderr, "%c", *curr_i);
 		curr_i++;
 	}
-	fprintf(stderr, "\033[0m\n");
-	fprintf(stderr, " ... |");
+	fprintf(stderr, "\033[0m");
+	fprintf(stderr, "     |");
 	curr_i = curr_line;
 	while (*curr_i != 0x00) {
-		if (curr_i-curr_line+2 == column_num-length) {
+		if (curr_i-curr_line+1 == column) {
 			fprintf(stderr, "\033[1;31m");
 			fprintf(stderr, "^");
-		} else if (curr_i-curr_line+2 > column_num-length) {
-			fprintf(stderr, "~");
+			break;
 		} else {
 		fprintf(stderr, " ");
 		}
 		curr_i++;
 	}
-	fprintf(stderr, "\033[0m\n\n");
+	while (*curr_i != 0x00 && curr_i-curr_line+2 < column+length) {
+		fprintf(stderr, "~");
+		curr_i++;
+	}
+	fprintf(stderr, "\033[0m\n");
+	if (!read_done)
+		fprintf(stderr, "%4d |%s", line+1, next_line);
+	fprintf(stderr, " ... |\n");
+
 	if (fatal)
 		exit(-1);
 }
 
 
 void token_error(int length, char* expected, int fatal) {
-	error("unidentified token", length, expected, fatal);
+	error("unidentified token", length, expected, fatal, line_num, column_num);
 }
 void get_line() {
 	int i;

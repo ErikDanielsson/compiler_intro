@@ -34,9 +34,17 @@ void lr_parser(char verbose)
 		action = action_table[*s_ptr][a->type];
 		if (verbose)
 			printf("Stack depth %ld\n", s_ptr-stack);
+		printf("action: %d, lexeme: %s\n", action, a->lexeme);
 		if (action >= n_states) {
 			printf("error in state %d on input %s\n", *s_ptr, a->lexeme);
-			token_error(strlen(a->lexeme), "", 0);
+			printf("Stack: ");
+			for (int i = 0; i <=  s_ptr-stack; i++)
+				printf("%d, ", *(stack+i));
+
+			printf("\n");
+			parser_error(strlen(a->lexeme), "", 0, a->line, a->column);
+
+			free(a);
 			return;
 		} else if (action >= 0) {
 			s_ptr++;
@@ -45,7 +53,6 @@ void lr_parser(char verbose)
 				free(a->lexeme);
 			free(a);
 			a = get_token();
-			printf("token: %s\n", a->lexeme);
 
 		} else if (action == -1) {
 			printf("parse done\n");
@@ -61,6 +68,10 @@ void lr_parser(char verbose)
 				printf("reduce by %s\n", rules[-(action+1)]);
 		}
 	}
+}
+
+void parser_error(int length, const char* expected, int fatal, int line, int column) {
+	error("syntax error", length, expected, fatal, line, column);
 }
 
 int main(int argc, const char** argv) {
