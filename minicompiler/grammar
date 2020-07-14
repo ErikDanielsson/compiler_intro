@@ -1,8 +1,7 @@
 start -> S
 
-S -> program
+S -> compound_statement
 
-program -> 'PROGRAM' 'ID' '{' compound_statement '}'
 
 compound_statement -> compound_statement statement | statement
 
@@ -14,8 +13,10 @@ statement -> if_elif_else_statement
 statement -> while_loop
 
 
-variable_declaration -> type 'ID' | type 'ID' 'ASSIGN' expr
+variable_declaration -> type 'ID' | type 'ID' 'ASSIGN' expr | type 'ID' '=' expr
+variable_declaration -> type index_expr 'ID'
 
+index_expr -> index_expr '[' expr ']' | '[' expr ']'
 
 function_declaration -> 'DEFINE' 'ID' '(' params ')' '{' compound_statement '}'
 function_declaration -> 'DEFINE' 'ID' '(' ')' '{' compound_statement '}'
@@ -29,6 +30,8 @@ param_decl -> type 'ID'
 
 type -> 'STYPE' | 'ITYPE' | 'FTYPE'
 
+variable_access -> 'ID' | 'ID' index_expr
+
 expr -> expr '-' expr
 expr -> expr '+' expr
 expr -> expr '/' expr
@@ -38,7 +41,7 @@ expr -> expr '^' expr
 expr -> '(' expr ')'
 expr -> 'ICONST'
 expr -> 'FCONST'
-expr -> 'ID'
+expr -> variable_access
 expr -> function_call
 expr -> '+' expr
 expr -> '-' expr
@@ -46,8 +49,10 @@ expr -> '-' expr
 precedence: '-' : 0, '+' : 0, '*' : 1, '/' : 1, '%' : 1, '^' : 2
 
 
-assignment_statement -> 'ID' 'ASSIGN' expr | 'ID' 'SUFFIXOP'
-
+assignment_statement -> 'ID' 'ASSIGN' expr | 'ID' '=' expr | 'ID' 'SUFFIXOP'
+assignment_statement -> 'ID' index_expr 'ASSIGN' expr
+assignment_statement -> 'ID' index_expr '=' expr
+assignment_statement -> 'ID' index_expr 'SUFFIXOP'
 
 function_call -> 'ID' '(' args ')' | 'ID' '(' ')'
 

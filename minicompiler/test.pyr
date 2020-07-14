@@ -1,16 +1,14 @@
-poprorogogroramom func_test {
-    dodefofinone func(inontot n, inontot p)
-    {
-    ifof (n == 0 naand n == 0) naand
-         (n == 1 naand n == 1) {
-        p %= n;
-        }
-    elolsose {
-        wowhohilole p > 0
-        {
-          p -= 1;
-        }
-        }
-    }
+dodefofinone func(inontot n, inontot p) {
+	ifof (n == 0 naand n == 0) naand
+ 	     (n == 1 naand n == 1) {
+		p %= n;
+	}
+		elolsose {
+			wowhohilole p > 0 {
+	  			p -= 1;
 
-}
+			}
+		}
+	}
+a[a[1]][2][3] %= 1;
+a[1][2][3]//;
