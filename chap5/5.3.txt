@@ -1,0 +1,64 @@
+5.3.3
+Exercises for Section 5 . 3
+Exercise 5 . 3 . 1 : Below is a grammar for expressions involving operator + and
+integer or floating-point operands. Floating-point numbers are distinguished
+by having a decimal point.
+E -> E + T | T
+T -> num . num | num
+
+a) Give an SDD to determine the type of each term T and expression E.
+	int := 1
+	float := 0
+	E -> E1 + T		E.type = E1.type && T.type
+	E -> T			E.type = T.type
+	T -> num . num		T.type = 0
+	T -> num 		T.type = 1
+
+b) Extend your SDD of (a) to translate expressions into postfix notation.
+Use the unary operator intToFloat to turn an integer into an equivalent
+float.
+	int := 1
+	float := 0
+	E -> E1 + T		E.type = E1.type && T.type
+				if !E1.type:
+					if !T.type:
+						print(E.val+T.val+'+')
+					else:
+						print(E.val+intToFloat(T.val)+'+')
+				else:
+				if !T.type:
+					print(E.val+intToFloat(T.val)+'+')
+				else:
+					print(E.val+T.val+'+')
+	E -> T			E.type = T.type
+				E.val = T.val
+	T -> num . num		T.type = 0
+				T.val = float(num.num)
+	T -> num 		T.type = 1
+				T.val = num.val
+This does not work.
+
+! Exercise 5.3.2: Give an SDD to translate infix expressions with + and * into
+equivalent expressions without redundant parentheses. For example, since both
+operators associate from the left, and * takes precedence over +,
+((a * (b + c) ) * (d)) translates into a * (b + c) * d.
+
+
+! Exercise 5.3.3: Give an SDD to differentiate expressions such as x * (3 * x +
+x * x) involving the operators + and * , the variable x, and constants. Assume
+that no simplification occurs, so that, for example, 3 * x will be translated into
+3 * 1 + 0 * x.
+
+E -> E1 + T	E.d = E1.d + T.d
+		E.v = E1.v + T.v
+E -> T		E.d = T.d
+		E.v = T.v
+T -> T1	* F 	T.d = T1.d * F + T1 * F.d
+		T.v = T1.v * F.v
+T -> F		T.d = F.d
+		T.v = F.v
+F -> x		F.d = 1
+		F.v = x
+F -> '(' E ')'	F.d = E.d
+		F.v = '(' E.v ')'
+F -> c		F.diff = val
