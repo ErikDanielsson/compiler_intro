@@ -43,6 +43,5 @@ extern struct SymTab* symbol_table;
 extern int error_flag;
 
 void init_lexer();
-struct Token* lexer();
-void token_error(int length, char* expected, int fatal);
+void error(const char* type_msg, int length, const char* expected, int fatal);
 struct Token* get_token();

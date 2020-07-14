@@ -9,6 +9,7 @@
 
 #define BUFFERSIZE 4096
 #define LINELENGTH 256
+#define TABLENGTH 8
 #define FALSE 0
 #define TRUE 1
 
@@ -18,18 +19,23 @@ char read_done = FALSE;
 
 // Two buffers but fit into one, two extra chars for eof i.e 0x04
 char buffer[2*BUFFERSIZE+2];
-char* forward = buffer;// + 2*BUFFERSIZE+1;
-char* lexeme_begin = buffer;// + 2*BUFFERSIZE+1;
+char* buffer_ptr = buffer;
 char last_line[LINELENGTH];
 char curr_line[LINELENGTH];
+char next_line[LINELENGTH];
+char* forward = curr_line;
+char* lexeme_begin = curr_line;
+
 int line_num = 1;
-int column_num = 0;
+int column_num = 1;
 
 struct SymTab* symbol_table;
 int error_flag = 0;
 
-void token_error(int length, char* expected, int fatal) {
-	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: unidentified token at %d:%d\n%s\n", filename, line_num, column_num-length, expected);
+void error(const char* type_msg, int length, const char* expected, int fatal) {
+	printf("current line: %s\n", curr_line);
+	printf("length: ");
+	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: %s at %d:%d\n%s\n", filename, type_msg, line_num, column_num-length, expected);
 	error_flag = -1;
 	fprintf(stderr, " ... |\n");
 	if (line_num > 1)
@@ -37,7 +43,7 @@ void token_error(int length, char* expected, int fatal) {
 	char* curr_i = curr_line;
 	fprintf(stderr, "%4d |", line_num);
 	while (*curr_i != 0x00) {
-		if (curr_i-curr_line+1 == column_num-length)
+		if (curr_i-curr_line+2 == column_num-length)
 			fprintf(stderr, "\033[1;31m");
 		fprintf(stderr, "%c", *curr_i);
 		curr_i++;
@@ -46,10 +52,10 @@ void token_error(int length, char* expected, int fatal) {
 	fprintf(stderr, " ... |");
 	curr_i = curr_line;
 	while (*curr_i != 0x00) {
-		if (curr_i-curr_line+1 == column_num-length) {
+		if (curr_i-curr_line+2 == column_num-length) {
 			fprintf(stderr, "\033[1;31m");
 			fprintf(stderr, "^");
-		} else if (curr_i-curr_line+1 > column_num-length) {
+		} else if (curr_i-curr_line+2 > column_num-length) {
 			fprintf(stderr, "~");
 		} else {
 		fprintf(stderr, " ");
@@ -61,41 +67,68 @@ void token_error(int length, char* expected, int fatal) {
 		exit(-1);
 }
 
+
+void token_error(int length, char* expected, int fatal) {
+	error("unidentified token", length, expected, fatal);
+}
+void get_line() {
+	int i;
+	next_line[0] = *buffer_ptr;
+	for (i = 1; i < LINELENGTH-1 && *buffer_ptr != '\n';) {
+		buffer_ptr++;
+		if (*buffer_ptr == 0x04) {
+			if (buffer_ptr == buffer+BUFFERSIZE) {
+				int r = read(file_desc, buffer+BUFFERSIZE+1, BUFFERSIZE);
+				buffer[BUFFERSIZE+r] = 0x04;
+				buffer_ptr++;
+			} else if (buffer_ptr == buffer+2*BUFFERSIZE+1) {
+				int r = read(file_desc, buffer, BUFFERSIZE);
+				buffer[r] = 0x04;
+				buffer_ptr = buffer;
+			} else {
+				read_done = TRUE;
+				next_line[i] = 0x00;
+				return;
+			}
+		}
+		next_line[i] = *buffer_ptr;
+		i++;
+	}
+	buffer_ptr++;
+	next_line[i] = 0x00;
+}
 void get_char() {
 	forward++;
-	if (*forward == '\n') {
-		line_num++;
+	if (*forward == 0x00) {
 		strcpy(last_line, curr_line);
-		for (int i = 0; i < column_num; i++)
-			curr_line[i] = 0x00;
-		column_num = 1;
-		return;
+		strcpy(curr_line, next_line);
+		get_line();
+		forward = curr_line;
+		line_num++;
+		column_num = 0;
 	}
-
-	if (*forward == 0x04) {
-		if (forward == buffer+BUFFERSIZE) {
-			int r = read(file_desc, buffer+BUFFERSIZE+1, BUFFERSIZE);
-			buffer[BUFFERSIZE+r] = 0x04;
-			forward++;
-		} else if (forward == buffer+2*BUFFERSIZE+1) {
-			int r = read(file_desc, buffer, BUFFERSIZE);
-			buffer[r] = 0x04;
-			forward = buffer;
-		} else {
-			read_done = TRUE;
-			return;
-		}
-	}
-	curr_line[column_num-1] = *forward;
-	column_num++;
+	if (*forward == '\t')
+		column_num += TABLENGTH;
+	else
+		column_num++;
+}
+char* get_lexeme() {
+	int length = forward-lexeme_begin;
+	char* lexeme = malloc(sizeof(char)*(length+1));
+	for (int i = 0; i < length; i++)
+		lexeme[i] = *(lexeme_begin+i);
+	lexeme[length] = 0x00;
+	return lexeme;
 }
 
 void init_lexer() {
 	// Initialize last char of both buffers to eof
 	int r = read(file_desc, buffer, BUFFERSIZE);
 	buffer[r] = 0x04;
-	for (int i = 0; i < LINELENGTH; i++)
-		curr_line[i] = 0x00;
+	get_line();
+	strcpy(last_line, curr_line);
+	strcpy(curr_line, next_line);
+	get_line();
 
 	symbol_table = create_SymTab();
 	SymTab_set(symbol_table, "utotilolizinongog", UTILIZING);
@@ -117,37 +150,6 @@ void init_lexer() {
 void set_lexeme_ptr() {
 	// a useless procedure
 	lexeme_begin = forward;
-}
-
-char* get_lexeme() {
-	int a;
-	// Calculate length of lexeme
-	if (lexeme_begin > forward)
-		// If lexeme_begin is bigger than forward it wraps around
-		a = 2*BUFFERSIZE+2-(lexeme_begin-forward);
-	else
-		// Simple subtraction. If there is a eof it is not counted
-		a = forward-lexeme_begin-((lexeme_begin - buffer)>BUFFERSIZE+1);
-
-	char* lexeme = malloc(a*sizeof(char)+1);
-	char* c = lexeme_begin;
-	for (int i = 0; i<a; ) {
-		if (c == buffer+2*BUFFERSIZE+1) {
-			c = buffer;
-			continue;
-		}
-		char tmpc = *c;
-		if (tmpc == 0x04) {
-			// Skip eof
-			c++; // tribute? no
-			continue;
-		}
-		lexeme[i] = tmpc;
-		i++;
-		c++;
-	}
-	lexeme[a] = 0x00;
-	return lexeme;
 }
 
 struct Token* get_token() {
