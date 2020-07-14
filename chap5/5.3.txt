@@ -61,4 +61,5 @@ F -> x		F.d = 1
 		F.v = x
 F -> '(' E ')'	F.d = E.d
 		F.v = '(' E.v ')'
-F -> c		F.diff = val
+F -> c		F.d = 0
+		F.v = c.v
