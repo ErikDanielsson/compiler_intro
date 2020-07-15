@@ -13,9 +13,14 @@
 #define FALSE 0
 #define TRUE 1
 
+#define INJECE
+
 const char* filename;
 int file_desc;
+char last_buffert = FALSE;
+char on_last_buffert = FALSE;
 char read_done = FALSE;
+char* eof = "eof";
 
 // Two buffers but fit into one, two extra chars for eof i.e 0x04
 char buffer[2*BUFFERSIZE+2];
@@ -32,44 +37,110 @@ int column_num = 1;
 struct SymTab* symbol_table;
 int error_flag = 0;
 
-void error(const char* type_msg, int length, const char* expected, int fatal, int line, int column) {
+void error(const char* type_msg, int length,
+	   const char* expected, int fatal,
+	   int line, int column,
+   	   int inject_symbol, char symbol) {
 	fprintf(stderr, "\n%s:\033[1;31merror\033[0m: %s at %d:%d\n%s\n", filename, type_msg, line, column, expected);
 	error_flag = -1;
 	fprintf(stderr, " ... |\n");
-	if (line > 1)
-		fprintf(stderr, "%4d |%s", line-1, last_line);
-	fprintf(stderr, "     |\n");
-	char* curr_i = curr_line;
-	fprintf(stderr, "%4d |", line);
-	while (*curr_i != 0x00) {
-		if (curr_i-curr_line+1 == column)
-			fprintf(stderr, "\033[1;31m");
-		if (curr_i-curr_line+1 == column+length)
-			fprintf(stderr, "\033[0m");
-		fprintf(stderr, "%c", *curr_i);
-		curr_i++;
-	}
-	fprintf(stderr, "\033[0m");
-	fprintf(stderr, "     |");
-	curr_i = curr_line;
-	while (*curr_i != 0x00) {
-		if (curr_i-curr_line+1 == column) {
-			fprintf(stderr, "\033[1;31m");
-			fprintf(stderr, "^");
-			break;
+	if (line > 1) {
+		if (inject_symbol == -1) {
+			fprintf(stderr, "%4d |", line-1);
+			char* tmp = last_line;
+			int count = 0;
+			char c;
+			for (;(c = *tmp) != '\n'; tmp++) {
+				if (c == '\t') {
+					fprintf(stderr, "        ");
+					count += TABLENGTH-1;
+				} else {
+					fprintf(stderr, "%c", c);
+				}
+				count++;
+			}
+			fprintf(stderr, "\033[1;34m%c\033[0m", symbol);
+			fprintf(stderr, "\n");
+			fprintf(stderr,"     |");
+			for (; count > 0; count--)
+				fprintf(stderr, " ");
+			fprintf(stderr, "\033[1;31m^\033[0m\n");
+
 		} else {
-		fprintf(stderr, " ");
+			fprintf(stderr, "%4d |", line-1);
+			char* tmp = last_line;
+			char c;
+			for (;(c = *tmp) != 0x00; tmp++) {
+				if (c == '\t')
+					fprintf(stderr, "        ");
+				else
+					fprintf(stderr, "%c", c);
+			}
+			fprintf(stderr, "     |\n");
+
 		}
-		curr_i++;
 	}
-	while (*curr_i != 0x00 && curr_i-curr_line+2 < column+length) {
-		fprintf(stderr, "~");
-		curr_i++;
+	char* curr_i = curr_line;
+	char c;
+
+	fprintf(stderr, "%4d |", line);
+	if (*curr_i == 0x00) {
+		if (inject_symbol)
+			fprintf(stderr,"\033[1;34m%c\033[0m", symbol);
+		fprintf(stderr,"\n");
+		fprintf(stderr, "     |");
+		if (inject_symbol)
+			fprintf(stderr,"\033[1;31m^\033[0m");
+	} else {
+		while ((c = *curr_i) != 0x00) {
+			int index = curr_i-curr_line+1;
+			if (inject_symbol && index == inject_symbol)
+				fprintf(stderr,"\033[1;34m%c\033[0m", symbol);
+			if (index == column)
+				fprintf(stderr, "\033[1;31m");
+			if (index == column+length)
+				fprintf(stderr, "\033[0m");
+			if (c == '\t')
+				fprintf(stderr, "        ");
+			else
+				fprintf(stderr, "%c", c);
+			curr_i++;
+		}
+		fprintf(stderr, "\033[0m");
+		fprintf(stderr, "     |");
+		curr_i = curr_line;
+		while ((c = *curr_i) != 0x00) {
+			int i = curr_i-curr_line+1;
+			if (i == column || i == inject_symbol) {
+				fprintf(stderr, "\033[1;31m");
+				fprintf(stderr, "^");
+				break;
+			} else if (c == '\t'){
+			fprintf(stderr, "        ");
+			} else {
+				curr_i++;
+			}
+		}
+		if (!inject_symbol) {
+			while (*curr_i != 0x00 && curr_i-curr_line+2 < column+length) {
+				fprintf(stderr, "~");
+				curr_i++;
+			}
+		}
 	}
 	fprintf(stderr, "\033[0m\n");
-	if (!read_done)
-		fprintf(stderr, "%4d |%s", line+1, next_line);
-	fprintf(stderr, " ... |\n");
+	if (!read_done) {
+		fprintf(stderr, "%4d |", line+1);
+		for (curr_i = next_line; (c = *curr_i) != 0x00; curr_i++) {
+			if (c == '\t')
+				fprintf(stderr, "        ");
+			else
+				fprintf(stderr, "%c", c);
+		}
+		fprintf(stderr, " ... |\n");
+	} else {
+		fprintf(stderr, " eof |\n");
+	}
 
 	if (fatal)
 		exit(-1);
@@ -77,10 +148,25 @@ void error(const char* type_msg, int length, const char* expected, int fatal, in
 
 
 void token_error(int length, char* expected, int fatal) {
-	error("unidentified token", length, expected, fatal, line_num, column_num);
+	error("unidentified token", length, expected, fatal, line_num, column_num, 0, 0);
 }
-void get_line() {
+int get_line() {
 	int i;
+	if (*buffer_ptr == 0x04) {
+		if (buffer_ptr == buffer+BUFFERSIZE) {
+			int r = read(file_desc, buffer+BUFFERSIZE+1, BUFFERSIZE);
+			buffer[BUFFERSIZE+r] = 0x04;
+			buffer_ptr++;
+		} else if (buffer_ptr == buffer+2*BUFFERSIZE+1) {
+			int r = read(file_desc, buffer, BUFFERSIZE);
+			buffer[r] = 0x04;
+			buffer_ptr = buffer;
+		} else {
+			last_buffert = TRUE;
+			next_line[0] = 0x00;
+			return 0;
+		}
+	}
 	next_line[0] = *buffer_ptr;
 	for (i = 1; i < LINELENGTH-1 && *buffer_ptr != '\n';) {
 		buffer_ptr++;
@@ -94,9 +180,9 @@ void get_line() {
 				buffer[r] = 0x04;
 				buffer_ptr = buffer;
 			} else {
-				read_done = TRUE;
+				last_buffert = TRUE;
 				next_line[i] = 0x00;
-				return;
+				return i;
 			}
 		}
 		next_line[i] = *buffer_ptr;
@@ -104,14 +190,33 @@ void get_line() {
 	}
 	buffer_ptr++;
 	next_line[i] = 0x00;
+	return i;
 }
+int n_read = LINELENGTH-1;
+
+void read_from_buffert() {
+	strcpy(last_line, curr_line);
+	strcpy(curr_line, next_line);
+	if (last_buffert) {
+		if (n_read == 0) {
+			read_done = TRUE;
+			return;
+		}
+		on_last_buffert = TRUE;
+	} else if (on_last_buffert) {
+		read_done = TRUE;
+		*forward = 0x04;
+		return;
+	} else {
+	n_read = get_line();
+	}
+	forward = curr_line;
+}
+
 void get_char() {
 	forward++;
 	if (*forward == 0x00) {
-		strcpy(last_line, curr_line);
-		strcpy(curr_line, next_line);
-		get_line();
-		forward = curr_line;
+		read_from_buffert();
 		line_num++;
 		column_num = 0;
 	}
@@ -133,10 +238,8 @@ void init_lexer() {
 	// Initialize last char of both buffers to eof
 	int r = read(file_desc, buffer, BUFFERSIZE);
 	buffer[r] = 0x04;
-	get_line();
-	strcpy(last_line, curr_line);
-	strcpy(curr_line, next_line);
-	get_line();
+	n_read = get_line();
+	read_from_buffert();
 
 	symbol_table = create_SymTab();
 	SymTab_set(symbol_table, "utotilolizinongog", UTILIZING);
@@ -388,5 +491,8 @@ struct Token* get_token() {
 		}
 	}
 	token->type = 0x04;
+	token->lexeme = eof;
+	token->line = line_num;
+	token->column = 0;
 	return token;
 }
