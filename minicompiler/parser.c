@@ -170,7 +170,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
      * rules (defined in "grammar"). Since the algorithm is stack based, it
      * works from right to left in the production, shifting symbols from the
      * stack into structs of the correct type. Some productions, such as
-     * 'indices', generate list, and while they would naturally produce a
+     * 'indices', generate lists, and while they would naturally produce a
      * linked list if left on their own, they are converted to arrays.
      */
     struct Record* record = malloc(sizeof(struct Record));
@@ -204,6 +204,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             record->value = tmp_node;
             break;
         }
+
         case STATEMENT: {
             break;
             printf("STATEMENT\n");
@@ -224,7 +225,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     case FUNCTION_CALL:
                         tmp_node->function_call = (struct FuncCall*)((*top)->value);
                     default:
-                        printf("Something fishy is up");
+                        printf("Something fishy in statement 1\n");
                 }
 
             } else {
@@ -245,11 +246,14 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     case SCOPE:
                         tmp_node->scope = (struct CompStmt*)((*top)->value);
                         break;
+                    default:
+                        printf("Something fishy is statement 2\n");
                 }
             }
             record->value = tmp_node;
             break;
         }
+
         case VARIABLE_DECLARATION: {
             printf("VARIABLE_DECLARATION\n");
             struct VarDecl* tmp_node = malloc(sizeof(struct VarDecl));
@@ -303,39 +307,40 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             struct FuncDecl* tmp_node = malloc(sizeof(struct FuncDecl));
 
             struct Token* top_token = (struct Token*)((*top)->value);
-            free(token->lexeme);
-            free(token);
+            free(top_token->lexeme);
+            free(top_token);
             (*top)--;
 
             tmp_node->body = (struct CompStmt*)((*top)->value);
             (*top)--;
 
             top_token = (struct Token*)((*top)->value);
-            free(token->lexeme);
-            free(token);
+            free(top_token->lexeme);
+            free(top_token);
             (*top)--;
 
             top_token = (struct Token*)((*top)->value);
-            free(token->lexeme);
-            free(token);
+            free(top_token->lexeme);
+            free(top_token);
             (*top)--;
 
             if (n_pop == 10) {
+                //UNPACK PARAMS
                 tmp_node->params;
                 (*top)--;
             }
 
             top_token = (struct Token*)((*top)->value);
-            free(token->lexeme);
-            free(token);
+            free(top_token->lexeme);
+            free(top_token);
             (*top)--;
 
             tmp_node->name = (struct Token*)((*top)->value);
             (*top)--;
 
             top_token = (struct Token*)((*top)->value);
-            free(token->lexeme);
-            free(token);
+            free(top_token->lexeme);
+            free(top_token);
 
             record->value = tmp_node;
             break;
@@ -350,8 +355,8 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
 
             if (n_pop == 3) {
                 struct Token* top_token = (struct Token*)((*top)->value);
-                free(token->lexeme);
-                free(token);
+                free(top_token->lexeme);
+                free(top_token);
                 (*top)--;
 
                 struct Params* prior_params = (struct Params*)((*top)->value);
@@ -384,15 +389,20 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             (*top)--;
 
             if ((*top)->type == EXPR) {
+                printf("HEJ\n");
                 expr = (struct Expr*)((*top)->value);
+                printf("HEJ\n");
                 (*top)--;
+                printf("HEJ\n");
                 // To make sure the next 'if' evaluated correctly:
                 n_pop--;
+                printf("HEJ\n");
             }
+            printf("%d =? %d\n", (*top)->type, TOKEN);
             top_token = (struct Token*)((*top)->value);
             free(top_token->lexeme);
             free(top_token);
-
+            printf("HEJ\n");
             if (n_pop == 3 ) {
                 printf("n pop 3\n");
                 (*top)--;
@@ -420,7 +430,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
         case VARIABLE_ACCESS: {
             printf("VARIABLE_ACCESS\n");
             struct VarAcc* tmp_node = malloc(sizeof(struct VarAcc));
-            if ((*top)->value == INDICES) {
+            if ((*top)->type == INDICES) {
                 struct Inds* ind= (struct Inds*)((*top)->value);
                 int n_indices = ind->n_indices;
                 tmp_node->n_indices = n_indices;
@@ -443,9 +453,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 case 1: {
                     struct Expr* tmp_node = malloc(sizeof(struct Expr));
                     switch ((*top)->type) {
-                        case ICONST:
-                        case FCONST:
-                        case SCONST:
+                        case TOKEN:
                             tmp_node->type = CONST;
                             tmp_node->val = (struct Token*)((*top)->value);
                             break;
@@ -457,8 +465,12 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                             tmp_node->type = VARACC;
                             tmp_node->variable_access = (struct VarAcc*)((*top)->value);
                             break;
+                        default:
+                            printf("Something fishy in expr\n");
                     }
+                    printf("broke correcly\n");
                     record->value = tmp_node;
+                    break;
                 }
                 case 2: {
                     struct Expr* tmp_node = malloc(sizeof(struct Expr));
@@ -470,6 +482,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     tmp_node->expr = (struct Expr*)((*top)->value);
 
                     record->value = tmp_node;
+                    break;
                 }
                 case 3:
                 if ((*top)->type == TOKEN) {
@@ -481,7 +494,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                      * Since paranthesis are only for precedence,
                      * we can put the expression back on the stack
                      */
-                    record->value = top->value;
+                    record->value = (*top)->value;
                     (*top)--;
                     top_token = (struct Token*)((*top)->value);
                     free(top_token->lexeme);
@@ -523,10 +536,11 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             record->value = tmp_node;
             break;
         }
+
         case FUNCTION_CALL: {
             printf("FUNCTION_CALL\n");
             struct FuncCall* tmp_node = malloc(sizeof(struct FuncCall));
-            top_token = (struct Token*)((*top)->value);
+            struct Token* top_token = (struct Token*)((*top)->value);
             free(top_token->lexeme);
             free(top_token);
             (*top)--;
@@ -549,7 +563,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
 
         case ARGS: {
             printf("ARGS\n");
-            struct Args* tmp_node = malloc(sizeof(struct Args))
+            struct Args* tmp_node = malloc(sizeof(struct Args));
             struct Expr* next_arg = (struct Expr*)((*top)->value);
             if (n_pop == 3) {
                 (*top)--;
@@ -578,17 +592,17 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
 
         case IF_ELIF_ELSE_STATEMENT: {
             printf("IF_ELIF_ELSE_STATEMENT\n");
-            struct IIEStmt* tmp_node = malloc(sizeof(struct IIEStmt))
+            struct IEEStmt* tmp_node = malloc(sizeof(struct IEEStmt));
             if (n_pop == 1) {
                 tmp_node->n_elifs = 0;
                 tmp_node->elif_list = NULL;
-                tmp_node->unconditional = NULL;
+                tmp_node->_else = NULL;
             } else {
                 struct EList* elif_list = (struct EList*)((*top)->value);
                 int n_elifs = elif_list->n_elifs;
                 tmp_node->n_elifs = n_elifs;
                 tmp_node->elif_list = malloc(sizeof(struct CondStmt*)*n_elifs);
-                tmp_node->else = elif_list->else;
+                tmp_node->_else = elif_list->_else;
                 memcpy(tmp_node->elif_list, elif_list->elif_list, sizeof(sizeof(struct CondStmt*)*n_elifs));
                 free(elif_list->elif_list);
                 free(elif_list);
@@ -614,8 +628,8 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     tmp_node->n_elifs = 1;
                     tmp_node->elif_list = malloc(sizeof(struct CondStmt*));
                 }
-                tmp_node->else = prior_list->else;
-                free(priot_list);
+                tmp_node->_else = prior_list->_else;
+                free(prior_list);
                 (*top)--;
 
                 tmp_node->elif_list[0] = (struct CondStmt*)((*top)->value);
@@ -625,11 +639,11 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     tmp_node->n_elifs = 1;
                     tmp_node->elif_list = malloc(sizeof(struct CondStmt*));
                     tmp_node->elif_list[0] = (struct CondStmt*)((*top)->value);
-                    tmp_node->else = NULL
+                    tmp_node->_else = NULL;
                 } else {
                     tmp_node->n_elifs = 0;
                     tmp_node->elif_list = NULL;
-                    tmp_node->else = (struct CompStmt*)((*top)->value);
+                    tmp_node->_else = (struct CompStmt*)((*top)->value);
                 }
             }
             record->value = tmp_node;
@@ -641,7 +655,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
          */
         case IF_STATEMENT:
         case ELIF_STATEMENT:
-        case WHILE_LOOP {
+        case WHILE_LOOP: {
             printf("IF_STATEMENT\n");
             struct CondStmt* tmp_node = malloc(sizeof(struct CondStmt));
             struct Token* top_token = (struct Token*)((*top)->value);
@@ -740,7 +754,8 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             record->value = tmp_node;
             break;
         }
-        case B_EXPR:
+
+        case B_EXPR: {
             printf("B_EXPR\n");
             struct Token* top_token = NULL;
             switch (n_pop) {
@@ -754,7 +769,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 }
                 case 3:
                     if ((*top)->type == TOKEN) {
-                        top_token = top_token = (struct Token*)((*top)->value);
+                        top_token = (struct Token*)((*top)->value);
                         free(top_token->lexeme);
                         free(top_token);
                         (*top)--;
@@ -762,7 +777,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                         record->value = (*top)->value;
                         (*top)--;
 
-                        top_token = top_token = (struct Token*)((*top)->value);
+                        top_token = (struct Token*)((*top)->value);
                         free(top_token->lexeme);
                         free(top_token);
                     } else {
@@ -770,7 +785,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                         tmp_node->right = (struct BExpr*)((*top)->value);
                         (*top)--;
 
-                        top_token = top_token = (struct Token*)((*top)->value);
+                        top_token = (struct Token*)((*top)->value);
                         free(top_token->lexeme);
                         free(top_token);
                         (*top)--;
@@ -782,7 +797,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     break;
                 case 5: {
                     struct BExpr* tmp_node = malloc(sizeof(struct BExpr));
-                    top_token = top_token = (struct Token*)((*top)->value);
+                    top_token = (struct Token*)((*top)->value);
                     free(top_token->lexeme);
                     free(top_token);
                     (*top)--;
@@ -790,7 +805,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     tmp_node->right = (struct BExpr*)((*top)->value);
                     (*top)--;
 
-                    top_token = top_token = (struct Token*)((*top)->value);
+                    top_token = (struct Token*)((*top)->value);
                     free(top_token->lexeme);
                     free(top_token);
                     (*top)--;
@@ -798,7 +813,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                     tmp_node->left = (struct BExpr*)((*top)->value);
                     (*top)--;
 
-                    top_token = top_token = (struct Token*)((*top)->value);
+                    top_token = (struct Token*)((*top)->value);
                     free(top_token->lexeme);
                     free(top_token);
 
@@ -808,7 +823,9 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
 
             }
             break;
-        case R_EXPR:
+        }
+
+        case R_EXPR:{
             printf("R_EXPR\n");
             struct RExpr* tmp_node = malloc(sizeof(struct RExpr));
             if (n_pop == 3) {
@@ -825,9 +842,10 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             }
             record->value = tmp_node;
             break;
-        case SCOPE:
+        }
+
+        case SCOPE:{
             printf("SCOPE\n");
-            struct CompStmt* tmp_node = malloc(sizeof(struct CompStmt));
             struct Token* top_token = (struct Token*)((*top)->value);
             free(top_token->lexeme);
             free(top_token);
@@ -839,7 +857,8 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             free(top_token->lexeme);
             free(top_token);
             break;
-            
+        }
+
         default:
             printf("someone fucked up\n");
             break;
