@@ -9,21 +9,21 @@ statement -> function_call ';'
 statement -> if_elif_else_statement
 statement -> while_loop
 statement -> for_loop
-statement -> empty_scope
+statement -> scope
 
-variable_declaration -> type 'ID' | type 'ID' '=' expr
+variable_declaration -> 'ID' indices 'ID' | 'ID' indices 'ID' '=' expr
+variable_declaration -> 'ID' 'ID' | 'ID' 'ID' '=' expr
 
-function_declaration -> 'DEFINE' type 'ID' '(' params ')' '{' compound_statement '}'
-function_declaration -> 'DEFINE' type 'ID' '(' ')' '{' compound_statement '}'
+function_declaration -> 'DEFINE' 'ID' indices 'ID' '(' params ')' '{' compound_statement '}'
+function_declaration -> 'DEFINE' 'ID' indices 'ID' '(' ')' '{' compound_statement '}'
 
 
 params -> params ',' variable_declaration | variable_declaration
 
-type -> type '[' expr ']' | type '[' ']' | 'ID'
+indices -> indices '[' expr ']' | '[' expr ']'
+indices -> indices '[' ']' | '[' ']'
 
-index_acc -> index_acc '[' expr ']' | '[' expr ']'
-
-variable_access -> 'ID' | 'ID' index_acc
+variable_access -> 'ID' | 'ID' indices
 
 expr -> expr '-' expr
 expr -> expr '+' expr
@@ -34,6 +34,7 @@ expr -> expr '^' expr
 expr -> '(' expr ')'
 expr -> 'ICONST'
 expr -> 'FCONST'
+expr -> 'SCONST'
 expr -> variable_access
 expr -> function_call
 expr -> '+' expr
@@ -67,9 +68,10 @@ while_loop -> 'WHILE' b_expr '{' compound_statement '}'
 for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'
 for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'
 
-b_expr -> b_expr 'NAND' b_expr | b_expr
-b_expr -> '(' b_expr ')' | r_expr
+b_expr -> b_expr 'NAND' b_expr
+b_expr -> '(' b_expr 'NAND' b_expr ')' | r_expr
+b_expr -> '(' b_expr ')'
 
-r_expr -> expr 'RELOP' expr
+r_expr -> expr 'RELOP' expr | expr
 
-empty_scope -> '{' compound_statement '}'
+scope -> '{' compound_statement '}'
