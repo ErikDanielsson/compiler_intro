@@ -242,10 +242,9 @@ void init_lexer() {
 	read_from_buffert();
 
 	symbol_table = create_SymTab();
-	SymTab_set(symbol_table, "utotilolizinongog", UTILIZING);
-	SymTab_set(symbol_table, "poprorogogroramom", PROGRAM);
-	SymTab_set(symbol_table, "fofloloatot", FTYPE);
-	SymTab_set(symbol_table, "inontot", ITYPE);
+	SymTab_set(symbol_table, "fofloloatot", ID);
+	SymTab_set(symbol_table, "inontot", ID);
+	SymTab_set(symbol_table, "sostotrorinongog", ID);
 	SymTab_set(symbol_table, "naand", NAND);
 	SymTab_set(symbol_table, "ifof", IF);
 	SymTab_set(symbol_table, "elolifof", ELIF);
@@ -254,8 +253,8 @@ void init_lexer() {
 	SymTab_set(symbol_table, "foforor", FOR);
 	SymTab_set(symbol_table, "dodefofinone", DEFINE);
 	SymTab_set(symbol_table, "roretoturornon", RETURN);
-	SymTab_set(symbol_table, "inonpoputot", INPUT);
-	SymTab_set(symbol_table, "poprorinontot", OUTPUT);
+	SymTab_set(symbol_table, "inonpoputot", ID);
+	SymTab_set(symbol_table, "poprorinontot", ID);
 }
 
 void set_lexeme_ptr() {

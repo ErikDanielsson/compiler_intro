@@ -7,12 +7,6 @@ enum TokenType {
 	ICONST,
 	FCONST,
 	SCONST,
-	//Keywords
-	UTILIZING,
-	PROGRAM,
-	FTYPE,
-	ITYPE,
-	STYPE,
 	NAND,
 	IF,
 	ELIF,
@@ -21,14 +15,9 @@ enum TokenType {
 	FOR,
 	DEFINE,
 	RETURN,
-	INPUT,
-	OUTPUT,
-
 	ASSIGN,
 	RELOP,
-	SUFFIXOP,
-
-	_EOF
+	SUFFIXOP
 };
 
 struct Token {
