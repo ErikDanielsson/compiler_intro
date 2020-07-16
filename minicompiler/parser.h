@@ -6,11 +6,10 @@ enum NodeType {
 	COMPOUND_STATEMENT,
 	STATEMENT,
 	VARIABLE_DECLARATION,
-	INDEX_EXPR,
 	FUNCTION_DECLARATION,
 	PARAMS,
-	PARAM_DECL,
 	TYPE,
+	INDEX_ACC,
 	VARIABLE_ACCESS,
 	EXPR,
 	ASSIGNMENT_STATEMENT,
@@ -24,7 +23,8 @@ enum NodeType {
 	WHILE_LOOP,
 	FOR_LOOP,
 	B_EXPR,
-	R_EXPR
+	R_EXPR,
+	TOKEN
 };
 
 struct Start {
@@ -41,7 +41,7 @@ struct Stmt {
 	union {
 		struct VarDecl* variable_declaration;
 		struct FuncDecl* function_declaration;
-		struct AsStmt* assignment_statement;
+		struct AStmt* assignment_statement;
 		struct FuncCall* function_call;
 		struct IIEStmt* if_elif_else_statement;
 		struct WLoop* while_loop;
@@ -67,8 +67,21 @@ struct FuncDecl {
 	struct CompStmt* body;
 };
 
+struct Params {
+	int n_prior_params;
+	struct VarDecl** prior_params;
+	struct VarDecl* this_param;
+};
+
+struct Type {
+	// Empty brackets are assigned NULL
+	int n_brackets;
+	struct Expr** prior_expr;
+	struct Token* type;
+};
+
 struct VarAcc {
-	Token* variable;
+	struct Token* variable;
 	int n_indices;
 	int* indices;
 };
@@ -76,8 +89,8 @@ struct VarAcc {
 enum ExprType {
 	BINOP,
 	UOP,
-	NUM,
-	FUNCCALL
+	CONST,
+	FUNCCALL,
 	VARACC
 };
 
@@ -86,11 +99,11 @@ struct Expr{
 	union {
 		struct {
 			struct Expr* left;
-			enum TokenType operator;
+			enum TokenType binary_op;
 			struct Expr* right;
 		};
 		struct {
-			enum TokenType operator;
+			enum TokenType unary_op;
 			struct Expr* expr;
 		};
 		struct Token* num_val;
@@ -102,7 +115,7 @@ enum AssignType {
 	S_OP,
 	OTHER
 };
-struct AsStmt {
+struct AStmt {
 	struct VarAcc* variable_access;
 	struct Token* assignment_type;
 	struct Expr* expr;
@@ -114,11 +127,17 @@ struct FuncCall {
 	struct Expr** args;
 };
 
+struct Args {
+	int n_prior;
+	struct Expr** priors;
+	struct Expr* arg;
+};
+
 struct IIEStmt {
 	int n_conditionals;
 	struct IfStmt** conditional_list;
 	/*
-	 * Since an else is nothing other than a compound statement executed
+	 * Since an 'else' is nothing other than a compound statement executed
 	 * if all conditional statement are rejected:
 	 */
 	struct CompStmt* unconditional;
@@ -136,7 +155,7 @@ struct WLoop {
 struct FLoop {
 	struct VarDecl* variable_declaration;
 	struct BExpr* boolean;
-	struct AsStmt* update_statement;
+	struct AStmt* update_statement;
 	struct CompStmt* body;
 };
 
@@ -157,8 +176,19 @@ struct RExpr {
 	struct Expr* right;
 };
 
+
+struct Record {
+	void* value;
+	enum NodeType type;
+};
+
 void lr_parser(char verbose);
 void parser_error(int length, const char* expected,
 		  int fatal, int line, int column,
 		  int inject_symbol, char symbol);
 struct Token* inject_token(enum TokenType type);
+
+void create_node(void** node_ptr, enum NodeType type);
+void create_token_record(struct Record* record_ptr, struct Token* token);
+void create_node_record(struct Record** stack, enum NodeType type, int n_pop);
+void print_tree(struct CompStmt* tree);
