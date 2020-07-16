@@ -4,13 +4,13 @@
 unsigned int hash(const char* key);
 
 struct entry {
-	char* key;
-	enum TokenType type;
-	struct entry* next;
+    char* key;
+    enum TokenType type;
+    struct entry* next;
 };
 
 struct SymTab {
-	struct entry** entries;
+    struct entry** entries;
 };
 
 struct SymTab* create_SymTab();
