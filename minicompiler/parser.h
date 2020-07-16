@@ -2,190 +2,202 @@
 #include "lexer.h"
 
 enum NodeType {
-	START,
-	COMPOUND_STATEMENT,
-	STATEMENT,
-	VARIABLE_DECLARATION,
-	FUNCTION_DECLARATION,
-	PARAMS,
-	TYPE,
-	INDEX_ACC,
-	VARIABLE_ACCESS,
-	EXPR,
-	ASSIGNMENT_STATEMENT,
-	FUNCTION_CALL,
-	ARGS,
-	IF_ELIF_ELSE_STATEMENT,
-	ELIF_LIST,
-	IF_STATEMENT,
-	ELIF_STATEMENT,
-	ELSE_STATEMENT,
-	WHILE_LOOP,
-	FOR_LOOP,
-	B_EXPR,
-	R_EXPR,
-	TOKEN
-};
-
-struct Start {
-	struct CompStmt* compound_statement;
+    START,
+    COMPOUND_STATEMENT,
+    STATEMENT,
+    VARIABLE_DECLARATION,
+    FUNCTION_DECLARATION,
+    PARAMS,
+    INDICES,
+    VARIABLE_ACCESS,
+    EXPR,
+    ASSIGNMENT_STATEMENT,
+    FUNCTION_CALL,
+    ARGS,
+    IF_ELIF_ELSE_STATEMENT,
+    ELIF_LIST,
+    IF_STATEMENT,
+    ELIF_STATEMENT,
+    ELSE_STATEMENT,
+    WHILE_LOOP,
+    FOR_LOOP,
+    B_EXPR,
+    R_EXPR,
+    SCOPE,
+    TOKEN
 };
 
 struct CompStmt {
-	int n_statements;
-	struct Stmt** statement_list;
+    int n_statements;
+    struct Stmt** statement_list;
 };
 
 struct Stmt {
-	enum NodeType statement_type;
-	union {
-		struct VarDecl* variable_declaration;
-		struct FuncDecl* function_declaration;
-		struct AStmt* assignment_statement;
-		struct FuncCall* function_call;
-		struct IIEStmt* if_elif_else_statement;
-		struct WLoop* while_loop;
-		struct FLoop* for_loop;
-	};
+    enum NodeType statement_type;
+    union {
+        struct VarDecl* variable_declaration;
+        struct FuncDecl* function_declaration;
+        struct AStmt* assignment_statement;
+        struct FuncCall* function_call;
+        struct IEEStmt* if_elif_else_statement;
+        struct WLoop* while_loop;
+        struct FLoop* for_loop;
+        struct CompStmt* scope;
+    };
 };
 
 struct VarDecl {
-	struct Token* type;
-	int n_indices;
-	int* indices;
-	struct Token* name;
-	struct Expr* expr;
+    struct Token* type;
+    int n_indices;
+    struct Expr** indices;
+    struct Token* name;
+    struct Expr* expr;
 };
 
 struct FuncDecl {
-	struct Token* type;
-	int n_indices;
-	int* indices;
-	struct Token* name;
-	int n_params;
-	struct VarDecl** params;
-	struct CompStmt* body;
+    struct Token* type;
+    int n_indices;
+    int* indices;
+    struct Token* name;
+    int n_params;
+    struct VarDecl** params;
+    struct CompStmt* body;
 };
 
 struct Params {
-	int n_prior_params;
-	struct VarDecl** prior_params;
-	struct VarDecl* this_param;
+    int n_params;
+    struct VarDecl** params;
 };
 
-struct Type {
-	// Empty brackets are assigned NULL
-	int n_brackets;
-	struct Expr** prior_expr;
-	struct Token* type;
+struct Inds {
+    // Empty brackets are assigned NULL
+    int n_indices;
+    struct Expr** indices;
 };
 
 struct VarAcc {
-	struct Token* variable;
-	int n_indices;
-	int* indices;
+    struct Token* variable;
+    int n_indices;
+    struct Expr** indices;
 };
 
 enum ExprType {
-	BINOP,
-	UOP,
-	CONST,
-	FUNCCALL,
-	VARACC
+    BINOP,
+    UOP,
+    CONST,
+    FUNCCALL,
+    VARACC
 };
 
-struct Expr{
-	enum ExprType type;
-	union {
-		struct {
-			struct Expr* left;
-			enum TokenType binary_op;
-			struct Expr* right;
-		};
-		struct {
-			enum TokenType unary_op;
-			struct Expr* expr;
-		};
-		struct Token* num_val;
-		struct FuncCall* function_call;
-		struct VarAcc* variable_access;
-	};
+struct Expr {
+    /*
+     * This could be optimised for memory, since we don't need a pointer
+     * to store a pointer.
+     */
+    enum ExprType type;
+    union {
+        struct {
+            struct Expr* left;
+            enum TokenType binary_op;
+            struct Expr* right;
+        };
+        struct {
+            enum TokenType unary_op;
+            struct Expr* expr;
+        };
+        struct Token* val;
+        struct FuncCall* function_call;
+        struct VarAcc* variable_access;
+    };
 };
-enum AssignType {
-	S_OP,
-	OTHER
-};
+
 struct AStmt {
-	struct VarAcc* variable_access;
-	struct Token* assignment_type;
-	struct Expr* expr;
+    struct VarAcc* variable_access;
+    struct Token* assignment_type;
+    struct Expr* expr;
 };
 
 struct FuncCall {
-	struct Token* func;
-	int n_args;
-	struct Expr** args;
+    struct Token* func;
+    int n_args;
+    struct Expr** args;
 };
 
 struct Args {
-	int n_prior;
-	struct Expr** priors;
-	struct Expr* arg;
+    int n_args;
+    struct Expr** args;
 };
 
-struct IIEStmt {
-	int n_conditionals;
-	struct IfStmt** conditional_list;
-	/*
-	 * Since an 'else' is nothing other than a compound statement executed
-	 * if all conditional statement are rejected:
-	 */
-	struct CompStmt* unconditional;
+struct IEEStmt {
+    struct CondStmt if_stmt;
+    int n_elifs;
+    struct CondStmt** elif_list;
+    struct CompStmt* else;
 };
 
-struct IfStmt {
-	struct BExpr* boolean;
-	struct CompStmt* body;
+/*
+ * Since if, elif and while have the same structure,
+ * they can be in the same struct(ure).
+ */
+struct CondlStmt {
+    struct BExpr* boolean;
+    struct CompStmt* body;
 };
 
-struct WLoop {
-	struct BExpr* boolean;
-	struct CompStmt* body;
+struct EList {
+    int n_elifs;
+    struct CondStmt** elif_list;
+    /*
+     * Since an 'else' is nothing other than a compound statement executed
+     * if all conditional statements are rejected:
+     */
+    struct CompStmt* else;
 };
+
 struct FLoop {
-	struct VarDecl* variable_declaration;
-	struct BExpr* boolean;
-	struct AStmt* update_statement;
-	struct CompStmt* body;
+    enum NodeType type;
+    union {
+        struct VarDecl* variable_declaration;
+        struct AStmt* assignment_statement;
+    };
+    struct BExpr* boolean;
+    struct AStmt* update_statement;
+    struct CompStmt* body;
 };
 
 struct BExpr {
-	enum ExprType type;
-	union {
-		struct {
-			struct BExpr* left;
-			struct BExpr* right;
-		};
-		struct RExpr* r_expr;
-	};
+    enum ExprType type;
+    union {
+        struct {
+            struct BExpr* left;
+            struct BExpr* right;
+        };
+        struct RExpr* r_expr;
+    };
 };
 
 struct RExpr {
-	struct Expr* left;
-	struct Token* operator;
-	struct Expr* right;
+    enum ExprType type;
+    union {
+        struct {
+            struct Expr* left;
+            struct Token* operator;
+            struct Expr* right;
+        };
+        struct Expr* expr;
+    }
 };
 
 
 struct Record {
-	void* value;
-	enum NodeType type;
+    void* value;
+    enum NodeType type;
 };
 
 void lr_parser(char verbose);
 void parser_error(int length, const char* expected,
-		  int fatal, int line, int column,
-		  int inject_symbol, char symbol);
+          int fatal, int line, int column,
+          int inject_symbol, char symbol);
 struct Token* inject_token(enum TokenType type);
 
 void create_node(void** node_ptr, enum NodeType type);
