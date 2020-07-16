@@ -25,8 +25,9 @@ import argparse
 
 cmd_line_parser = argparse.ArgumentParser()
 cmd_line_parser.add_argument('infile')
-cmd_line_parser.add_argument('-w','--write', nargs=2)
+cmd_line_parser.add_argument('-w','--write', nargs=3)
 cmd_line_parser.add_argument('-c', '--default-chars', action="store_true")
+cmd_line_parser.add_argument('-t', '--table', nargs=1)
 cmd_line_args = cmd_line_parser.parse_args()
 
 class item:
@@ -287,8 +288,11 @@ class Parsing_table:
 		l += "\u251C"+7*"\u2500"+("\u252C"+7*"\u2500")*(n_terminals-1)+"\u253C"+\
 			(7*"\u2500"+"\u252C")*(n_nonterminals-1)+7*"\u2500"+"\u2524\n"
 		l += "\u2502\t"
-		l += "\t".join((f"\u2502 {terminal}" for terminal in self.terminals))
-		l += "\t"+"\t".join((f"\u2502 {nonterminal}" for nonterminal in self.nonterminals))
+		l += "\t".join((f"\u2502{terminal[1:-1]}" if len(terminal[1:-1]) < 7 else f"\u2502{terminal[1:6]}" for terminal in self.terminals))
+		for nonterminal in nonterminals:
+			s = str(nonterminal) if len(str(nonterminal)) < 8 else '_'.join(i[0:2] for i in str(nonterminal).split('_')[:2])
+			l += "\t" + "\u2502" + s
+		#l += "\t"+"\t".join((f"\u2502 {nonterminal}" for nonterminal in self.nonterminals))
 		l += "\t\u2502\n"
 		l += "\u251C"+("\u2500"*7+"\u253C")*(n_terminals+n_nonterminals)+"\u2500"*7+"\u2524\n"
 		for i, r in enumerate(self.table):
@@ -323,7 +327,7 @@ class Node:
 		s = "".join(i.string(1) for i in self.nodes)
 		return str(self.type)+str(self.type) + ": " + s
 	def string(self, n):
-		s = "".join(i.string(n+1) for i in self.nodes)
+		s = "".join(i.string(n+1) for i in self.nodes if type(i) == Node)
 		return str(self.type)+"\n"+' '*n + s
 	def append(self, node):
 		self.nodes.append(node)
@@ -392,7 +396,7 @@ def generate_collection_and_GOTO_table(items, nonterminals, terminals):
 	collection = SLR_collection()
 	new_sets = SLR_collection()
 	tmp_set = SLR_item_set()
-	tmp_set.add(SLR_item("start", ['S'], 0, 0))
+	tmp_set.add(SLR_item("start", ['compound_statement'], 0, 0))
 	new_sets.add(SLR_CLOSURE(tmp_set, items))
 	while True:
 		tmp_sets = SLR_collection()
@@ -709,110 +713,15 @@ for i, rule in enumerate(rules):
 		print(f"({i}) {rule[0]}" + " -> "+" ".join(rule[1]))
 print(collection)
 print(parse_table)
-print(sys.getsizeof(parse_table.table))
 print(cmd_line_args)
 
 def token_type_parser(infile, default_chars):
 	value = default_chars*127
 	types = dict()
+
 	if default_chars:
-		types = {
-			' ' : 32,
-			'!' : 33,
-			'"' : 34,
-			'#' : 35,
-			'$' : 36,
-			'%' : 37,
-			'&' : 38,
-			'\'' : 39,
-			'(' : 40,
-			')' : 41,
-			'*' : 42,
-			'+' : 43,
-			',' : 44,
-			'-' : 45,
-			'.' : 46,
-			'/' : 47,
-			'0' : 48,
-			'1' : 49,
-			'2' : 50,
-			'3' : 51,
-			'4' : 52,
-			'5' : 53,
-			'6' : 54,
-			'7' : 55,
-			'8' : 56,
-			'9' : 57,
-			':' : 58,
-			';' : 59,
-			'<' : 60,
-			'=' : 61,
-			'>' : 62,
-			'?' : 63,
-			'@' : 64,
-			'A' : 65,
-			'B' : 66,
-			'C' : 67,
-			'D' : 68,
-			'E' : 69,
-			'F' : 70,
-			'G' : 71,
-			'H' : 72,
-			'I' : 73,
-			'J' : 74,
-			'K' : 75,
-			'L' : 76,
-			'M' : 77,
-			'N' : 78,
-			'O' : 79,
-			'P' : 80,
-			'Q' : 81,
-			'R' : 82,
-			'S' : 83,
-			'T' : 84,
-			'U' : 85,
-			'V' : 86,
-			'W' : 87,
-			'X' : 88,
-			'Y' : 89,
-			'Z' : 90,
-			'[' : 91,
-			'\\' : 92,
-			']' : 93,
-			'^' : 94,
-			'_' : 95,
-			'`' : 96,
-			'a' : 97,
-			'b' : 98,
-			'c' : 99,
-			'd' : 100,
-			'e' : 101,
-			'f' : 102,
-			'g' : 103,
-			'h' : 104,
-			'i' : 105,
-			'j' : 106,
-			'k' : 107,
-			'l' : 108,
-			'm' : 109,
-			'n' : 110,
-			'o' : 111,
-			'p' : 112,
-			'q' : 113,
-			'r' : 114,
-			's' : 115,
-			't' : 116,
-			'u' : 117,
-			'v' : 118,
-			'w' : 119,
-			'x' : 120,
-			'y' : 121,
-			'z' : 122,
-			'{' : 123,
-			'|' : 124,
-			'}' : 125,
-			'~' : 126,
-		}
+		for i in range(32, 127):
+			types[chr(i)] = i;
 
 	with open(infile, 'r') as f:
 		for i, line in enumerate(f):
@@ -849,6 +758,22 @@ def token_type_parser(infile, default_chars):
 					quit()
 	return types, value
 
+def node_type_parser(infile):
+	value = 0
+	node_types = dict()
+	with open(infile, 'r') as f:
+		for line in f:
+			line_types = line.split(',')
+			print(line_types)
+			for line_type in line_types:
+				if line_type == '\n':
+					continue
+				else:
+					node_types[line_type] = value
+					value += 1
+	print(node_types)
+	return node_types
+
 if cmd_line_args.write:
 	token_types, max = token_type_parser(cmd_line_args.write[1], cmd_line_args.default_chars)
 	converted_table = list()
@@ -867,9 +792,7 @@ if cmd_line_args.write:
 					quit()
 				new_row[new_key] = value
 		converted_table.append(new_row)
-	nonterminal_to_num = dict()
-	for i, nonterminal in enumerate(nonterminals):
-		nonterminal_to_num[nonterminal] = i
+	nonterminal_to_num = node_type_parser(cmd_line_args.write[2])
 	reduction_rules = list()
 	for r in rules:
 		reduction_rules.append((nonterminal_to_num[r[0]], len(r[1])))
@@ -907,6 +830,10 @@ if cmd_line_args.write:
 		f.write('\n')
 	f.close()
 
+if cmd_line_args.table:
+	f = open(cmd_line_args.table[0], 'w', encoding='utf-8')
+	f.write(str(parse_table))
+	f.close()
 
 while True:
 	i = input().strip()
