@@ -18,12 +18,6 @@ disassemble: $(wildcard *.out)
 
 a.out : $(OBJ)
 	$(CC) $(CFLAGS) -o  a.out $^
-	rm -f *.o
-
-a_op.out : $(OBJ)
-	$(CC) $(CFLAGS) -o  a_op.out $^
-	rm -f *.o
-
 
 
 clean:
