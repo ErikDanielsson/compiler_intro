@@ -98,11 +98,11 @@ struct Expr {
     union {
         struct {
             struct Expr* left;
-            enum TokenType binary_op;
+            struct Token* binary_op;
             struct Expr* right;
         };
         struct {
-            enum TokenType unary_op;
+            struct Token* unary_op;
             struct Expr* expr;
         };
         struct Token* val;
@@ -129,17 +129,17 @@ struct Args {
 };
 
 struct IEEStmt {
-    struct CondStmt if_stmt;
+    struct CondStmt* if_stmt;
     int n_elifs;
     struct CondStmt** elif_list;
-    struct CompStmt* else;
+    struct CompStmt* _else;
 };
 
 /*
  * Since if, elif and while have the same structure,
  * they can be in the same struct(ure).
  */
-struct CondlStmt {
+struct CondStmt {
     struct BExpr* boolean;
     struct CompStmt* body;
 };
@@ -151,7 +151,7 @@ struct EList {
      * Since an 'else' is nothing other than a compound statement executed
      * if all conditional statements are rejected:
      */
-    struct CompStmt* else;
+    struct CompStmt* _else;
 };
 
 struct FLoop {
@@ -185,7 +185,7 @@ struct RExpr {
             struct Expr* right;
         };
         struct Expr* expr;
-    }
+    };
 };
 
 
