@@ -9,6 +9,7 @@ statement -> function_call ';'
 statement -> if_elif_else_statement
 statement -> while_loop
 statement -> for_loop
+statement -> empty_scope
 
 variable_declaration -> type 'ID' | type 'ID' '=' expr
 
@@ -18,9 +19,7 @@ function_declaration -> 'DEFINE' type 'ID' '(' ')' '{' compound_statement '}'
 
 params -> params ',' variable_declaration | variable_declaration
 
-type -> 'STYPE' | 'ITYPE' | 'FTYPE'
-type -> type '[' expr ']'
-type -> type '[' ']'
+type -> type '[' expr ']' | type '[' ']' | 'ID'
 
 index_acc -> index_acc '[' expr ']' | '[' expr ']'
 
@@ -72,3 +71,5 @@ b_expr -> b_expr 'NAND' b_expr | b_expr
 b_expr -> '(' b_expr ')' | r_expr
 
 r_expr -> expr 'RELOP' expr
+
+empty_scope -> '{' compound_statement '}'
