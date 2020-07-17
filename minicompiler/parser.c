@@ -873,6 +873,112 @@ void create_token_record(struct Record* record_ptr, struct Token* token) {
     record_ptr->value = token;
 }
 
+void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs) {
+    for (int i = 0; i < node->n_statements; i++) {
+        print_Stmt(node->statements[i]);
+    }
+}
+
+void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs) {
+    switch (node->statement_type) {
+        case VARIABLE_DECLARATION:
+            print_VarDecl(node->VARIABLE_DECLARATION, nest_level, labels, leafs);
+            return;
+        case FUNCTION_DECLARATION:
+            print_FuncDecl(node->FUNCTION_DECLARATION, nest_level, labels, leafs);
+            return;
+        case ASSIGNMENT_STATEMENT:
+            print_AStmt(node->ASSIGNMENT_STATEMENT, nest_level, labels, leafs);
+            return;
+        case FUNCTION_CALL:
+            print_FuncCall(node->FUNCTION_CALL, nest_level, labels, leafs);
+            return;
+        case IF_ELIF_ELSE_STATEMENT:
+            print_IEEStmt(node->IF_ELIF_ELSE_STATEMENT, nest_level, labels, leafs);
+            return;
+        case WHILE_LOOP:
+            print_WLoop(node->WHILE_LOOP, nest_level, labels, leafs);
+            return;
+        case FOR_LOOP:
+            print_FLoop(node->FOR_LOOP, nest_level, labels, leafs);
+            return;
+        case SCOPE:
+            print_Scope(node->SCOPE, nest_level, labels, leafs);
+            return;
+    }
+}
+
+void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs) {
+    for (int i = 0; i < nest_level; i++) {
+        printf("    ");
+    }
+    printf("decl: %s of type %s\n", node->name->lexeme, node->type->lexeme);
+    for (int i = 0; i < node->n_indices; i++) {
+        for (int j = 0; j < nest_level; j++) {
+            printf("    ");
+        }
+        printf("[\n");
+        print_Expr(node->indices[i], nest_level+1, labels, leafs);
+        for (int j = 0; j < nest_level; j++) {
+            printf("    ");
+        }
+        printf("]\n");
+    }
+}
+
+void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leafs) {
+
+}
+
+
+
+void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs) {
+
+}
+
+
+
+void print_Expr(struct Expr* node, int nest_level, char labels, char leafs) {
+
+}
+
+void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs) {
+
+}
+
+void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leafs) {
+
+}
+
+void print_Args(struct Args* node, int nest_level, char labels, char leafs) {
+
+}
+
+void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs) {
+
+}
+
+
+void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs) {
+
+}
+
+void print_EList(struct EList* node, int nest_level, char labels, char leafs) {
+
+}
+
+void print_WLoop(struct IfStmt* node, int nest_level, char labels, char leafs) {
+}
+
+void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs) {
+}
+
+void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs) {
+}
+
+void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs) {
+}
+
 void print_tree(struct CompStmt* tree) {
     printf("compound statement\n");
     printf("n: %d\n", tree->n_statements);
