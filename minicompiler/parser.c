@@ -163,748 +163,1515 @@ struct Token* inject_token(enum TokenType type) {
 }
 
 void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
-    /*
-     * Creation of a node of AST (abstract syntax tree). When the parsers
-     * determines a reduction, this function is called. By looking at the types
-     * of symbols on the stack it determines a parse according to the grammar
-     * rules (defined in "grammar"). Since the algorithm is stack based, it
-     * works from right to left in the production, shifting symbols from the
-     * stack into structs of the correct type. Some productions, such as
-     * 'indices', generate lists, and while they would naturally produce a
-     * linked list if left on their own, they are converted to arrays.
-     */
-    struct Record* record = malloc(sizeof(struct Record));
-    record->type = type;
-    switch (type) {
-        case COMPOUND_STATEMENT: {
-            printf("COMPOUND_STATEMENT\n");
-            struct CompStmt* tmp_node = malloc(sizeof(struct CompStmt));
 
-            if (n_pop == 1) {
-                tmp_node->n_statements = 1;
-                tmp_node->statement_list = malloc(sizeof(struct Stmt*)*1);
-                tmp_node->statement_list[0] = (struct Stmt*)((*top)->value);
-            } else {
-                struct Stmt* tmp_stmt = (struct Stmt*)(*top)->value;
-                (*top)--;
-                struct CompStmt* prior_compound = (struct CompStmt*)((*top)->value);
-                int n_new_stmts = prior_compound->n_statements+1;
-                tmp_node->n_statements = n_new_stmts;
-                tmp_node->statement_list = malloc(sizeof(struct Stmt*)*n_new_stmts);
-                tmp_node->statement_list[n_new_stmts-1] = tmp_stmt;
-                memcpy(tmp_node->statement_list, prior_compound->statement_list, sizeof(struct Stmt*)*(n_new_stmts-1));
-                free(prior_compound->statement_list);
-                free(prior_compound);
 
-            }
-            record->value = tmp_node;
-            break;
-        }
 
-        case STATEMENT: {
-            printf("STATEMENT\n");
-            struct Stmt* tmp_node = malloc(sizeof(struct Stmt));
-            enum NodeType type = (*top)->type;
-            if (type == TOKEN) {
-                struct Token* top_token = (struct Token*)((*top)->value);
-                free(top_token->lexeme);
-                free(top_token);
-                (*top)--;
-
-                type = (*top)->type;
-                tmp_node->statement_type = type;
-                switch (type) {
-                    case VARIABLE_DECLARATION:
-                        tmp_node->variable_declaration = (struct VarDecl*)((*top)->value);
-                        break;
-                    case ASSIGNMENT_STATEMENT:
-                        tmp_node->assignment_statement = (struct AStmt*)((*top)->value);
-                        break;
-                    case FUNCTION_CALL:
-                        tmp_node->function_call = (struct FuncCall*)((*top)->value);
-                        break;
-                    default:
-                        printf("Something fishy in statement 1\n");
-                }
-
-            } else {
-                tmp_node->statement_type = type;
-                switch (type) {
-                    case FUNCTION_DECLARATION:
-                        tmp_node->function_declaration = (struct FuncDecl*)((*top)->value);
-                        break;
-                    case IF_ELIF_ELSE_STATEMENT:
-                        tmp_node->if_elif_else_statement = (struct IEEStmt*)((*top)->value);
-                        break;
-                    case WHILE_LOOP:
-                        tmp_node->while_loop = (struct CondStmt*)((*top)->value);
-                        break;
-                    case FOR_LOOP:
-                        tmp_node->for_loop = (struct FLoop*)((*top)->value);
-                        break;
-                    case SCOPE:
-                        tmp_node->scope = (struct CompStmt*)((*top)->value);
-                        break;
-                    default:
-                        printf("Something fishy is statement 2\n");
-                }
-            }
-            record->value = tmp_node;
-            break;
-        }
-
-        case VARIABLE_DECLARATION: {
-            printf("VARIABLE_DECLARATION\n");
-            struct VarDecl* tmp_node = malloc(sizeof(struct VarDecl));
-
-            if ((*top)->type == EXPR) {
-                tmp_node->expr = (struct Expr*)((*top)->value);
-
-                (*top)--;
-                struct Token* top_token = (struct Token*)((*top)->value);
-                free(top_token->lexeme);
-                free(top_token);
-                (*top)--;
-            } else {
-                tmp_node->expr = NULL;
-            }
-
-            tmp_node->name = (struct Token*)((*top)->value);
-            (*top)--;
-
-            if ((*top)->type == INDICES) {
-                struct Inds* ind= (struct Inds*)((*top)->value);
-                int n_indices = ind->n_indices;
-                tmp_node->n_indices = n_indices;
-                tmp_node->indices = malloc(sizeof(struct Expr*)*n_indices);
-                memcpy(tmp_node->indices, ind->indices, sizeof(struct Expr*)*n_indices);
-                free(ind->indices);
-                free(ind);
-                (*top)--;
-            } else {
-                tmp_node->n_indices = 0;
-                tmp_node->indices = NULL;
-            }
-
-            tmp_node->type = (struct Token*)((*top)->value);
-
-            record->value = tmp_node;
-            break;
-        }
-
-        case FUNCTION_DECLARATION: {
-            printf("FUNCTION_DECLARATION\n");
-            struct FuncDecl* tmp_node = malloc(sizeof(struct FuncDecl));
-            struct Token* top_token = (struct Token*)((*top)->value);
-
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->body = (struct CompStmt*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-            if ((*top)->type == PARAMS) {
-                struct Params* params = (struct Params*)((*top)->value);
-                int n_params = params->n_params;
-                tmp_node->n_params = n_params;
-                tmp_node->params = malloc(sizeof(struct VarDecl*)*n_params);
-                memcpy(tmp_node->params, params->params, sizeof(struct VarDecl*)*n_params);
-                free(params->params);
-                free(params);
-                (*top)--;
-
-            } else {
-                tmp_node->n_params = 0;
-                tmp_node->params = NULL;
-            }
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-            if ((*top)->type == EMPTY_INDICES) {
-                int* n_empty = (int*)((*top)->value);
-                tmp_node->n_indices = *n_empty;
-                printf("\n\nN INDICES: %d\n\n", *n_empty);
-                free(n_empty);
-                (*top)--;
-            } else {
-                tmp_node->n_indices = 0;
-            }
-            tmp_node->name = (struct Token*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-
-            record->value = tmp_node;
-            break;
-        }
-
-        case EMPTY_INDICES: {
-            int* tmp_node;
-            struct Token* top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-
-            if (n_pop == 3) {
-                (*top)--;
-                tmp_node = (int*)((*top)->value);
-                (*tmp_node)++;
-            } else {
-                tmp_node = malloc(sizeof(int));
-                (*tmp_node) = 1;
-            }
-            record->value = tmp_node;
-            break;
-        }
-
-
-        case PARAMS: {
-            printf("PARAMS\n");
-
-            struct Params* tmp_node = malloc(sizeof(struct Params));
-
-            struct VarDecl* next_decl = (struct VarDecl*)((*top)->value);
-
-
-            if (n_pop == 3) {
-                (*top)--;
-
-                struct Token* top_token = (struct Token*)((*top)->value);
-                free(top_token->lexeme);
-                free(top_token);
-                (*top)--;
-
-                struct Params* prior_params = (struct Params*)((*top)->value);
-                int n_params = prior_params->n_params;
-                tmp_node->n_params = n_params+1;
-                tmp_node->params = malloc(sizeof(struct VarDecl*)*(n_params+1));
-                tmp_node->params[n_params] = next_decl;
-                memcpy(tmp_node->params, prior_params->params, sizeof(struct Vardecl*)*n_params);
-                free(prior_params->params);
-                free(prior_params);
-            } else {
-                tmp_node->n_params = 1;
-                tmp_node->params = malloc(sizeof(struct VarDecl*));
-                tmp_node->params[0] = next_decl;
-            }
-
-            record->value = tmp_node;
-            break;
-        }
-
-        case INDICES: {
-            printf("INDICES\n");
-            struct Inds* tmp_node = malloc(sizeof(struct Inds));
-            struct Token* top_token = NULL;
-            struct Expr* expr = NULL;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            if ((*top)->type == EXPR) {
-                expr = (struct Expr*)((*top)->value);
-                (*top)--;
-                // To make sure the next 'if' evaluated correctly:
-                n_pop--;
-            }
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            if (n_pop == 3 ) {
-                (*top)--;
-                struct Inds* prior_node = (struct Inds*)((*top)->value);
-                int n_expr = prior_node->n_indices;
-
-                tmp_node->n_indices = n_expr+1;
-                tmp_node->indices = malloc(sizeof(struct Expr*)*(n_expr+1));
-                tmp_node->indices[n_expr] = expr;
-                memcpy(tmp_node->indices, prior_node->indices, sizeof(struct Expr*)*n_expr);
-
-                free(prior_node->indices);
-                free(prior_node);
-
-            } else {
-                tmp_node->n_indices = 1;
-                tmp_node->indices = malloc(sizeof(struct Expr*));
-                tmp_node->indices[0] = expr;
-            }
-            record->value = tmp_node;
-            break;
-        }
-
-        case VARIABLE_ACCESS: {
-            printf("VARIABLE_ACCESS\n");
-            struct VarAcc* tmp_node = malloc(sizeof(struct VarAcc));
-            if ((*top)->type == INDICES) {
-                struct Inds* ind= (struct Inds*)((*top)->value);
-                int n_indices = ind->n_indices;
-                tmp_node->n_indices = n_indices;
-                tmp_node->indices = malloc(sizeof(struct Expr*)*n_indices);
-                memcpy(tmp_node->indices, ind->indices, sizeof(struct Expr*)*n_indices);
-                free(ind->indices);
-                free(ind);
-                (*top)--;
-            } else {
-                tmp_node->n_indices = 0;
-                tmp_node->indices = NULL;
-            }
-            tmp_node->variable = (struct Token*)((*top)->value);
-            record->value = tmp_node;
-            break;
-        }
-
-        case EXPR: {
-            printf("EXPR\n");
-
-            struct Token* top_token = NULL;
-            switch (n_pop) {
-                case 1: {
-                    struct Expr* tmp_node = malloc(sizeof(struct Expr));
-                    switch ((*top)->type) {
-                        case TOKEN:
-                            tmp_node->type = CONST;
-                            tmp_node->val = (struct Token*)((*top)->value);
-                            break;
-                        case FUNCTION_CALL:
-                            tmp_node->type = FUNCCALL;
-                            tmp_node->function_call = (struct FuncCall*)((*top)->value);
-                            break;
-                        case VARIABLE_ACCESS:
-                            tmp_node->type = VARACC;
-                            tmp_node->variable_access = (struct VarAcc*)((*top)->value);
-                            break;
-                        default:
-                            printf("Something fishy in expr\n");
-                    }
-                    record->value = tmp_node;
-                    break;
-                }
-                case 2: {
-                    struct Expr* tmp_node = malloc(sizeof(struct Expr));
-                    tmp_node->type = UOP;
-
-                    tmp_node->unary_op = (struct Token*)((*top)->value);
-                    (*top)--;
-
-                    tmp_node->expr = (struct Expr*)((*top)->value);
-
-                    record->value = tmp_node;
-                    break;
-                }
-                case 3:
-                if ((*top)->type == TOKEN) {
-                    top_token = (struct Token*)((*top)->value);
-                    free(top_token->lexeme);
-                    free(top_token);
-                    (*top)--;
-                    /*
-                     * Since paranthesis are only for precedence,
-                     * we can put the expression back on the stack
-                     */
-                    record->value = (*top)->value;
-                    (*top)--;
-                    top_token = (struct Token*)((*top)->value);
-                    free(top_token->lexeme);
-                    free(top_token);
-
-                } else {
-                    struct Expr* tmp_node = malloc(sizeof(struct Expr));
-                    tmp_node->type = BINOP;
-
-                    tmp_node->right = (struct Expr*)((*top)->value);
-                    (*top)--;
-
-                    tmp_node->binary_op = (struct Token*)((*top)->value);
-                    (*top)--;
-
-                    tmp_node->left = (struct Expr*)((*top)->value);
-                    record->value = tmp_node;
-                }
-                break;
-            }
-            break;
-        }
-
-        case ASSIGNMENT_STATEMENT: {
-            printf("ASSIGNMENT_STATEMENT\n");
-            struct AStmt* tmp_node = malloc(sizeof(struct AStmt));
-            if ((*top)->type == TOKEN) {
-                tmp_node->assignment_type = (struct Token*)((*top)->value);
-                tmp_node->expr = NULL;
-
-            } else {
-                tmp_node->expr = (struct Expr*)((*top)->value);
-                (*top)--;
-                tmp_node->assignment_type = (struct Token*)((*top)->value);
-            }
-
-            (*top)--;
-            tmp_node->variable_access = (struct VarAcc*)((*top)->value);
-            record->value = tmp_node;
-            break;
-        }
-
-        case FUNCTION_CALL: {
-            printf("FUNCTION_CALL\n");
-            struct FuncCall* tmp_node = malloc(sizeof(struct FuncCall));
-            struct Token* top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-            if ((*top)->type == ARGS) {
-
-
-            } else {
-                tmp_node->n_args = 0;
-                tmp_node->args = NULL;
-            }
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->func = (struct Token*)((*top)->value);
-            record->value = tmp_node;
-            break;
-        }
-
-        case ARGS: {
-            printf("ARGS\n");
-            struct Args* tmp_node = malloc(sizeof(struct Args));
-            struct Expr* next_arg = (struct Expr*)((*top)->value);
-            if (n_pop == 3) {
-                (*top)--;
-
-                struct Token* top_token = (struct Token*)((*top)->value);
-                free(top_token->lexeme);
-                free(top_token);
-                (*top)--;
-
-                struct Args* prior_args = (struct Args*)((*top)->value);
-                int n_args = prior_args->n_args;
-                tmp_node->n_args = n_args+1;
-                tmp_node->args = malloc(sizeof(struct Expr*)*(n_args+1));
-                tmp_node->args[n_args] = next_arg;
-                memcpy(tmp_node->args, prior_args->args, sizeof(struct Expr*)*n_args);
-                free(prior_args->args);
-                free(prior_args);
-            } else {
-                tmp_node->n_args = 1;
-                tmp_node->args = malloc(sizeof(struct Expr*));
-                tmp_node->args[0] = next_arg;
-            }
-            record->value = tmp_node;
-            break;
-        }
-
-        case IF_ELIF_ELSE_STATEMENT: {
-            printf("IF_ELIF_ELSE_STATEMENT\n");
-            struct IEEStmt* tmp_node = malloc(sizeof(struct IEEStmt));
-            if (n_pop == 1) {
-                tmp_node->n_elifs = 0;
-                tmp_node->elif_list = NULL;
-                tmp_node->_else = NULL;
-            } else {
-                struct EList* elif_list = (struct EList*)((*top)->value);
-                int n_elifs = elif_list->n_elifs;
-                tmp_node->n_elifs = n_elifs;
-                tmp_node->elif_list = malloc(sizeof(struct CondStmt*)*n_elifs);
-                tmp_node->_else = elif_list->_else;
-                memcpy(tmp_node->elif_list, elif_list->elif_list, sizeof(sizeof(struct CondStmt*)*n_elifs));
-                free(elif_list->elif_list);
-                free(elif_list);
-                (*top)--;
-            }
-            tmp_node->if_stmt = (struct CondStmt*)((*top)->value);
-            record->value = tmp_node;
-            break;
-        }
-
-        case ELIF_LIST:{
-            printf("ELIF_LIST\n");
-            struct EList* tmp_node = malloc(sizeof(struct EList));
-            if (n_pop == 2) {
-                struct EList* prior_list = (struct EList*)((*top)->value);
-                int n_elifs = prior_list->n_elifs;
-                if (n_elifs != 0) {
-                    tmp_node->n_elifs = n_elifs+1;
-                    tmp_node->elif_list = malloc(sizeof(struct CondStmt*)*(n_elifs+1));
-                    memcpy(tmp_node->elif_list+1, prior_list->elif_list, sizeof(struct CondStmt*)*n_elifs);
-                    free(prior_list->elif_list);
-                } else {
-                    tmp_node->n_elifs = 1;
-                    tmp_node->elif_list = malloc(sizeof(struct CondStmt*));
-                }
-                tmp_node->_else = prior_list->_else;
-                free(prior_list);
-                (*top)--;
-
-                tmp_node->elif_list[0] = (struct CondStmt*)((*top)->value);
-
-            } else {
-                if ((*top)->type == ELIF_STATEMENT) {
-                    tmp_node->n_elifs = 1;
-                    tmp_node->elif_list = malloc(sizeof(struct CondStmt*));
-                    tmp_node->elif_list[0] = (struct CondStmt*)((*top)->value);
-                    tmp_node->_else = NULL;
-                } else {
-                    tmp_node->n_elifs = 0;
-                    tmp_node->elif_list = NULL;
-                    tmp_node->_else = (struct CompStmt*)((*top)->value);
-                }
-            }
-            record->value = tmp_node;
-            break;
-        }
-
-        /*
-         * 'if', 'elif' and 'while' have the same structure
-         */
-        case IF_STATEMENT:
-        case ELIF_STATEMENT:
-        case WHILE_LOOP: {
-            printf("IF_STATEMENT\n");
-            struct CondStmt* tmp_node = malloc(sizeof(struct CondStmt));
-            struct Token* top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->body = (struct CompStmt*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->boolean = (struct BExpr*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-
-            record->value = tmp_node;
-            break;
-        }
-
-        case ELSE_STATEMENT: {
-            printf("ELSE_STATEMENT\n");
-            struct CompStmt* tmp_node = malloc(sizeof(struct CompStmt));
-            struct Token* top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node = (struct CompStmt*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-
-            record->value = tmp_node;
-            break;
-        }
-
-        case FOR_LOOP: {
-            printf("FOR_LOOP\n");
-            struct FLoop* tmp_node = malloc(sizeof(struct FLoop));
-            struct Token* top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->body = (struct CompStmt*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->update_statement = (struct AStmt*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            tmp_node->boolean = (struct BExpr*)((*top)->value);
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            if ((*top)->type == VARIABLE_DECLARATION) {
-                tmp_node->type = VARIABLE_DECLARATION;
-                tmp_node->variable_declaration = (struct VarDecl*)((*top)->value);
-            } else {
-                tmp_node->type = ASSIGNMENT_STATEMENT;
-                tmp_node->assignment_statement = (struct AStmt*)((*top)->value);
-            }
-            (*top)--;
-
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-
-            record->value = tmp_node;
-            break;
-        }
-
-        case B_EXPR: {
-            printf("B_EXPR\n");
-            struct Token* top_token = NULL;
-            switch (n_pop) {
-                case 1:{
-                    struct BExpr* tmp_node = malloc(sizeof(struct BExpr));
-                    tmp_node->type = CONST;
-                    tmp_node->r_expr = (struct RExpr*)((*top)->value);
-
-                    record->value = tmp_node;
-                    break;
-                }
-                case 3:
-                    if ((*top)->type == TOKEN) {
-                        top_token = (struct Token*)((*top)->value);
-                        free(top_token->lexeme);
-                        free(top_token);
-                        (*top)--;
-
-                        record->value = (*top)->value;
-                        (*top)--;
-
-                        top_token = (struct Token*)((*top)->value);
-                        free(top_token->lexeme);
-                        free(top_token);
-                    } else {
-                        struct BExpr* tmp_node = malloc(sizeof(struct BExpr));
-                        tmp_node->right = (struct BExpr*)((*top)->value);
-                        (*top)--;
-
-                        top_token = (struct Token*)((*top)->value);
-                        free(top_token->lexeme);
-                        free(top_token);
-                        (*top)--;
-
-                        tmp_node->left = (struct BExpr*)((*top)->value);
-
-                        record->value = tmp_node;
-                    }
-                    break;
-                case 5: {
-                    struct BExpr* tmp_node = malloc(sizeof(struct BExpr));
-                    top_token = (struct Token*)((*top)->value);
-                    free(top_token->lexeme);
-                    free(top_token);
-                    (*top)--;
-
-                    tmp_node->right = (struct BExpr*)((*top)->value);
-                    (*top)--;
-
-                    top_token = (struct Token*)((*top)->value);
-                    free(top_token->lexeme);
-                    free(top_token);
-                    (*top)--;
-
-                    tmp_node->left = (struct BExpr*)((*top)->value);
-                    (*top)--;
-
-                    top_token = (struct Token*)((*top)->value);
-                    free(top_token->lexeme);
-                    free(top_token);
-
-                    record->value = tmp_node;
-                    break;
-                }
-
-            }
-            break;
-        }
-
-        case R_EXPR:{
-            printf("R_EXPR\n");
-            struct RExpr* tmp_node = malloc(sizeof(struct RExpr));
-            if (n_pop == 3) {
-                tmp_node->type = BINOP;
-                tmp_node->right = (struct Expr*)((*top)->value);
-                (*top)--;
-                tmp_node->operator = (struct Token*)((*top)->value);
-                (*top)--;
-                tmp_node->left = (struct Expr*)((*top)->value);
-
-            } else {
-                tmp_node->type = CONST;
-                tmp_node->expr = (struct Expr*)((*top)->value);
-            }
-            record->value = tmp_node;
-            break;
-        }
-
-        case SCOPE:{
-            printf("SCOPE\n");
-            struct Token* top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            (*top)--;
-
-            record->value = (*top)->value;
-            (*top)--;
-            top_token = (struct Token*)((*top)->value);
-            free(top_token->lexeme);
-            free(top_token);
-            break;
-        }
-
-        default:
-            printf("someone fucked up\n");
-            break;
-
-    }
-    memcpy(*top, record, sizeof(struct Record));
-    free(record);
+static inline void free_token(void* token) {
+    struct Token* dead_token = token;
+    free(dead_token->lexeme);
+    free(dead_token);
 }
 
-void create_token_record(struct Record* record_ptr, struct Token* token) {
+void create_node_record(void** top, int rule_num)
+/*
+ * Creation of a node of AST (abstract syntax tree). When the parsers
+ * determines a reduction, this function is called. Since the algorithm is
+ * stack based, it works from right to left in the production, shifting symbols
+ * from the stack into structs of the correct type. Some productions,
+ * such as'indices', generate lists, and while they would naturally produce a
+ * linked list if left on their own, they are converted to arrays.
+ */
+{
+    void* tmp_ptr = NULL;
+    switch (rule_num) {
+        case 1:
+            #if VERBOSE
+            printf("compound_statement -> compound_statement statement\n");
+            #endif
+            tmp_ptr = reduce_to_compound_compound_list(top);
+            (*top) = tmp_ptr;
+            break;
+        case 2:
+            #if VERBOSE
+            printf("compound_statement -> statement");
+            #endif
+            tmp_ptr = reduce_to_compound_statement(top);
+            (*top) = tmp_ptr;
+            break;
+        case 3:
+            #if VERBOSE
+            printf("(3) statement -> variable_declaration ';'");
+            #endif
+            tmp_ptr = reduce_to_stmt_vardecl(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 4:
+            #if VERBOSE
+            printf("(4) statement -> function_declaration");
+            #endif
+            tmp_ptr = reduce_to_stmt_funcdecl_(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 5:
+            #if VERBOSE
+            printf("(5) statement -> assignment_statement ';'");
+            #endif
+            tmp_ptr = reduce_to_stmt_assignment_statement(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 6:
+            #if VERBOSE
+            printf("(6) statement -> function_call ';'");
+            #endif
+            tmp_ptr = reduce_to_stmt_funccall(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 7:
+            #if VERBOSE
+            printf("(7) statement -> if_elif_else_statement");
+            #endif
+            tmp_ptr = reduce_to_stmt_ieestmt(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 8:
+            #if VERBOSE
+            printf("(8) statement -> while_loop");
+            #endif
+            tmp_ptr = reduce_to_stmt_wloop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 9:
+            #if VERBOSE
+            printf("(9) statement -> for_loop");
+            #endif
+            tmp_ptr = reduce_to_stmt_floop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 10:
+            #if VERBOSE
+            printf("(10) statement -> scope");
+            #endif
+            tmp_ptr = reduce_to_stmt_scope(top);
+            (*top) = tmp_ptr;
+            break;
+
+
+        case 11:
+            #if VERBOSE
+            printf("(11) variable_declaration -> 'ID' indices 'ID'");
+            #endif
+            tmp_ptr = reduce_to_vardecl_w_ind(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 12:
+            #if VERBOSE
+            printf("(12) variable_declaration -> 'ID' indices 'ID' '=' expr");
+            #endif
+            tmp_ptr = reduce_to_vardecl_w_ind_n_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 13:
+            #if VERBOSE
+            printf("(13) variable_declaration -> 'ID' 'ID'");
+            #endif
+            tmp_ptr = reduce_to_vardecl(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 14:
+            #if VERBOSE
+            printf("(14) variable_declaration -> 'ID' 'ID' '=' expr");
+            #endif
+            tmp_ptr = reduce_to_vardecl_w_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 15:
+            #if VERBOSE
+            printf("(15) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_func_decl_w_ind_n_params(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 16:
+            #if VERBOSE
+            printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_func_decl_w_ind(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 17:
+            #if VERBOSE
+            printf("(17) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_func_decl_w_params(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 18:
+            #if VERBOSE
+            printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_func_decl(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 19:
+            #if VERBOSE
+            printf("(19) empty_indices -> empty_indices '[' ']'");
+            #endif
+            tmp_ptr = reduce_to_empty_ind_list(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 20:
+            #if VERBOSE
+            printf("(20) empty_indices -> '[' ']'");
+            #endif
+            tmp_ptr = reduce_to_empty_ind(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 21:
+            #if VERBOSE
+            printf("(21) params -> params ',' variable_declaration");
+            #endif
+            tmp_ptr = reduce_to_param_list(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 22:
+            #if VERBOSE
+            printf("(22) params -> variable_declaration");
+            #endif
+            tmp_ptr = reduce_to_param(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 23:
+            #if VERBOSE
+            printf("(23) indices -> indices '[' expr ']'");
+            #endif
+            tmp_ptr = reduce_to_ind_list_w_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 24:
+            #if VERBOSE
+            printf("(24) indices -> '[' expr ']'");
+            #endif
+            tmp_ptr = reduce_to_ind_w_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 25:
+            #if VERBOSE
+            printf("(25) indices -> indices '[' ']'");
+            #endif
+            tmp_ptr = reduce_to_ind_list(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 26:
+            #if VERBOSE
+            printf("(26) indices -> '[' ']'");
+            #endif
+            tmp_ptr = reduce_to_ind(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 27:
+            #if VERBOSE
+            printf("(27) variable_access -> 'ID'");
+            #endif
+            tmp_ptr = reduce_to_varacc(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 28:
+            #if VERBOSE
+            printf("(28) variable_access -> 'ID' indices");
+            #endif
+            tmp_ptr = reduce_to_varacc_w_ind(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 29:
+            #if VERBOSE
+            printf("(29) expr -> expr '-' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 30:
+            #if VERBOSE
+            printf("(30) expr -> expr '+' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 31:
+            #if VERBOSE
+            printf("(31) expr -> expr '/' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 32:
+            #if VERBOSE
+            printf("(32) expr -> expr '%' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 33:
+            #if VERBOSE
+            printf("(33) expr -> expr '*' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 34:
+            #if VERBOSE
+            printf("(34) expr -> expr '^' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 35:
+            #if VERBOSE
+            printf("(35) expr -> '(' expr ')'");
+            #endif
+            tmp_ptr = reduce_to_expr_paren(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 36:
+            #if VERBOSE
+            printf("(36) expr -> 'ICONST'");
+            #endif
+            tmp_ptr = reduce_to_expr_const(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 37:
+            #if VERBOSE
+            printf("(37) expr -> 'FCONST'");
+            #endif
+            tmp_ptr = reduce_to_expr_const(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 38:
+            #if VERBOSE
+            printf("(38) expr -> 'SCONST'");
+            #endif
+            tmp_ptr = reduce_to_expr_const(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 39:
+            #if VERBOSE
+            printf("(39) expr -> variable_access");
+            #endif
+            tmp_ptr = reduce_to_expr_varacc(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 40:
+            #if VERBOSE
+            printf("(40) expr -> function_call");
+            #endif
+            tmp_ptr = reduce_to_expr_funccall(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 41:
+            #if VERBOSE
+            printf("(41) expr -> '+' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_unary(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 42:
+            #if VERBOSE
+            printf("(42) expr -> '-' expr");
+            #endif
+            tmp_ptr = reduce_to_expr_unary(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 43:
+            #if VERBOSE
+            printf("(43) assignment_statement -> variable_access 'ASSIGN' expr");
+            #endif
+            tmp_ptr = reduce_to_assign(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 44:
+            #if VERBOSE
+            printf("(44) assignment_statement -> variable_access '=' expr");
+            #endif
+            tmp_ptr = reduce_to_assign(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 45:
+            #if VERBOSE
+            printf("(45) assignment_statement -> variable_access 'SUFFIXOP'");
+            #endif
+            tmp_ptr = reduce_to_assign_suffixop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 46:
+            #if VERBOSE
+            printf("(46) function_call -> 'ID' '(' args ')'");
+            #endif
+            tmp_ptr = reduce_to_funccall_w_args(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 47:
+            #if VERBOSE
+            printf("(47) function_call -> 'ID' '(' ')'");
+            #endif
+            tmp_ptr = reduce_to_funccall(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 48:
+            #if VERBOSE
+            printf("(48) args -> args ',' expr");
+            #endif
+            tmp_ptr = reduce_to_args_args(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 49:
+            #if VERBOSE
+            printf("(49) args -> expr");
+            #endif
+            tmp_ptr = reduce_to_args_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 50:
+            #if VERBOSE
+            printf("(50) if_elif_else_statement -> if_statement");
+            #endif
+            tmp_ptr = reduce_to_ieestmt_ifstmt(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 51:
+            #if VERBOSE
+            printf("(51) if_elif_else_statement -> if_statement elif_list");
+            #endif
+            tmp_ptr = reduce_to_ieestmt_eliflist(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 52:
+            #if VERBOSE
+            printf("(52) elif_list -> elif_statement elif_list");
+            #endif
+            tmp_ptr = reduce_to_eliflist_eliflist(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 53:
+            #if VERBOSE
+            printf("(53) elif_list -> elif_statement");
+            #endif
+            tmp_ptr = reduce_to_eliflist_elif(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 54:
+            #if VERBOSE
+            printf("(54) elif_list -> else_statement");
+            #endif
+            tmp_ptr = reduce_to_eliflist_else(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 55:
+            #if VERBOSE
+            printf("(55) if_statement -> 'IF' b_expr '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_cond(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 56:
+            #if VERBOSE
+            printf("(56) elif_statement -> 'ELIF' b_expr '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_cond(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 57:
+            #if VERBOSE
+            printf("(57) else_statement -> 'ELSE' '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_else(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 58:
+            #if VERBOSE
+            printf("(58) while_loop -> 'WHILE' b_expr '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_cond(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 59:
+            #if VERBOSE
+            printf("(59) for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_for_vardecl(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 60:
+            #if VERBOSE
+            printf("(60) for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_for_assign(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 61:
+            #if VERBOSE
+            printf("(61) b_expr -> b_expr 'NAND' b_expr");
+            #endif
+            tmp_ptr = reduce_to_bexpr_binop_w_paren(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 62:
+            #if VERBOSE
+            printf("(62) b_expr -> '(' b_expr 'NAND' b_expr ')'");
+            #endif
+            tmp_ptr = reduce_to_bexpr_binop_w_paren(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 63:
+            #if VERBOSE
+            printf("(63) b_expr -> r_expr");
+            #endif
+            tmp_ptr = reduce_to_b_expr_r_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 64:
+            #if VERBOSE
+            printf("(64) b_expr -> '(' b_expr ')'");
+            #endif
+            tmp_ptr = reduce_to_bexpr_bexpr_w_paren(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 65:
+            #if VERBOSE
+            printf("(65) r_expr -> expr 'RELOP' expr");
+            #endif
+            tmp_ptr = reduce_to_rexpr_binop(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 66:
+            #if VERBOSE
+            printf("(66) r_expr -> expr");
+            #endif
+            tmp_ptr = reduce_to_rexpr_expr(top);
+            (*top) = tmp_ptr;
+            break;
+
+        case 67:
+            #if VERBOSE
+            printf("(67) scope -> '{' compound_statement '}'");
+            #endif
+            tmp_ptr = reduce_to_scope(top);
+            (*top) = tmp_ptr;
+            break;
+        case default:
+            printf("Something went wrong\n");
+            exit(-1);
+    }
+}
+// 1
+static inline struct CompStmt* reduce_to_compound_compound_list(void** top)
+{
+    printf("compound_statement -> compound_statement statement\n");
+    struct CompStmt* node = malloc(sizeof(struct CompStmt));
+    struct Stmt* tmp_stmt = *top;
+    (*top)--;
+
+    struct CompStmt* prior_compound = *top;
+    int n_new_stmts = prior_compound->n_statements+1;
+    node->n_statements = n_new_stmts;
+
+    node->statement_list = malloc(sizeof(struct Stmt*)*n_new_stmts);
+    node->statement_list[n_new_stmts-1] = tmp_stmt;
+    memcpy(node->statement_list, prior_compound->statement_list,
+            sizeof(struct Stmt*)*(n_new_stmts-1));
+    free(prior_compound->statement_list);
+    free(prior_compound);
+    return node;
+}
+// 2
+static inline struct CompStmt* reduce_to_compound_statement(void** top)
+{
+    #if VERBOSE
+    printf("compound_statement -> statement");
+    #endif
+    struct CompStmt* node = malloc(sizeof(struct CompStmt));
+    node->n_statements = 1;
+    node->statement_list = malloc(sizeof(struct Stmt*)*1);
+    node->statement_list[0] = (struct Stmt*)((*top)->value);
+    return node;
+}
+// 3
+static inline struct Stmt* reduce_to_stmt_vardecl(void** top)
+{
+    #if VERBOSE
+    printf("statement -> variable_declaration ';'");
+    #endif
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    free_token(*top);
+    (*top)--;
+    node->statement_type = VARIABLE_DECLARARATION;
+    node->stmt = *top;
+    return node;
+}
+// 4
+static inline struct Stmt* reduce_to_stmt_funcdecl_(void** top)
+{
+    #if VERBOSE
+    printf("statement -> function_declaration");
+    #endif
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->statement_type = FUNCTION_DECLARATION;
+    node->stmt = *top;
+    return node;
+}
+// 5
+static inline struct Stmt* reduce_to_stmt_assignment_statement(void** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    free_token(*top);
+    (*top)--;
+    node->statement_type = ASSIGNMENT_STATEMENT;
+    node->stmt = *top;
+    return node;
+}
+// 6
+static inline struct Stmt* reduce_to_stmt_funccall(void** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    free_token(*top);
+    (*top)--;
+    node->statement_type = FUNCTION_CALL;
+    node->stmt = *top;
+    return node;
+}
+// 7
+static inline struct Stmt* reduce_to_stmt_ieestmt(void** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->statement_type = IF_ELIF_ELSE_STATEMENT;
+    node->stmt = *top;
+    return node;
+}
+// 8
+static inline struct Stmt* reduce_to_stmt_wloop(void** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->statement_type = WHILE_LOOP;
+    node->stmt = *top;
+    return node;
+}
+//9
+static inline struct Stmt* reduce_to_stmt_floop(void** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->statement_type = FOR_LOOP;
+    node->stmt = *top;
+    return node;
+}
+// 10
+static inline struct Stmt* reduce_to_stmt_scope(void** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->statement_type = SCOPE;
+    node->stmt = *top;
+    return node;
+}
+// 11
+static inline struct VarDecl* reduce_to_vardecl_w_ind(void** top)
+{
+    struct VarDecl* node = malloc(sizeof(struct VarDecl));
+    node->name = *top;
+    node->expr = NULL;
+    (*top)--;
+    struct Inds* ind = *top;
+    int n_indices = ind->n_indices;
+    node->n_indices = n_indices;
+    node->indices = malloc(sizeof(struct Expr*)*n_indices);
+    memcpy(node->indices, ind->indices, sizeof(struct Expr*)*n_indices);
+    free(ind->indices);
+    free(ind);
+    (*top)--;
+    node->type = *top;
+    return node;
+}
+// 12
+static inline struct VarDecl* reduce_to_vardecl_w_ind_n_expr(void** top)
+{
+    struct VarDecl* node = malloc(sizeof(struct VarDecl));
+    node->expr = *top;
+    (*top)--;
+
+    free(*top);
+    (*top)--;
+
+    node->name = *top;
+    (*top)--;
+
+    struct Inds* ind = *top;
+    int n_indices = ind->n_indices;
+    node->n_indices = n_indices;
+    node->indices = malloc(sizeof(struct Expr*)*n_indices);
+    memcpy(node->indices, ind->indices, sizeof(struct Expr*)*n_indices);
+    free(ind->indices);
+    free(ind);
+    (*top)--;
+
+    node->type = *top;
+    return node;
+}
+// 13
+static inline struct VarDecl* reduce_to_vardecl(void** top)
+{
+    struct VarDecl* node = malloc(sizeof(struct VarDecl));
+    node->n_indices = 0;
+    node->indices = NULL;
+    node->expr = NULL;
+
+    node->name = *top;
+    (*top)--;
+
+    node->type = *top;
+    return node;
+
+}
+// 14
+static inline struct voVarDecl* reduce_to_vardecl_w_expr(void** top)
+{
+    struct VarDecl* node = malloc(sizeof(struct VarDecl));
+    node->n_indices = 0;
+    node->indices = NULL;
+
+    node->expr = *top;
+    (*top)--;
+
+    free(*top);
+    (*top)--;
+
+    node->name = *top;
+    (*top)--;
+
+    node->type = *top;
+    return node;
+}
+// 15
+static inline struct void* reduce_to_func_decl_w_ind_n_params(void** top)
+{
+    struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    struct Params* params = *top;
+    int n_params = params->n_params;
+    node->n_params = n_params;
+    node->params = malloc(sizeof(struct VarDecl*)*n_params);
+    memcpy(node->params, params->params, sizeof(struct VarDecl*)*n_params);
+    free(params->params);
+    free(params);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    int* n_empty = *top;
+    node->n_indices = *n_empty;
+    free(n_empty);
+    (*top)--;
+
+    node->name = *top;;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 16
+static inline struct void* reduce_to_func_decl_w_ind(void** top)
+{
+    struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->n_params = 0;
+    node->params = NULL;
+
+    free_token(*top);
+    (*top)--;
+
+    int* n_empty = *top;
+    node->n_indices = *n_empty;
+    free(n_empty);
+    (*top)--;
+
+    node->name = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 17
+static inline struct void* reduce_to_func_decl_w_params(void** top)
+{
+    struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    struct Params* params = *top;
+    int n_params = params->n_params;
+    node->n_params = n_params;
+    node->params = malloc(sizeof(struct VarDecl*)*n_params);
+    memcpy(node->params, params->params, sizeof(struct VarDecl*)*n_params);
+    free(params->params);
+    free(params);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->n_indices = 0;
+
+    node->name = *top;;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 18
+static inline struct void* reduce_to_func_decl(void** top)
+{
+    struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->n_params = 0;
+    node->params = NULL;
+
+    free_token(*top);
+    (*top)--;
+
+    node->n_indices = 0;
+
+    node->name = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 19
+static inline struct void* reduce_to_empty_ind_list(void** top)
+{
+    int* node;
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node = *top;
+    (*node)++;
+
+    return node;
+}
+//20
+static inline struct void* reduce_to_empty_ind(void** top)
+{
+    int* node = malloc(sizeof(int));
+
+    free_token(*top);
+    (*top)--;
+    free_token(*top);
+
+    (*node) = 1;
+
+    return node;
+}
+// 21
+static inline struct void* reduce_to_param_list(void** top)
+{
+    struct Params* node = malloc(sizeof(struct Params));
+
+    struct VarDecl* next_decl = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    struct Params* prior_params = *top;
+    int n_params = prior_params->n_params;
+    node->n_params = n_params+1;
+    node->params = malloc(sizeof(struct VarDecl*)*(n_params+1));
+    node->params[n_params] = next_decl;
+    memcpy(node->params, prior_params->params, sizeof(struct Vardecl*)*n_params);
+    free(prior_params->params);
+    free(prior_params);
+
+    return node;
+}
+// 22
+static inline struct void* reduce_to_param(void** top)
+{
+    struct Params* node = malloc(sizeof(struct Params));
+
+    struct VarDecl* next_decl = *top;
+
+    node->n_params = 1;
+    node->params = malloc(sizeof(struct VarDecl*));
+    node->params[0] = next_decl;
+
+    return node;
+}
+// 23
+static inline struct void* reduce_to_ind_list_w_expr(void** top)
+{
+    struct Inds* node = malloc(sizeof(struct Inds));
+
+    free_token(*top);
+    (*top)--;
+
+    struct Expr* expr = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    struct Inds* prior_node = *top;
+    int n_expr = prior_node->n_indices;
+    node->n_indices = n_expr+1;
+    node->indices = malloc(sizeof(struct Expr*)*(n_expr+1));
+    node->indices[n_expr] = expr;
+    memcpy(node->indices, prior_node->indices, sizeof(struct Expr*)*n_expr);
+    free(prior_node->indices);
+    free(prior_node);
+
+    return node;
+}
+
+//24
+static inline struct void* reduce_to_ind_w_expr(void** top)
+{
+    struct Inds* node = malloc(sizeof(struct Inds));
+
+    free_token(*top);
+    (*top)--;
+
+    struct Expr* expr = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    node->n_indices = 1;
+    node->indices = malloc(sizeof(struct Expr*));
+    node->indices[0] = expr;
+
+    return node;
+}
+//25
+static inline struct void* reduce_to_ind_list(void** top)
+{
+    struct Inds* node = malloc(sizeof(struct Inds));
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    struct Inds* prior_node = *top;
+    int n_expr = prior_node->n_indices;
+    node->n_indices = n_expr+1;
+    node->indices = malloc(sizeof(struct Expr*)*(n_expr+1));
+    node->indices[n_expr] = NULL;
+    memcpy(node->indices, prior_node->indices, sizeof(struct Expr*)*n_expr);
+    free(prior_node->indices);
+    free(prior_node);
+
+    return node;
+}
+// 26
+static inline struct void* reduce_to_ind(void** top)
+{
+    struct Inds* node = malloc(sizeof(struct Inds));
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+
+    node->n_indices = 1;
+    node->indices = malloc(sizeof(struct Expr*));
+    node->indices[0] = NULL;
+
+    return node;
+}
+// 27
+static inline struct void* reduce_to_varacc(void** top)
+{
+    struct VarAcc* node = malloc(sizeof(struct VarAcc));
+    node->n_indices = 0;
+    node->indices = NULL;
+    node->variable = *top;
+
+    return node;
+}
+// 28
+static inline struct void* reduce_to_varacc_w_ind(void** top)
+{
+    struct VarAcc* node = malloc(sizeof(struct VarAcc));
+    struct Inds* ind= *top);
+    int n_indices = ind->n_indices;
+    node->n_indices = n_indices;
+    node->indices = malloc(sizeof(struct Expr*)*n_indices);
+    memcpy(node->indices, ind->indices, sizeof(struct Expr*)*n_indices);
+    free(ind->indices);
+    free(ind);
+    (*top)--;
+
+    node->variable = *top;
+
+    return node;
+}
+// 29, 30, 31, 32, 33, 34
+static inline struct void* reduce_to_expr_binop(void** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = BINOP;
+
+    node->right = (struct Expr*)((*top)->value);
+    (*top)--;
+
+    node->binary_op = (struct Token*)((*top)->value);
+    (*top)--;
+
+    node->left = (struct Expr*)((*top)->value);
+
+    return node;
+}
+// 35
+static inline struct void* reduce_to_expr_paren(void** top)
+{
+    free_token(*top);
+    (*top)--;
+    /*
+     * Since paranthesis are only for precedence,
+     * we can put the expression back on the stack
+     * without allocating more memory
+     */
+    struct Expr* node = (*top)->value;
+    (*top)--;
+    free_token(*top);
+    return node;
+}
+// 36, 37, 38
+static inline struct void* reduce_to_expr_const(void** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = CONST;
+    node->val = *top;
+    return node;
+}
+// 39
+static inline struct void* reduce_to_expr_varacc(void** top) {
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = VARACC;
+    node->variable_access = *top;
+    return node;
+}
+// 40
+static inline struct void* reduce_to_expr_funccall(void** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = VARACC;
+    node->function_call = *top;
+    return node;
+}
+// 41, 42
+static inline struct void* reduce_to_expr_unary(void** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = UOP;
+
+    node->unary_op = *top;
+    (*top)--;
+
+    node->expr = *top;
+
+    return node;
+}
+// 43, 44
+static inline struct void* reduce_to_assign(void** top)
+{
+    struct AStmt* node = malloc(sizeof(struct AStmt));
+    node->expr = *top;
+    (*top)--;
+    node->assignment_type = *top;
+    (*top)--;
+    node->variable_access = *top;
+
+    return node;
+}
+// 45
+static inline struct void* reduce_to_assign_suffixop(void** top)
+{
+    struct AStmt* node = malloc(sizeof(struct AStmt));
+    node->assignment_type = (struct Token*)((*top)->value);
+    node->expr = NULL;
+
+    return node;
+}
+// 46
+static inline struct void* reduce_to_funccall_w_args(void** top)
+{
+    struct FuncCall* node = malloc(sizeof(struct FuncCall));
+    free_token(*top);
+    (*top)--;
+
+    struct Args* prior_args = *top;
+    int n_args = prior_args->n_args;
+    node->n_args = n_args;
+    node->args = malloc(sizeof(struct Expr*)*n_args);
+    memcpy(node->args, prior_args->args, sizeof(struct Expr*)*n_args);
+    free(prior_args->args);
+    free(prior_args);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+
+    node->func = *top;
+    return node;
+}
+// 47
+static inline struct void* reduce_to_funccall(void** top)
+{
+    struct FuncCall* node = malloc(sizeof(struct FuncCall));
+    free_token(*top);
+    (*top)--;
+
+    node->n_args = 0;
+    node->args = NULL;
+
+    free_token(*top);
+    (*top)--;
+
+    node->func = *top;
+    return node;
+}
+// 48
+static inline struct void* reduce_to_args_args(void** top)
+{
+    struct Args* node = malloc(sizeof(struct Args));
+    struct Expr* next_arg = *top);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    struct Args* prior_args = *top;
+    int n_args = prior_args->n_args;
+    node->n_args = n_args+1;
+    node->args = malloc(sizeof(struct Expr*)*(n_args+1));
+    node->args[n_args] = next_arg;
+    memcpy(node->args, prior_args->args, sizeof(struct Expr*)*n_args);
+    free(prior_args->args);
+    free(prior_args);
+
+    return node;
+}
+// 49
+static inline struct void* reduce_to_args_expr(void** top)
+{
+    struct Args* node = malloc(sizeof(struct Args));
+    node->n_args = 1;
+    node->args = malloc(sizeof(struct Expr*));
+    node->args[0] = *top;
+
+    return node;
+}
+// 50
+static inline struct void* reduce_to_ieestmt_ifstmt(void** top)
+{
+    struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
+    node->n_elifs = 0;
+    node->elif_list = NULL;
+    node->_else = NULL;
+    node->if_stmt = *top;
+
+    return node;
+}
+// 51
+static inline struct void* reduce_to_ieestmt_eliflist(void** top)
+{
+    struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
+    struct EList* elif_list = *top;
+
+    int n_elifs = elif_list->n_elifs;
+    node->n_elifs = n_elifs;
+    node->elif_list = malloc(sizeof(struct CondStmt*)*n_elifs);
+    memcpy(node->elif_list, elif_list->elif_list, sizeof(sizeof(struct CondStmt*)*n_elifs));
+
+    node->_else = elif_list->_else;
+    free(elif_list->elif_list);
+    free(elif_list);
+    (*top)--;
+
+    node->if_stmt = *top;
+
+    return node;
+}
+// 52
+static inline struct void* reduce_to_eliflist_eliflist(void** top)
+{
+    struct EList* node = malloc(sizeof(struct EList));
+    struct EList* prior_list = *top;
+
+    int n_elifs = prior_list->n_elifs;
+    if (n_elifs != 0) {
+        node->n_elifs = n_elifs+1;
+        node->elif_list = malloc(sizeof(struct CondStmt*)*(n_elifs+1));
+        memcpy(node->elif_list+1, prior_list->elif_list, sizeof(struct CondStmt*)*n_elifs);
+        free(prior_list->elif_list);
+    } else {
+        node->n_elifs = 1;
+        node->elif_list = malloc(sizeof(struct CondStmt*));
+    }
+
+    node->_else = prior_list->_else;
+    free(prior_list);
+    (*top)--;
+
+    node->elif_list[0] = *top);
+
+    return node;
+}
+// 53
+static inline struct void* reduce_to_eliflist_elif(void** top)
+{
+    struct EList* node = malloc(sizeof(struct EList));
+    node->n_elifs = 1;
+    node->elif_list = malloc(sizeof(struct CondStmt*));
+    node->elif_list[0] = *top;
+    node->_else = NULL;
+
+    return node;
+}
+// 54
+static inline struct void* reduce_to_eliflist_else(void** top)
+{
+    struct EList* node = malloc(sizeof(struct EList));
+    node->n_elifs = 0;
+    node->elif_list = NULL;
+    node->_else = *top;
+
+    return node;
+}
+// 55, 56, 58
+static inline struct void* reduce_to_cond(void** top)
+{
+    struct CondStmt* node = malloc(sizeof(struct CondStmt));
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->boolean = *to);
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 57
+static inline struct void* reduce_to_else(void** top)
+{
+    struct CompStmt* node = malloc(sizeof(struct CompStmt));
+    free_token(*top);
+    (*top)--;
+
+    node = (struct CompStmt*)((*top)->value);
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 59
+static inline struct void* reduce_to_for_vardecl(void** top)
+{
+    struct FLoop* node = malloc(sizeof(struct FLoop));
+
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->update_statement = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->boolean = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->type = VARIABLE_DECLARATION;
+    node->init_stmt = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 60
+static inline struct void* reduce_to_for_assign(void** top)
+{
+    struct FLoop* node = malloc(sizeof(struct FLoop));
+
+    free_token(*top);
+    (*top)--;
+
+    node->body = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->update_statement = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->boolean = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->type = ASSIGNMENT_STATEMENT;
+    node->init_stmt = *top;
+
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 61
+static inline struct void* reduce_to_bexpr_binop_w_paren(void** top)
+{
+    struct BExpr* node = malloc(sizeof(struct BExpr));
+    node->right = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->left = *top;
+
+    return node;
+}
+// 62
+static inline struct void* reduce_to_bexpr_binop_w_paren(void** top)
+{
+    struct BExpr* node = malloc(sizeof(struct BExpr));
+    free_token(*top);
+    (*top)--;
+
+    node->right = *top;
+    (*top)--;
+
+    free_token(*top);
+    (*top)--;
+
+    node->left = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 63
+static inline struct void* reduce_to_b_expr_r_expr(void** top)
+{
+    struct BExpr* node = malloc(sizeof(struct BExpr));
+    node->type = CONST;
+    node->r_expr = *top;
+
+    return node;
+}
+// 64
+static inline struct void* reduce_to_bexpr_bexpr_w_paren(void** top)
+{
+    free_token(*top);
+    (*top)--;
+
+    struct BExpr* node = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+// 65
+static inline struct void* reduce_to_rexpr_binop(void** top)
+{
+    struct RExpr* node = malloc(sizeof(struct RExpr));
+    node->type = BINOP;
+
+    node->right = *top;
+    (*top)--;
+
+    node->operator = *top;
+    (*top)--;
+
+    node->left = *top;
+
+    return node;
+}
+// 66
+static inline struct void* reduce_to_rexpr_expr(void** top)
+{
+    struct RExpr* node = malloc(sizeof(struct RExpr));
+    node->type = CONST;
+    node->expr = *top;
+    return node;
+}
+// 67
+static inline struct void* reduce_to_scope(void** top)
+{
+    free_token(*top);
+    (*top)--;
+
+    struct CompStmt* node = *top;
+    (*top)--;
+
+    free_token(*top);
+
+    return node;
+}
+
+void create_token_record(struct Record* record_ptr, struct Token* token)
+{
     record_ptr->type = TOKEN;
     record_ptr->value = token;
 }
 
-void indent_helper(int nest_level) {
+void write_indent(int nest_level)
+{
     for (int i = 0; i < nest_level; i++)
         printf("    ");
 }
 
-void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs) {
+void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     printf("CompStmt\n");
     for (int i = 0; i < node->n_statements; i++) {
@@ -912,7 +1679,8 @@ void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char lea
     }
 }
 
-void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs) {
+void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     printf("Stmt\n");
     switch (node->statement_type) {
@@ -945,7 +1713,8 @@ void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs) {
     }
 }
 
-void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs) {
+void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     if (labels) {
         printf("VarDecl");
@@ -969,7 +1738,8 @@ void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs
     }
 }
 
-void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leafs) {
+void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     if (labels) {
         printf("FuncDecl");
@@ -995,7 +1765,8 @@ void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char lea
     }
 }
 
-void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs) {
+void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     if (labels) {
         printf("VarAcc %dd\n", node->n_indices);
@@ -1013,7 +1784,8 @@ void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs) 
     }
 }
 
-void print_Expr(struct Expr* node, int nest_level, char labels, char leafs) {
+void print_Expr(struct Expr* node, int nest_level, char labels, char leafs)
+{
     switch (node->type) {
         case BINOP:
             print_Expr(node->left, nest_level+1, labels, leafs);
@@ -1038,7 +1810,8 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leafs) {
     }
 }
 
-void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs) {
+void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     printf("Assingment\n");
     if (!labels) {
@@ -1050,7 +1823,8 @@ void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs) {
     }
 }
 
-void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leafs) {
+void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     if (labels) {
         printf("FuncCall\n");
@@ -1063,7 +1837,8 @@ void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char lea
 
 }
 
-void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs) {
+void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     printf("if:\n");
     print_CondStmt(node->if_stmt, nest_level, labels, leafs);
@@ -1079,7 +1854,8 @@ void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs
     }
 }
 
-void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs) {
+void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs)
+{
     if (!labels)
         print_BExpr(node->boolean, nest_level+1, labels, leafs);
     indent_helper(nest_level);
@@ -1089,7 +1865,8 @@ void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char lea
     printf("}\n");
 }
 
-void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs) {
+void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     printf("while\n");
     print_CondStmt(node, nest_level, labels, leafs);
@@ -1097,7 +1874,8 @@ void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs)
 
 }
 
-void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs) {
+void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs)
+{
     indent_helper(nest_level);
     printf("for:\n");
     if (!labels) {
@@ -1117,7 +1895,8 @@ void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs) {
     print_CompStmt(node->body, nest_level+1, labels, leafs);
 }
 
-void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs) {
+void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs)
+{
     if (node->type == BINOP) {
         print_BExpr(node->left, nest_level+1, labels, leafs);
         indent_helper(nest_level);
@@ -1128,7 +1907,8 @@ void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs) {
     }
 }
 
-void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs) {
+void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs)
+{
     if (node->type == BINOP) {
         print_Expr(node->left, nest_level+1, labels, leafs);
         indent_helper(nest_level);
@@ -1137,33 +1917,6 @@ void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs) {
     } else {
         print_Expr(node->expr, nest_level, labels, leafs);
     }
-}
-
-void print_tree(struct CompStmt* tree) {
-    printf("compound statement\n");
-    printf("n: %d\n", tree->n_statements);
-    for (int i = 0; i < tree->n_statements; i++) {
-        printf("STATEMENT\n");
-        struct Stmt* stmt = tree->statement_list[i];
-
-
-        if (stmt->statement_type == VARIABLE_DECLARATION) {
-            printf("variable_declaration\n");
-            struct VarDecl* var_decl = stmt->variable_declaration;
-            free(stmt);
-            printf("type: %s name: %s\n", var_decl->type->lexeme, var_decl->name->lexeme);
-            free(var_decl->type->lexeme);
-            free(var_decl->type);
-            free(var_decl->name->lexeme);
-            free(var_decl->name);
-            free(var_decl);
-        }
-        else {
-            printf("type: %d", stmt->statement_type);
-        }
-    }
-    free(tree);
-    free(tree->statement_list);
 }
 
 int main(int argc, const char** argv) {

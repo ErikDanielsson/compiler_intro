@@ -35,16 +35,7 @@ struct CompStmt {
 
 struct Stmt {
     enum NodeType statement_type;
-    union {
-        struct VarDecl* variable_declaration;
-        struct FuncDecl* function_declaration;
-        struct AStmt* assignment_statement;
-        struct FuncCall* function_call;
-        struct IEEStmt* if_elif_else_statement;
-        struct CondStmt* while_loop;
-        struct FLoop* for_loop;
-        struct CompStmt* scope;
-    };
+    void* stmt;
 };
 
 struct VarDecl {
@@ -156,10 +147,7 @@ struct EList {
 
 struct FLoop {
     enum NodeType type;
-    union {
-        struct VarDecl* variable_declaration;
-        struct AStmt* assignment_statement;
-    };
+    void* init_stmt;
     struct BExpr* boolean;
     struct AStmt* update_statement;
     struct CompStmt* body;
