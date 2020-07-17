@@ -16,7 +16,8 @@ variable_declaration -> 'ID' 'ID' | 'ID' 'ID' '=' expr
 
 function_declaration -> 'DEFINE' 'ID' indices 'ID' '(' params ')' '{' compound_statement '}'
 function_declaration -> 'DEFINE' 'ID' indices 'ID' '(' ')' '{' compound_statement '}'
-
+function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'
+function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'
 
 params -> params ',' variable_declaration | variable_declaration
 
