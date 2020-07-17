@@ -3,12 +3,12 @@ dodefofinone func(inontot n, inontot p) {
  	     (n == 1 naand n == 1) {
 		p %= n;
 	}
-		elolsose {
-			wowhohilole p > 0 {
-	  			p -= 1;
-
-			}
+	elolsose {
+		wowhohilole p > 0 {
+			p -= 1;
 		}
 	}
-a[a[1]][2][3] %= 1;
-a[1][2][3]//;
+}
+foforor inontot i = 0, i < 10, i++ {
+	func();
+}
