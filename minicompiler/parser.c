@@ -13,6 +13,7 @@
 #define TRUE 1
 #define FALSE 0
 #define VERBOSE 1
+#define LABELS 0
 char grammar_error = FALSE;
 char recovery_mode = FALSE;
 /*
@@ -109,7 +110,9 @@ void lr_parser(char verbose)
             create_token_record(record_ptr, a);
 
             if (recovery_mode) {
+                #if VERBOSE
                 printf("IN RECORVERY\n");
+                #endif
                 a = recovery_token;
                 recovery_mode = FALSE;
             } else {
@@ -119,7 +122,7 @@ void lr_parser(char verbose)
         } else if (action == -1) {
             #if VERBOSE
             printf("parse done\n");
-            //print_tree((struct CompStmt*)(record_ptr->value));
+            print_CompStmt((struct CompStmt*)(record_ptr->value), 0, 1, 0);
             #endif
             free(a);
             return;
@@ -130,10 +133,7 @@ void lr_parser(char verbose)
             int tmp = *s_ptr;
             s_ptr++;
             *s_ptr = goto_table[r][tmp];
-            printf("before %d\n", record_ptr->type);
-
             create_node_record(&record_ptr, r, n_pop);
-            printf("after %d\n", record_ptr->type);
             #if VERBOSE
             printf("reduce by %s\n", rules[-(action+1)]);
             #endif
@@ -175,10 +175,8 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
      */
     struct Record* record = malloc(sizeof(struct Record));
     record->type = type;
-    printf("record type: %d\n", type);
     switch (type) {
         case COMPOUND_STATEMENT: {
-            break;
             printf("COMPOUND_STATEMENT\n");
             struct CompStmt* tmp_node = malloc(sizeof(struct CompStmt));
 
@@ -187,9 +185,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 tmp_node->statement_list = malloc(sizeof(struct Stmt*)*1);
                 tmp_node->statement_list[0] = (struct Stmt*)((*top)->value);
             } else {
-                printf("second level\n");
                 struct Stmt* tmp_stmt = (struct Stmt*)(*top)->value;
-                printf("lex name: %s\n", tmp_stmt->variable_declaration->name->lexeme);
                 (*top)--;
                 struct CompStmt* prior_compound = (struct CompStmt*)((*top)->value);
                 int n_new_stmts = prior_compound->n_statements+1;
@@ -206,13 +202,13 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
         }
 
         case STATEMENT: {
-            break;
             printf("STATEMENT\n");
             struct Stmt* tmp_node = malloc(sizeof(struct Stmt));
             enum NodeType type = (*top)->type;
             if (type == TOKEN) {
-                free(((struct Token*)((*top)->value))->lexeme);
-                free((*top)->value);
+                struct Token* top_token = (struct Token*)((*top)->value);
+                free(top_token->lexeme);
+                free(top_token);
                 (*top)--;
 
                 type = (*top)->type;
@@ -220,10 +216,13 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 switch (type) {
                     case VARIABLE_DECLARATION:
                         tmp_node->variable_declaration = (struct VarDecl*)((*top)->value);
+                        break;
                     case ASSIGNMENT_STATEMENT:
                         tmp_node->assignment_statement = (struct AStmt*)((*top)->value);
+                        break;
                     case FUNCTION_CALL:
                         tmp_node->function_call = (struct FuncCall*)((*top)->value);
+                        break;
                     default:
                         printf("Something fishy in statement 1\n");
                 }
@@ -238,7 +237,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                         tmp_node->if_elif_else_statement = (struct IEEStmt*)((*top)->value);
                         break;
                     case WHILE_LOOP:
-                        tmp_node->while_loop = (struct WLoop*)((*top)->value);
+                        tmp_node->while_loop = (struct CondStmt*)((*top)->value);
                         break;
                     case FOR_LOOP:
                         tmp_node->for_loop = (struct FLoop*)((*top)->value);
@@ -282,15 +281,6 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 free(ind->indices);
                 free(ind);
                 (*top)--;
-                printf("n indices: %d", n_indices);
-                for (int i = 0; i < n_indices; i++) {
-                        if (tmp_node->indices[i] == NULL) {
-                                printf("Empty, ");
-                        } else {
-                                printf("Non empty, ");
-                        }
-                }
-                printf("\n");
             } else {
                 tmp_node->n_indices = 0;
                 tmp_node->indices = NULL;
@@ -305,8 +295,8 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
         case FUNCTION_DECLARATION: {
             printf("FUNCTION_DECLARATION\n");
             struct FuncDecl* tmp_node = malloc(sizeof(struct FuncDecl));
-
             struct Token* top_token = (struct Token*)((*top)->value);
+
             free(top_token->lexeme);
             free(top_token);
             (*top)--;
@@ -323,18 +313,34 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             free(top_token->lexeme);
             free(top_token);
             (*top)--;
-
-            if (n_pop == 10) {
-                //UNPACK PARAMS
-                tmp_node->params;
+            if ((*top)->type == PARAMS) {
+                struct Params* params = (struct Params*)((*top)->value);
+                int n_params = params->n_params;
+                tmp_node->n_params = n_params;
+                tmp_node->params = malloc(sizeof(struct VarDecl*)*n_params);
+                memcpy(tmp_node->params, params->params, sizeof(struct VarDecl*)*n_params);
+                free(params->params);
+                free(params);
                 (*top)--;
+
+            } else {
+                tmp_node->n_params = 0;
+                tmp_node->params = NULL;
             }
 
             top_token = (struct Token*)((*top)->value);
             free(top_token->lexeme);
             free(top_token);
             (*top)--;
-
+            if ((*top)->type == EMPTY_INDICES) {
+                int* n_empty = (int*)((*top)->value);
+                tmp_node->n_indices = *n_empty;
+                printf("\n\nN INDICES: %d\n\n", *n_empty);
+                free(n_empty);
+                (*top)--;
+            } else {
+                tmp_node->n_indices = 0;
+            }
             tmp_node->name = (struct Token*)((*top)->value);
             (*top)--;
 
@@ -346,14 +352,40 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             break;
         }
 
+        case EMPTY_INDICES: {
+            int* tmp_node;
+            struct Token* top_token = (struct Token*)((*top)->value);
+            free(top_token->lexeme);
+            free(top_token);
+            (*top)--;
+            top_token = (struct Token*)((*top)->value);
+            free(top_token->lexeme);
+            free(top_token);
+
+            if (n_pop == 3) {
+                (*top)--;
+                tmp_node = (int*)((*top)->value);
+                (*tmp_node)++;
+            } else {
+                tmp_node = malloc(sizeof(int));
+                (*tmp_node) = 1;
+            }
+            record->value = tmp_node;
+            break;
+        }
+
+
         case PARAMS: {
             printf("PARAMS\n");
+
             struct Params* tmp_node = malloc(sizeof(struct Params));
 
             struct VarDecl* next_decl = (struct VarDecl*)((*top)->value);
-            (*top)--;
+
 
             if (n_pop == 3) {
+                (*top)--;
+
                 struct Token* top_token = (struct Token*)((*top)->value);
                 free(top_token->lexeme);
                 free(top_token);
@@ -389,27 +421,19 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
             (*top)--;
 
             if ((*top)->type == EXPR) {
-                printf("HEJ\n");
                 expr = (struct Expr*)((*top)->value);
-                printf("HEJ\n");
                 (*top)--;
-                printf("HEJ\n");
                 // To make sure the next 'if' evaluated correctly:
                 n_pop--;
-                printf("HEJ\n");
             }
-            printf("%d =? %d\n", (*top)->type, TOKEN);
             top_token = (struct Token*)((*top)->value);
             free(top_token->lexeme);
             free(top_token);
-            printf("HEJ\n");
             if (n_pop == 3 ) {
-                printf("n pop 3\n");
                 (*top)--;
                 struct Inds* prior_node = (struct Inds*)((*top)->value);
                 int n_expr = prior_node->n_indices;
 
-                printf("n pop 3\n");
                 tmp_node->n_indices = n_expr+1;
                 tmp_node->indices = malloc(sizeof(struct Expr*)*(n_expr+1));
                 tmp_node->indices[n_expr] = expr;
@@ -439,6 +463,9 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 free(ind->indices);
                 free(ind);
                 (*top)--;
+            } else {
+                tmp_node->n_indices = 0;
+                tmp_node->indices = NULL;
             }
             tmp_node->variable = (struct Token*)((*top)->value);
             record->value = tmp_node;
@@ -468,7 +495,6 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                         default:
                             printf("Something fishy in expr\n");
                     }
-                    printf("broke correcly\n");
                     record->value = tmp_node;
                     break;
                 }
@@ -837,7 +863,7 @@ void create_node_record(struct Record** top, enum NodeType type, int n_pop) {
                 tmp_node->left = (struct Expr*)((*top)->value);
 
             } else {
-                tmp_node->type = BINOP;
+                tmp_node->type = CONST;
                 tmp_node->expr = (struct Expr*)((*top)->value);
             }
             record->value = tmp_node;
@@ -873,110 +899,244 @@ void create_token_record(struct Record* record_ptr, struct Token* token) {
     record_ptr->value = token;
 }
 
+void indent_helper(int nest_level) {
+    for (int i = 0; i < nest_level; i++)
+        printf("    ");
+}
+
 void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs) {
+    indent_helper(nest_level);
+    printf("CompStmt\n");
     for (int i = 0; i < node->n_statements; i++) {
-        print_Stmt(node->statements[i]);
+        print_Stmt(node->statement_list[i], nest_level+1, labels, leafs);
     }
 }
 
 void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs) {
+    indent_helper(nest_level);
+    printf("Stmt\n");
     switch (node->statement_type) {
         case VARIABLE_DECLARATION:
-            print_VarDecl(node->VARIABLE_DECLARATION, nest_level, labels, leafs);
+            print_VarDecl(node->variable_declaration, nest_level+1, labels, leafs);
             return;
         case FUNCTION_DECLARATION:
-            print_FuncDecl(node->FUNCTION_DECLARATION, nest_level, labels, leafs);
+            print_FuncDecl(node->function_declaration, nest_level+1, labels, leafs);
             return;
         case ASSIGNMENT_STATEMENT:
-            print_AStmt(node->ASSIGNMENT_STATEMENT, nest_level, labels, leafs);
+            print_AStmt(node->assignment_statement, nest_level+1, labels, leafs);
             return;
         case FUNCTION_CALL:
-            print_FuncCall(node->FUNCTION_CALL, nest_level, labels, leafs);
+            print_FuncCall(node->function_call, nest_level+1, labels, leafs);
             return;
         case IF_ELIF_ELSE_STATEMENT:
-            print_IEEStmt(node->IF_ELIF_ELSE_STATEMENT, nest_level, labels, leafs);
+            print_IEEStmt(node->if_elif_else_statement, nest_level+1, labels, leafs);
             return;
         case WHILE_LOOP:
-            print_WLoop(node->WHILE_LOOP, nest_level, labels, leafs);
+            print_WLoop(node->while_loop, nest_level+1, labels, leafs);
             return;
         case FOR_LOOP:
-            print_FLoop(node->FOR_LOOP, nest_level, labels, leafs);
+            print_FLoop(node->for_loop, nest_level+1, labels, leafs);
             return;
         case SCOPE:
-            print_Scope(node->SCOPE, nest_level, labels, leafs);
+            print_CompStmt(node->scope, nest_level+1, labels, leafs);
             return;
+        default:
+            break;
     }
 }
 
 void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs) {
-    for (int i = 0; i < nest_level; i++) {
-        printf("    ");
-    }
-    printf("decl: %s of type %s\n", node->name->lexeme, node->type->lexeme);
-    for (int i = 0; i < node->n_indices; i++) {
-        for (int j = 0; j < nest_level; j++) {
-            printf("    ");
+    indent_helper(nest_level);
+    if (labels) {
+        printf("VarDecl");
+        if (node->indices) {
+            printf(" %dd", node->n_indices);
         }
-        printf("[\n");
-        print_Expr(node->indices[i], nest_level+1, labels, leafs);
-        for (int j = 0; j < nest_level; j++) {
-            printf("    ");
+        if (node->expr != NULL) {
+            printf(" = expr\n");
+        } else {
+            printf("\n");
         }
-        printf("]\n");
+    } else {
+        printf("decl: %s of type %s\n", node->name->lexeme, node->type->lexeme);
+        for (int i = 0; i < node->n_indices; i++) {
+            indent_helper(nest_level);
+            printf("[\n");
+            print_Expr(node->indices[i], nest_level+1, labels, leafs);
+            indent_helper(nest_level);
+            printf("]\n");
+        }
     }
 }
 
 void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leafs) {
-
+    indent_helper(nest_level);
+    if (labels) {
+        printf("FuncDecl");
+        if (node->n_indices) {
+            printf(" %dd", node->n_indices);
+        }
+        printf(" %d params {\n", node->n_params);
+        print_CompStmt(node->body, nest_level+1, labels, leafs);
+        indent_helper(nest_level);
+        printf("}\n");
+    } else {
+        printf("func: %s of type %s %dd\n", node->name->lexeme, node->type->lexeme, node->n_indices);
+        for (int i = 0; i < node->n_params; i++) {
+            indent_helper(nest_level);
+            printf("\n");
+            print_VarDecl(node->params[i], nest_level+1, labels, leafs);
+            indent_helper(nest_level);
+            printf("\n");
+        }
+        indent_helper(nest_level);
+        printf(") {");
+        print_CompStmt(node->body, nest_level+1, labels, leafs);
+    }
 }
-
-
 
 void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs) {
-
+    indent_helper(nest_level);
+    if (labels) {
+        printf("VarAcc %dd\n", node->n_indices);
+    }
+    else {
+        printf("'%s'", node->variable->lexeme);
+        for (int i = 0; i < node->n_indices; i++) {
+            printf("\n");
+            indent_helper(nest_level);
+            printf("[\n");
+            print_Expr(node->indices[i], nest_level+1, labels, leafs);
+            indent_helper(nest_level);
+            printf("]\n");
+        }
+    }
 }
 
-
-
 void print_Expr(struct Expr* node, int nest_level, char labels, char leafs) {
-
+    switch (node->type) {
+        case BINOP:
+            print_Expr(node->left, nest_level+1, labels, leafs);
+            indent_helper(nest_level);
+            printf("'%s'\n", node->binary_op->lexeme);
+            print_Expr(node->right, nest_level+1, labels, leafs);
+        case UOP:
+            indent_helper(nest_level);
+            printf("'%s'\n", node->unary_op->lexeme);
+            print_Expr(node->expr, nest_level+1, labels, leafs);
+            return;
+        case CONST:
+            indent_helper(nest_level);
+            printf("'%s'\n", node->val->lexeme);
+            return;
+        case FUNCCALL:
+            print_FuncCall(node->function_call, nest_level, labels, leafs);
+            return;
+        case VARACC:
+            print_VarAcc(node->variable_access, nest_level, labels, leafs);
+            return;
+    }
 }
 
 void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs) {
-
+    indent_helper(nest_level);
+    printf("Assingment\n");
+    if (!labels) {
+        print_VarAcc(node->variable_access, nest_level+1, labels, leafs);
+        printf("\n");
+        indent_helper(nest_level);
+        printf("by '%s'\n", node->assignment_type->lexeme);
+        print_Expr(node->expr, nest_level+1, labels, leafs);
+    }
 }
 
 void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leafs) {
-
-}
-
-void print_Args(struct Args* node, int nest_level, char labels, char leafs) {
+    indent_helper(nest_level);
+    if (labels) {
+        printf("FuncCall\n");
+    } else {
+        printf("Call %s with: \n", node->func->lexeme);
+        for (int i = 0; i < node->n_args; i++) {
+            print_Expr(node->args[i], nest_level+1, labels, leafs);
+        }
+    }
 
 }
 
 void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs) {
-
+    indent_helper(nest_level);
+    printf("if:\n");
+    print_CondStmt(node->if_stmt, nest_level, labels, leafs);
+    for (int i = 0; i < node->n_elifs; i++) {
+        indent_helper(nest_level);
+        printf("elif:\n");
+        print_CondStmt(node->elif_list[i], nest_level, labels, leafs);
+    }
+    if (node->_else != NULL) {
+        indent_helper(nest_level);
+        printf("else:\n");
+        print_CompStmt(node->_else, nest_level+1, labels, leafs);
+    }
 }
-
 
 void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs) {
-
+    if (!labels)
+        print_BExpr(node->boolean, nest_level+1, labels, leafs);
+    indent_helper(nest_level);
+    printf("{\n");
+    print_CompStmt(node->body, nest_level+1, labels, leafs);
+    indent_helper(nest_level);
+    printf("}\n");
 }
 
-void print_EList(struct EList* node, int nest_level, char labels, char leafs) {
+void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs) {
+    indent_helper(nest_level);
+    printf("while\n");
+    print_CondStmt(node, nest_level, labels, leafs);
+    indent_helper(nest_level);
 
-}
-
-void print_WLoop(struct IfStmt* node, int nest_level, char labels, char leafs) {
 }
 
 void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs) {
+    indent_helper(nest_level);
+    printf("for:\n");
+    if (!labels) {
+        if (node->type == VARIABLE_DECLARATION) {
+            print_VarDecl(node->variable_declaration, nest_level+1, labels, leafs);
+        } else {
+            print_AStmt(node->assignment_statement, nest_level+1, labels, leafs);
+        }
+        indent_helper(nest_level);
+        printf(",\n");
+        print_BExpr(node->boolean, nest_level+1, labels, leafs);
+        indent_helper(nest_level);
+        printf(",\n");
+        print_AStmt(node->update_statement, nest_level+1, labels, leafs);
+        printf(",\n");
+    }
+    print_CompStmt(node->body, nest_level+1, labels, leafs);
 }
 
 void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs) {
+    if (node->type == BINOP) {
+        print_BExpr(node->left, nest_level+1, labels, leafs);
+        indent_helper(nest_level);
+        printf("nand\n");
+        print_BExpr(node->right, nest_level+1, labels, leafs);
+    } else {
+        print_RExpr(node->r_expr, nest_level+1, labels, leafs);
+    }
 }
 
 void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs) {
+    if (node->type == BINOP) {
+        print_Expr(node->left, nest_level+1, labels, leafs);
+        indent_helper(nest_level);
+        printf("%s\n", node->operator->lexeme);
+        print_Expr(node->right, nest_level+1, labels, leafs);
+    } else {
+        print_Expr(node->expr, nest_level, labels, leafs);
+    }
 }
 
 void print_tree(struct CompStmt* tree) {

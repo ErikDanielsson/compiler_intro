@@ -7,6 +7,7 @@ enum NodeType {
     STATEMENT,
     VARIABLE_DECLARATION,
     FUNCTION_DECLARATION,
+    EMPTY_INDICES,
     PARAMS,
     INDICES,
     VARIABLE_ACCESS,
@@ -40,7 +41,7 @@ struct Stmt {
         struct AStmt* assignment_statement;
         struct FuncCall* function_call;
         struct IEEStmt* if_elif_else_statement;
-        struct WLoop* while_loop;
+        struct CondStmt* while_loop;
         struct FLoop* for_loop;
         struct CompStmt* scope;
     };
@@ -57,7 +58,6 @@ struct VarDecl {
 struct FuncDecl {
     struct Token* type;
     int n_indices;
-    int* indices;
     struct Token* name;
     int n_params;
     struct VarDecl** params;
@@ -204,3 +204,18 @@ void create_node(void** node_ptr, enum NodeType type);
 void create_token_record(struct Record* record_ptr, struct Token* token);
 void create_node_record(struct Record** stack, enum NodeType type, int n_pop);
 void print_tree(struct CompStmt* tree);
+
+void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs);
+void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs);
+void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs);
+void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leafs);
+void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs);
+void print_Expr(struct Expr* node, int nest_level, char labels, char leafs);
+void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs);
+void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leafs);
+void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs);
+void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs);
+void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs);
+void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs);
+void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs);
+void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs);

@@ -14,10 +14,12 @@ statement -> scope
 variable_declaration -> 'ID' indices 'ID' | 'ID' indices 'ID' '=' expr
 variable_declaration -> 'ID' 'ID' | 'ID' 'ID' '=' expr
 
-function_declaration -> 'DEFINE' 'ID' indices 'ID' '(' params ')' '{' compound_statement '}'
-function_declaration -> 'DEFINE' 'ID' indices 'ID' '(' ')' '{' compound_statement '}'
+function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'
+function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'
 function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'
 function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'
+
+empty_indices -> empty_indices '[' ']' | '[' ']'
 
 params -> params ',' variable_declaration | variable_declaration
 
