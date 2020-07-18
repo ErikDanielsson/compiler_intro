@@ -1,0 +1,68 @@
+(0) start -> compound_statement
+(1) compound_statement -> compound_statement statement
+(2) compound_statement -> statement
+(3) statement -> variable_declaration ';'
+(4) statement -> function_declaration
+(5) statement -> assignment_statement ';'
+(6) statement -> function_call ';'
+(7) statement -> if_elif_else_statement
+(8) statement -> while_loop
+(9) statement -> for_loop
+(10) statement -> scope
+(11) variable_declaration -> 'ID' indices 'ID'
+(12) variable_declaration -> 'ID' indices 'ID' '=' expr
+(13) variable_declaration -> 'ID' 'ID'
+(14) variable_declaration -> 'ID' 'ID' '=' expr
+(15) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'
+(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'
+(17) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'
+(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'
+(19) empty_indices -> empty_indices '[' ']'
+(20) empty_indices -> '[' ']'
+(21) params -> params ',' variable_declaration
+(22) params -> variable_declaration
+(23) indices -> indices '[' expr ']'
+(24) indices -> '[' expr ']'
+(25) indices -> indices '[' ']'
+(26) indices -> '[' ']'
+(27) variable_access -> 'ID'
+(28) variable_access -> 'ID' indices
+(29) expr -> expr '-' expr
+(30) expr -> expr '+' expr
+(31) expr -> expr '/' expr
+(32) expr -> expr '%' expr
+(33) expr -> expr '*' expr
+(34) expr -> expr '^' expr
+(35) expr -> '(' expr ')'
+(36) expr -> 'ICONST'
+(37) expr -> 'FCONST'
+(38) expr -> 'SCONST'
+(39) expr -> variable_access
+(40) expr -> function_call
+(41) expr -> '+' expr
+(42) expr -> '-' expr
+(43) assignment_statement -> variable_access 'ASSIGN' expr
+(44) assignment_statement -> variable_access '=' expr
+(45) assignment_statement -> variable_access 'SUFFIXOP'
+(46) function_call -> 'ID' '(' args ')'
+(47) function_call -> 'ID' '(' ')'
+(48) args -> args ',' expr
+(49) args -> expr
+(50) if_elif_else_statement -> if_statement
+(51) if_elif_else_statement -> if_statement elif_list
+(52) elif_list -> elif_statement elif_list
+(53) elif_list -> elif_statement
+(54) elif_list -> else_statement
+(55) if_statement -> 'IF' b_expr '{' compound_statement '}'
+(56) elif_statement -> 'ELIF' b_expr '{' compound_statement '}'
+(57) else_statement -> 'ELSE' '{' compound_statement '}'
+(58) while_loop -> 'WHILE' b_expr '{' compound_statement '}'
+(59) for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'
+(60) for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'
+(61) b_expr -> b_expr 'NAND' b_expr
+(62) b_expr -> '(' b_expr 'NAND' b_expr ')'
+(63) b_expr -> r_expr
+(64) b_expr -> '(' b_expr ')'
+(65) r_expr -> expr 'RELOP' expr
+(66) r_expr -> expr
+(67) scope -> '{' compound_statement '}'
