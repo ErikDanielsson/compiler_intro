@@ -13,6 +13,8 @@
 #define TRUE 1
 #define FALSE 0
 #define VERBOSE 1
+#define DEBUG 0
+#define TREEBUILDER 1
 #define LABELS 0
 char grammar_error = FALSE;
 char recovery_mode = FALSE;
@@ -28,7 +30,7 @@ void lr_parser(char verbose)
  */
 {
 
-    #if VERBOSE
+    #if DEBUG
     printf("parsing...\n");
     #endif
     void* tree_stack[STACK_SIZE];
@@ -44,7 +46,7 @@ void lr_parser(char verbose)
     parsing_loop:
     while (1) {
         action = action_table[*s_ptr][a->type];
-        #if VERBOSE
+        #if DEBUG
         printf("Stack depth %ld, top: %d\n", s_ptr-stack, *s_ptr);
         printf("action: %d, lexeme: '%s', %x\n", action, a->lexeme, a->type);
         #endif
@@ -54,11 +56,10 @@ void lr_parser(char verbose)
                 printf("error in state %d on input 'EOF'\n", *s_ptr);
             else
                 printf("error in state %d on input '%s'\n", *s_ptr, a->lexeme);
-            #if VERBOSE
+            #if DEBUG
             printf("Stack: ");
             for (int i = 0; i <=  s_ptr-stack; i++)
                 printf("%d, ", *(stack+i));
-
             printf("\n");
             #endif
             int* row = action_table[*s_ptr];
@@ -101,14 +102,14 @@ void lr_parser(char verbose)
             return;
         } else if (action >= 0) {
             s_ptr++;
-            #if VERBOSE
+            #if DEBUG
             printf("Push %d\n", action);
             #endif
             *s_ptr = action;
             record_ptr++;
             create_token_record(&record_ptr, a);
             if (recovery_mode) {
-                #if VERBOSE
+                #if DEBUG
                 printf("IN RECORVERY\n");
                 #endif
                 a = recovery_token;
@@ -133,9 +134,11 @@ void lr_parser(char verbose)
             int tmp = *s_ptr;
             s_ptr++;
             *s_ptr = goto_table[r][tmp];
+            #if DEBUG
             printf("r num %d\n", action);
+            #endif
             create_node_record(&record_ptr, action);
-            #if VERBOSE
+            #if DEBUG
             printf("reduce by %s\n", rules[action]);
             #endif
         }
@@ -176,8 +179,6 @@ static inline void free_token(void* token)
     free(dead_token);
 }
 
-
-
 void create_node_record(void*** top, int rule_num)
 /*
  * Creation of a node of AST (abstract syntax tree). When the parsers
@@ -190,471 +191,795 @@ void create_node_record(void*** top, int rule_num)
 {
     switch (rule_num) {
         case 1:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("compound_statement -> compound_statement statement\n\n");
             #endif
             reduce_to_compound_compound_list(top);
+            #if TREEBUILDER
+            print_CompStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
         case 2:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("compound_statement -> statement\n");
             #endif
             reduce_to_compound_statement(top);
+            #if TREEBUILDER
+            print_CompStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
         case 3:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(3) statement -> variable_declaration ';'\n");
             #endif
             reduce_to_stmt_vardecl(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 4:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(4) statement -> function_declaration\n");
             #endif
             reduce_to_stmt_funcdecl_(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 5:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(5) statement -> assignment_statement ';'\n");
             #endif
             reduce_to_stmt_assignment_statement(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 6:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(6) statement -> function_call ';'\n");
             #endif
             reduce_to_stmt_funccall(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 7:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(7) statement -> if_elif_else_statement\n");
             #endif
             reduce_to_stmt_ieestmt(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 8:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(8) statement -> while_loop\n");
             #endif
             reduce_to_stmt_wloop(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 9:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(9) statement -> for_loop\n");
             #endif
             reduce_to_stmt_floop(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 10:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(10) statement -> scope\n");
             #endif
             reduce_to_stmt_scope(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
 
         case 11:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(11) variable_declaration -> 'ID' indices 'ID'\n");
             #endif
             reduce_to_vardecl_w_ind(top);
+            #if TREEBUILDER
+            print_VarDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 12:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(12) variable_declaration -> 'ID' indices 'ID' '=' expr\n");
             #endif
             reduce_to_vardecl_w_ind_n_expr(top);
+            #if TREEBUILDER
+            print_VarDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 13:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(13) variable_declaration -> 'ID' 'ID'\n");
             #endif
             reduce_to_vardecl(top);
+            #if TREEBUILDER
+            print_VarDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 14:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(14) variable_declaration -> 'ID' 'ID' '=' expr\n");
             #endif
             reduce_to_vardecl_w_expr(top);
+            #if TREEBUILDER
+            print_VarDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 15:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(15) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl_w_ind_n_params(top);
+            #if TREEBUILDER
+            print_FuncDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 16:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl_w_ind(top);
+            #if TREEBUILDER
+            print_FuncDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 17:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(17) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl_w_params(top);
+            #if TREEBUILDER
+            print_FuncDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 18:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl(top);
+            #if TREEBUILDER
+            print_FuncDecl(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 19:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(19) empty_indices -> empty_indices '[' ']'\n");
             #endif
             reduce_to_empty_ind_list(top);
             break;
 
         case 20:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(20) empty_indices -> '[' ']'\n");
             #endif
             reduce_to_empty_ind(top);
             break;
 
         case 21:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(21) params -> params ',' variable_declaration\n");
             #endif
             reduce_to_param_list(top);
             break;
 
         case 22:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(22) params -> variable_declaration\n");
             #endif
             reduce_to_param(top);
             break;
 
         case 23:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(23) indices -> indices '[' expr ']'\n");
             #endif
             reduce_to_ind_list_w_expr(top);
             break;
 
         case 24:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(24) indices -> '[' expr ']'\n");
             #endif
             reduce_to_ind_w_expr(top);
             break;
 
         case 25:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(25) indices -> indices '[' ']'\n");
             #endif
             reduce_to_ind_list(top);
             break;
 
         case 26:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(26) indices -> '[' ']'\n");
             #endif
             reduce_to_ind(top);
             break;
 
         case 27:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(27) variable_access -> 'ID'\n");
             #endif
             reduce_to_varacc(top);
+            #if TREEBUILDER
+            print_VarAcc(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 28:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(28) variable_access -> 'ID' indices\n");
             #endif
             reduce_to_varacc_w_ind(top);
+            #if TREEBUILDER
+            print_VarAcc(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 29:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(29) expr -> expr '-' expr\n");
             #endif
             reduce_to_expr_binop(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 30:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(30) expr -> expr '+' expr\n");
             #endif
             reduce_to_expr_binop(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 31:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(31) expr -> expr '/' expr\n");
             #endif
             reduce_to_expr_binop(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 32:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(32) expr -> expr '%%' expr\n");
             #endif
             reduce_to_expr_binop(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 33:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(33) expr -> expr '*' expr\n");
             #endif
             reduce_to_expr_binop(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 34:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(34) expr -> expr '^' expr\n");
             #endif
             reduce_to_expr_binop(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 35:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(35) expr -> '(' expr ')'\n");
             #endif
             reduce_to_expr_paren(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 36:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(36) expr -> 'ICONST'\n");
             #endif
             reduce_to_expr_const(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 37:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(37) expr -> 'FCONST'\n");
             #endif
             reduce_to_expr_const(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 38:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(38) expr -> 'SCONST'\n");
             #endif
             reduce_to_expr_const(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 39:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(39) expr -> variable_access\n");
             #endif
             reduce_to_expr_varacc(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 40:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(40) expr -> function_call\n");
             #endif
             reduce_to_expr_funccall(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 41:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(41) expr -> '+' expr\n");
             #endif
             reduce_to_expr_unary(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 42:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(42) expr -> '-' expr\n");
             #endif
             reduce_to_expr_unary(top);
+            #if TREEBUILDER
+            print_Expr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 43:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(43) assignment_statement -> variable_access 'ASSIGN' expr\n");
             #endif
             reduce_to_assign(top);
+            #if TREEBUILDER
+            print_AStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 44:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(44) assignment_statement -> variable_access '=' expr\n");
             #endif
             reduce_to_assign(top);
+            #if TREEBUILDER
+            print_AStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 45:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(45) assignment_statement -> variable_access 'SUFFIXOP'\n");
             #endif
             reduce_to_assign_suffixop(top);
+            #if TREEBUILDER
+            print_AStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 46:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(46) function_call -> 'ID' '(' args ')'\n");
             #endif
             reduce_to_funccall_w_args(top);
+            #if TREEBUILDER
+            print_AStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 47:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(47) function_call -> 'ID' '(' ')'\n");
             #endif
             reduce_to_funccall(top);
+            #if TREEBUILDER
+            print_FuncCall(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 48:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(48) args -> args ',' expr\n");
             #endif
             reduce_to_args_args(top);
             break;
 
         case 49:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(49) args -> expr\n");
             #endif
             reduce_to_args_expr(top);
             break;
 
         case 50:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(50) if_elif_else_statement -> if_statement\n");
             #endif
             reduce_to_ieestmt_ifstmt(top);
+            #if TREEBUILDER
+            print_IEEStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 51:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(51) if_elif_else_statement -> if_statement elif_list\n");
             #endif
             reduce_to_ieestmt_eliflist(top);
+            #if TREEBUILDER
+            print_IEEStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 52:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(52) elif_list -> elif_statement elif_list\n");
             #endif
             reduce_to_eliflist_eliflist(top);
             break;
 
         case 53:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(53) elif_list -> elif_statement\n");
             #endif
             reduce_to_eliflist_elif(top);
             break;
 
         case 54:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(54) elif_list -> else_statement\n");
             #endif
             reduce_to_eliflist_else(top);
             break;
 
         case 55:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(55) if_statement -> 'IF' b_expr '{' compound_statement '}'\n");
             #endif
             reduce_to_cond(top);
+            #if TREEBUILDER
+            print_CondStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 56:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(56) elif_statement -> 'ELIF' b_expr '{' compound_statement '}'\n");
             #endif
             reduce_to_cond(top);
+            #if TREEBUILDER
+            print_CondStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 57:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(57) else_statement -> 'ELSE' '{' compound_statement '}'\n");
             #endif
             reduce_to_else(top);
+            #if TREEBUILDER
+            print_CompStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 58:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(58) while_loop -> 'WHILE' b_expr '{' compound_statement '}'\n");
             #endif
             reduce_to_cond(top);
+            #if TREEBUILDER
+            print_WLoop(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 59:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(59) for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
             #endif
             reduce_to_for_vardecl(top);
+            #if TREEBUILDER
+            print_FLoop(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 60:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(60) for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
             #endif
             reduce_to_for_assign(top);
+            #if TREEBUILDER
+            print_FLoop(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 61:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(61) b_expr -> b_expr 'NAND' b_expr\n");
             #endif
             reduce_to_bexpr_binop(top);
+            #if TREEBUILDER
+            print_BExpr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 62:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(62) b_expr -> '(' b_expr 'NAND' b_expr ')'\n");
             #endif
             reduce_to_bexpr_binop_w_paren(top);
+            #if TREEBUILDER
+            print_BExpr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 63:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(63) b_expr -> r_expr\n");
             #endif
             reduce_to_b_expr_r_expr(top);
+            #if TREEBUILDER
+            print_BExpr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 64:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(64) b_expr -> '(' b_expr ')'\n");
             #endif
             reduce_to_bexpr_bexpr_w_paren(top);
+            #if TREEBUILDER
+            print_BExpr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 65:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(65) r_expr -> expr 'RELOP' expr\n");
             #endif
             reduce_to_rexpr_binop(top);
+            #if TREEBUILDER
+            print_RExpr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 66:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(66) r_expr -> expr\n");
             #endif
             reduce_to_rexpr_expr(top);
+            #if TREEBUILDER
+            print_RExpr(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
 
         case 67:
-            #if VERBOSE
+            #if DEBUG || TREEBUILDER
             printf("(67) scope -> '{' compound_statement '}'\n");
             #endif
             reduce_to_scope(top);
+            #if TREEBUILDER
+            print_CompStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
             break;
         default:
             printf("Something went wrong\n\n");
@@ -664,15 +989,14 @@ void create_node_record(void*** top, int rule_num)
 // 1
 static inline void reduce_to_compound_compound_list(void*** top)
 {
-    printf("compound_statement -> compound_statement statement\n");
     struct CompStmt* node = malloc(sizeof(struct CompStmt));
     struct Stmt* tmp_stmt = **top;
     (*top)--;
 
     struct CompStmt* prior_compound = **top;
+
     int n_new_stmts = prior_compound->n_statements+1;
     node->n_statements = n_new_stmts;
-
     node->statement_list = malloc(sizeof(struct Stmt*)*n_new_stmts);
     node->statement_list[n_new_stmts-1] = tmp_stmt;
     memcpy(node->statement_list, prior_compound->statement_list,
@@ -689,14 +1013,10 @@ static inline void reduce_to_compound_statement(void*** top)
     node->statement_list = malloc(sizeof(struct Stmt*)*1);
     node->statement_list[0] = **top;
     **top = node;
-    printf("n statements %d\n", ((struct CompStmt*)(**top))->n_statements);
 }
 // 3
 static inline void reduce_to_stmt_vardecl(void*** top)
 {
-    #if VERBOSE
-    printf("statement -> variable_declaration ';'");
-    #endif
     struct Stmt* node = malloc(sizeof(struct Stmt));
     free_token(**top);
     (*top)--;
@@ -707,7 +1027,7 @@ static inline void reduce_to_stmt_vardecl(void*** top)
 // 4
 static inline void reduce_to_stmt_funcdecl_(void*** top)
 {
-    #if VERBOSE
+    #if DEBUG
     printf("statement -> function_declaration");
     #endif
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1242,7 +1562,8 @@ static inline void reduce_to_assign_suffixop(void*** top)
     struct AStmt* node = malloc(sizeof(struct AStmt));
     node->assignment_type = **top;
     node->expr = NULL;
-
+    (*top)--;
+    node->variable_access = **top;
     **top = node;
 }
 // 46
@@ -1333,12 +1654,17 @@ static inline void reduce_to_ieestmt_eliflist(void*** top)
     struct EList* elif_list = **top;
 
     int n_elifs = elif_list->n_elifs;
-    node->n_elifs = n_elifs;
-    node->elif_list = malloc(sizeof(struct CondStmt*)*n_elifs);
-    memcpy(node->elif_list, elif_list->elif_list, sizeof(sizeof(struct CondStmt*)*n_elifs));
 
+    node->n_elifs = n_elifs;
     node->_else = elif_list->_else;
-    free(elif_list->elif_list);
+
+    if (n_elifs) {
+        node->elif_list = malloc(sizeof(struct CondStmt*)*n_elifs);
+        memcpy(node->elif_list, elif_list->elif_list, sizeof(struct CondStmt*)*n_elifs);
+        free(elif_list->elif_list);
+    } else {
+        node->elif_list = NULL;
+    }
     free(elif_list);
     (*top)--;
 
@@ -1351,7 +1677,7 @@ static inline void reduce_to_eliflist_eliflist(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
     struct EList* prior_list = **top;
-
+    (*top)--;
     int n_elifs = prior_list->n_elifs;
     if (n_elifs != 0) {
         node->n_elifs = n_elifs+1;
@@ -1365,10 +1691,8 @@ static inline void reduce_to_eliflist_eliflist(void*** top)
 
     node->_else = prior_list->_else;
     free(prior_list);
-    (*top)--;
 
     node->elif_list[0] = **top;
-
     **top = node;
 }
 // 53
@@ -1433,32 +1757,26 @@ static inline void reduce_to_else(void*** top)
 static inline void reduce_to_for_vardecl(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
-
     free_token(**top);
     (*top)--;
 
     node->body = **top;
     (*top)--;
-
     free_token(**top);
     (*top)--;
-
     node->update_statement = **top;
     (*top)--;
-
     free_token(**top);
     (*top)--;
 
     node->boolean = **top;
     (*top)--;
-
     free_token(**top);
     (*top)--;
 
     node->type = VARIABLE_DECLARATION;
     node->init_stmt = **top;
     (*top)--;
-
     free_token(**top);
 
     **top = node;
@@ -1502,6 +1820,7 @@ static inline void reduce_to_for_assign(void*** top)
 static inline void reduce_to_bexpr_binop(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
+    node->type = BINOP;
     node->right = **top;
     (*top)--;
 
@@ -1516,6 +1835,7 @@ static inline void reduce_to_bexpr_binop(void*** top)
 static inline void reduce_to_bexpr_binop_w_paren(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
+    node->type = BINOP;
     free_token(**top);
     (*top)--;
 
@@ -1598,50 +1918,50 @@ void write_indent(int nest_level)
         printf("    ");
 }
 
-void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs)
+void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     printf("CompStmt\n");
     for (int i = 0; i < node->n_statements; i++) {
-        print_Stmt(node->statement_list[i], nest_level+1, labels, leafs);
+        print_Stmt(node->statement_list[i], nest_level+1, labels, leaf);
     }
 }
 
-void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs)
+void print_Stmt(struct Stmt* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     printf("Stmt\n");
     switch (node->statement_type) {
         case VARIABLE_DECLARATION:
-            print_VarDecl(node->stmt, nest_level+1, labels, leafs);
+            print_VarDecl(node->stmt, nest_level+1, labels, leaf);
             return;
         case FUNCTION_DECLARATION:
-            print_FuncDecl(node->stmt, nest_level+1, labels, leafs);
+            print_FuncDecl(node->stmt, nest_level+1, labels, leaf);
             return;
         case ASSIGNMENT_STATEMENT:
-            print_AStmt(node->stmt, nest_level+1, labels, leafs);
+            print_AStmt(node->stmt, nest_level+1, labels, leaf);
             return;
         case FUNCTION_CALL:
-            print_FuncCall(node->stmt, nest_level+1, labels, leafs);
+            print_FuncCall(node->stmt, nest_level+1, labels, leaf);
             return;
         case IF_ELIF_ELSE_STATEMENT:
-            print_IEEStmt(node->stmt, nest_level+1, labels, leafs);
+            print_IEEStmt(node->stmt, nest_level+1, labels, leaf);
             return;
         case WHILE_LOOP:
-            print_WLoop(node->stmt, nest_level+1, labels, leafs);
+            print_WLoop(node->stmt, nest_level+1, labels, leaf);
             return;
         case FOR_LOOP:
-            print_FLoop(node->stmt, nest_level+1, labels, leafs);
+            print_FLoop(node->stmt, nest_level+1, labels, leaf);
             return;
         case SCOPE:
-            print_CompStmt(node->stmt, nest_level+1, labels, leafs);
+            print_CompStmt(node->stmt, nest_level+1, labels, leaf);
             return;
         default:
             break;
     }
 }
 
-void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs)
+void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     if (labels) {
@@ -1659,14 +1979,14 @@ void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs
         for (int i = 0; i < node->n_indices; i++) {
             write_indent(nest_level);
             printf("[\n");
-            print_Expr(node->indices[i], nest_level+1, labels, leafs);
+            print_Expr(node->indices[i], nest_level+1, labels, leaf);
             write_indent(nest_level);
             printf("]\n");
         }
     }
 }
 
-void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leafs)
+void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     if (labels) {
@@ -1674,30 +1994,33 @@ void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char lea
         if (node->n_indices) {
             printf(" %dd", node->n_indices);
         }
-        printf(" %d params {\n", node->n_params);
-        print_CompStmt(node->body, nest_level+1, labels, leafs);
-        write_indent(nest_level);
-        printf("}\n");
+        printf(" %d params\n", node->n_params);
+        print_CompStmt(node->body, nest_level+1, labels, leaf);
     } else {
         printf("func: %s of type %s %dd\n", node->name->lexeme, node->type->lexeme, node->n_indices);
         for (int i = 0; i < node->n_params; i++) {
             write_indent(nest_level);
             printf("\n");
-            print_VarDecl(node->params[i], nest_level+1, labels, leafs);
+            print_VarDecl(node->params[i], nest_level+1, labels, leaf);
             write_indent(nest_level);
             printf("\n");
         }
         write_indent(nest_level);
         printf(") {");
-        print_CompStmt(node->body, nest_level+1, labels, leafs);
+        print_CompStmt(node->body, nest_level+1, labels, leaf);
     }
 }
 
-void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs)
+void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
-    if (labels) {
-        printf("VarAcc %dd\n", node->n_indices);
+    if (leaf) {
+        printf("Acc '%s'", node->variable->lexeme);
+        for (int i = 0; i < node->n_indices; i++)
+            printf("[]");
+        printf("\n");
+    } else if (labels) {
+
     }
     else {
         printf("'%s'", node->variable->lexeme);
@@ -1705,53 +2028,90 @@ void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leafs)
             printf("\n");
             write_indent(nest_level);
             printf("[\n");
-            print_Expr(node->indices[i], nest_level+1, labels, leafs);
+            print_Expr(node->indices[i], nest_level+1, labels, leaf);
             write_indent(nest_level);
             printf("]\n");
         }
     }
 }
 
-void print_Expr(struct Expr* node, int nest_level, char labels, char leafs)
+void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
 {
-    switch (node->type) {
-        case BINOP:
-            print_Expr(node->left, nest_level+1, labels, leafs);
-            write_indent(nest_level);
-            printf("'%s'\n", node->binary_op->lexeme);
-            print_Expr(node->right, nest_level+1, labels, leafs);
-        case UOP:
-            write_indent(nest_level);
-            printf("'%s'\n", node->unary_op->lexeme);
-            print_Expr(node->expr, nest_level+1, labels, leafs);
-            return;
-        case CONST:
-            write_indent(nest_level);
-            printf("'%s'\n", node->val->lexeme);
-            return;
-        case FUNCCALL:
-            print_FuncCall(node->function_call, nest_level, labels, leafs);
-            return;
-        case VARACC:
-            print_VarAcc(node->variable_access, nest_level, labels, leafs);
-            return;
+    if (leaf) {
+        switch (node->type) {
+            case BINOP:
+                print_Expr(node->left, nest_level+1, labels, leaf);
+                write_indent(nest_level);
+                printf("'%s'\n", node->binary_op->lexeme);
+                print_Expr(node->right, nest_level+1, labels, leaf);
+            case UOP:
+                write_indent(nest_level);
+                printf("'%s'\n", node->unary_op->lexeme);
+                print_Expr(node->expr, nest_level+1, labels, leaf);
+                return;
+            case CONST:
+                write_indent(nest_level);
+                printf("'%s'\n", node->val->lexeme);
+                return;
+            case FUNCCALL:
+                write_indent(nest_level);
+                printf("funccall");
+                return;
+            case VARACC:
+                write_indent(nest_level);
+                printf("varacc");
+                return;
+        }
+    } else {
+        switch (node->type) {
+            case BINOP:
+                print_Expr(node->left, nest_level+1, labels, leaf);
+                write_indent(nest_level);
+                printf("'%s'\n", node->binary_op->lexeme);
+                print_Expr(node->right, nest_level+1, labels, leaf);
+            case UOP:
+                write_indent(nest_level);
+                printf("'%s'\n", node->unary_op->lexeme);
+                print_Expr(node->expr, nest_level+1, labels, leaf);
+                return;
+            case CONST:
+                write_indent(nest_level);
+                printf("'%s'\n", node->val->lexeme);
+                return;
+            case FUNCCALL:
+                print_FuncCall(node->function_call, nest_level, labels, leaf);
+                return;
+            case VARACC:
+                print_VarAcc(node->variable_access, nest_level, labels, leaf);
+                return;
+        }
     }
 }
 
-void print_AStmt(struct AStmt* node, int nest_level, char labels, char leafs)
+void print_AStmt(struct AStmt* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
-    printf("Assingment\n");
-    if (!labels) {
-        print_VarAcc(node->variable_access, nest_level+1, labels, leafs);
+
+
+    if (leaf) {
+        printf("var");
+        if (node->assignment_type->type == SUFFIXOP)
+            printf("%s\n", node->assignment_type->lexeme);
+        else
+            printf(" %s expr\n", node->assignment_type->lexeme);
+    } else if (labels) {
+        printf("Assign\n");
+    } else {
+        printf("Assignment\n");
+        print_VarAcc(node->variable_access, nest_level+1, labels, leaf);
         printf("\n");
         write_indent(nest_level);
         printf("by '%s'\n", node->assignment_type->lexeme);
-        print_Expr(node->expr, nest_level+1, labels, leafs);
+        print_Expr(node->expr, nest_level+1, labels, leaf);
     }
 }
 
-void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leafs)
+void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     if (labels) {
@@ -1759,88 +2119,97 @@ void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char lea
     } else {
         printf("Call %s with: \n", node->func->lexeme);
         for (int i = 0; i < node->n_args; i++) {
-            print_Expr(node->args[i], nest_level+1, labels, leafs);
+            print_Expr(node->args[i], nest_level+1, labels, leaf);
         }
     }
 
 }
 
-void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs)
+void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     printf("if:\n");
-    print_CondStmt(node->if_stmt, nest_level, labels, leafs);
+    print_CondStmt(node->if_stmt, nest_level, labels, leaf);
     for (int i = 0; i < node->n_elifs; i++) {
         write_indent(nest_level);
         printf("elif:\n");
-        print_CondStmt(node->elif_list[i], nest_level, labels, leafs);
+        print_CondStmt(node->elif_list[i], nest_level, labels, leaf);
     }
     if (node->_else != NULL) {
         write_indent(nest_level);
         printf("else:\n");
-        print_CompStmt(node->_else, nest_level+1, labels, leafs);
+        print_CompStmt(node->_else, nest_level+1, labels, leaf);
     }
 }
 
-void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs)
+void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leaf)
 {
     if (!labels)
-        print_BExpr(node->boolean, nest_level+1, labels, leafs);
-    print_CompStmt(node->body, nest_level+1, labels, leafs);
+        print_BExpr(node->boolean, nest_level+1, labels, leaf);
+    print_CompStmt(node->body, nest_level+1, labels, leaf);
 }
 
-void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs)
+void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     printf("while\n");
-    print_CondStmt(node, nest_level, labels, leafs);
-    write_indent(nest_level);
-
+    print_CondStmt(node, nest_level, labels, leaf);
 }
 
-void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs)
+void print_FLoop(struct FLoop* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     printf("for:\n");
     if (!labels) {
         if (node->type == VARIABLE_DECLARATION) {
-            print_VarDecl(node->init_stmt, nest_level+1, labels, leafs);
+            print_VarDecl(node->init_stmt, nest_level+1, labels, leaf);
         } else {
-            print_AStmt(node->init_stmt, nest_level+1, labels, leafs);
+            print_AStmt(node->init_stmt, nest_level+1, labels, leaf);
         }
         write_indent(nest_level);
         printf(",\n");
-        print_BExpr(node->boolean, nest_level+1, labels, leafs);
+        print_BExpr(node->boolean, nest_level+1, labels, leaf);
         write_indent(nest_level);
         printf(",\n");
-        print_AStmt(node->update_statement, nest_level+1, labels, leafs);
+        print_AStmt(node->update_statement, nest_level+1, labels, leaf);
         printf(",\n");
     }
-    print_CompStmt(node->body, nest_level+1, labels, leafs);
+    print_CompStmt(node->body, nest_level+1, labels, leaf);
 }
 
-void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs)
+void print_BExpr(struct BExpr* node, int nest_level, char labels, char leaf)
 {
     if (node->type == BINOP) {
-        print_BExpr(node->left, nest_level+1, labels, leafs);
+        print_BExpr(node->left, nest_level+1, labels, leaf);
         write_indent(nest_level);
         printf("nand\n");
-        print_BExpr(node->right, nest_level+1, labels, leafs);
+        print_BExpr(node->right, nest_level+1, labels, leaf);
     } else {
-        print_RExpr(node->r_expr, nest_level+1, labels, leafs);
+        print_RExpr(node->r_expr, nest_level+1, labels, leaf);
     }
 }
 
-void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs)
+void print_RExpr(struct RExpr* node, int nest_level, char labels, char leaf)
 {
-    if (node->type == BINOP) {
-        print_Expr(node->left, nest_level+1, labels, leafs);
-        write_indent(nest_level);
-        printf("%s\n", node->operator->lexeme);
-        print_Expr(node->right, nest_level+1, labels, leafs);
+    if (labels) {
+        if (node->type == BINOP) {
+            write_indent(nest_level);
+            printf("expr %s expr\n", node->operator->lexeme);
+        } else {
+            write_indent(nest_level);
+            printf("expr %s expr\n", node->operator->lexeme);
+        }
     } else {
-        print_Expr(node->expr, nest_level, labels, leafs);
+        if (node->type == BINOP) {
+            print_Expr(node->left, nest_level+1, labels, leaf);
+            write_indent(nest_level);
+            printf("%s\n", node->operator->lexeme);
+            print_Expr(node->right, nest_level+1, labels, leaf);
+        } else {
+            print_Expr(node->expr, nest_level, labels, leaf);
+        }
     }
+
 }
 
 int main(int argc, const char** argv)
