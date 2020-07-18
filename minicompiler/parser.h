@@ -176,23 +176,128 @@ struct RExpr {
     };
 };
 
-
-struct Record {
-    void* value;
-    enum NodeType type;
-};
-
 void lr_parser(char verbose);
 void parser_error(int length, const char* expected,
           int fatal, int line, int column,
           int inject_symbol, char symbol);
 struct Token* inject_token(enum TokenType type);
 
-void create_node(void** node_ptr, enum NodeType type);
-void create_token_record(struct Record* record_ptr, struct Token* token);
-void create_node_record(struct Record** stack, enum NodeType type, int n_pop);
-void print_tree(struct CompStmt* tree);
+static inline void create_token_record(void*** record_ptr, struct Token* token);
+void create_node_record(void*** stack, int n_pop);
 
+static inline void reduce_to_compound_compound_list(void*** top);
+// 2
+static inline void reduce_to_compound_statement(void*** top);
+// 3
+static inline void reduce_to_stmt_vardecl(void*** top);
+// 4
+static inline void reduce_to_stmt_funcdecl_(void*** top);
+// 5
+static inline void reduce_to_stmt_assignment_statement(void*** top);
+// 6
+static inline void reduce_to_stmt_funccall(void*** top);
+// 7
+static inline void reduce_to_stmt_ieestmt(void*** top);
+// 8
+static inline void reduce_to_stmt_wloop(void*** top);
+//9
+static inline void reduce_to_stmt_floop(void*** top);
+// 10
+static inline void reduce_to_stmt_scope(void*** top);
+// 11
+static inline void reduce_to_vardecl_w_ind(void*** top);
+// 12
+static inline void reduce_to_vardecl_w_ind_n_expr(void*** top);
+// 13
+static inline void reduce_to_vardecl(void*** top);
+// 14
+static inline void reduce_to_vardecl_w_expr(void*** top);
+// 15
+static inline void reduce_to_func_decl_w_ind_n_params(void*** top);
+// 16
+static inline void reduce_to_func_decl_w_ind(void*** top);
+// 17
+static inline void reduce_to_func_decl_w_params(void*** top);
+// 18
+static inline void reduce_to_func_decl(void*** top);
+// 19
+static inline void reduce_to_empty_ind_list(void*** top);
+//20
+static inline void reduce_to_empty_ind(void*** top);
+// 21
+static inline void reduce_to_param_list(void*** top);
+// 22
+static inline void reduce_to_param(void*** top);
+// 23
+static inline void reduce_to_ind_list_w_expr(void*** top);
+//24
+static inline void reduce_to_ind_w_expr(void*** top);
+//25
+static inline void reduce_to_ind_list(void*** top);
+// 26
+static inline void reduce_to_ind(void*** top);
+// 27
+static inline void reduce_to_varacc(void*** top);
+// 28
+static inline void reduce_to_varacc_w_ind(void*** top);
+// 29, 30, 31, 32, 33, 34
+static inline void reduce_to_expr_binop(void*** top);
+// 35
+static inline void reduce_to_expr_paren(void*** top);
+// 36, 37, 38
+static inline void reduce_to_expr_const(void*** top);
+// 39
+static inline void reduce_to_expr_varacc(void*** top);
+// 40
+static inline void reduce_to_expr_funccall(void*** top);
+// 41, 42
+static inline void reduce_to_expr_unary(void*** top);
+// 43, 44
+static inline void reduce_to_assign(void*** top);
+// 45
+static inline void reduce_to_assign_suffixop(void*** top);
+// 46
+static inline void reduce_to_funccall_w_args(void*** top);
+// 47
+static inline void reduce_to_funccall(void*** top);
+// 48
+static inline void reduce_to_args_args(void*** top);
+// 49
+static inline void reduce_to_args_expr(void*** top);
+// 50
+static inline void reduce_to_ieestmt_ifstmt(void*** top);
+// 51
+static inline void reduce_to_ieestmt_eliflist(void*** top);
+// 52
+static inline void reduce_to_eliflist_eliflist(void*** top);
+// 53
+static inline void reduce_to_eliflist_elif(void*** top);
+// 54
+static inline void reduce_to_eliflist_else(void*** top);
+// 55, 56, 58
+static inline void reduce_to_cond(void*** top);
+// 57
+static inline void reduce_to_else(void*** top);
+// 59
+static inline void reduce_to_for_vardecl(void*** top);
+// 60
+static inline void reduce_to_for_assign(void*** top);
+// 61
+static inline void reduce_to_bexpr_binop(void*** top);
+// 62
+static inline void reduce_to_bexpr_binop_w_paren(void*** top);
+// 63
+static inline void reduce_to_b_expr_r_expr(void*** top);
+// 64
+static inline void reduce_to_bexpr_bexpr_w_paren(void*** top);
+// 65
+static inline void reduce_to_rexpr_binop(void*** top);
+// 66
+static inline void reduce_to_rexpr_expr(void*** top);
+// 67
+static inline void reduce_to_scope(void*** top);
+
+void write_indent(int nest_level);
 void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs);
 void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs);
 void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs);
