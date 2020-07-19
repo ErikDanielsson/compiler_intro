@@ -298,7 +298,7 @@ static inline void reduce_to_rexpr_expr(void*** top);
 // 67
 static inline void reduce_to_scope(void*** top);
 
-void write_indent(int nest_level);
+static inline void write_indent(int nest_level);
 void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs);
 void print_Stmt(struct Stmt* node, int nest_level, char labels, char leafs);
 void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leafs);
