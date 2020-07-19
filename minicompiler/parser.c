@@ -124,8 +124,7 @@ struct CompStmt* lr_parser(char verbose)
             printf("parse done\n");
             print_CompStmt((struct CompStmt*)(*record_ptr), 0, 1, 0);
             #endif
-            free(a);
-//case struct Token* a is necessarily eof, therefore no lexeme
+            free(a); // struct Token* a is necessarily eof, therefore no lexeme
             return (struct CompStmt*)(*record_ptr);
         } else {
             action = -(action+1);
@@ -738,7 +737,7 @@ void create_node_record(void*** top, int rule_num)
             #endif
             reduce_to_funccall_w_args(top);
             #if TREEBUILDER
-            print_AStmt(**top, 0, 1, 1);
+            print_FuncCall(**top, 0, 1, 1);
             printf("\n");
             printf("----------------------------------------------------------\n");
             printf("\n");
