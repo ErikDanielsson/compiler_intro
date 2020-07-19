@@ -23,7 +23,7 @@ char recovery_mode = FALSE;
  * "table_generator.c", and produces a parse of the token stream from the lexer.
  */
 
-void lr_parser(char verbose)
+struct CompStmt* lr_parser(char verbose)
 /*
  * Uses variables rules, reduction_rules, n_pop_states, action table,
  * n_states, and goto_table defined in "table_generator.h"
@@ -99,7 +99,7 @@ void lr_parser(char verbose)
             }
             free(a);
             parser_error(len, "", 0, a->line, a->column, 0, 0);
-            return;
+            return NULL;
         } else if (action >= 0) {
             s_ptr++;
             #if DEBUG
@@ -123,8 +123,8 @@ void lr_parser(char verbose)
             printf("parse done\n");
             print_CompStmt((struct CompStmt*)(*record_ptr), 0, 1, 0);
             #endif
-            free(a);
-            return;
+            free(a); // struct Token* a is necessarily eof, therefore no lexeme
+            return (struct CompStmt*)(*record_ptr);
         } else {
             action = -(action+1);
             enum NodeType r = reduction_rules[action];
@@ -172,11 +172,10 @@ static inline void create_token_record(void*** record_ptr, struct Token* token)
     **record_ptr = token;
 }
 
-static inline void free_token(void* token)
+static inline void free_token(struct Token* token)
 {
-    struct Token* dead_token = token;
-    free(dead_token->lexeme);
-    free(dead_token);
+    free(token->lexeme);
+    free(token);
 }
 
 void create_node_record(void*** top, int rule_num)
@@ -1010,7 +1009,7 @@ static inline void reduce_to_compound_statement(void*** top)
 {
     struct CompStmt* node = malloc(sizeof(struct CompStmt));
     node->n_statements = 1;
-    node->statement_list = malloc(sizeof(struct Stmt*)*1);
+    node->statement_list = malloc(sizeof(struct Stmt*));
     node->statement_list[0] = **top;
     **top = node;
 }
@@ -1142,8 +1141,8 @@ static inline void reduce_to_vardecl(void*** top)
     (*top)--;
 
     node->type = **top;
-    **top = node;
 
+    **top = node;
 }
 // 14
 static inline void reduce_to_vardecl_w_expr(void*** top)
@@ -1261,12 +1260,17 @@ static inline void reduce_to_func_decl_w_params(void*** top)
     free(params);
     (*top)--;
 
+
     free_token(**top);
+
     (*top)--;
 
     node->n_indices = 0;
 
     node->name = **top;;
+    (*top)--;
+
+    node->type = **top;
     (*top)--;
 
     free_token(**top);
@@ -1739,7 +1743,11 @@ static inline void reduce_to_cond(void*** top)
 // 57
 static inline void reduce_to_else(void*** top)
 {
-    struct CompStmt* node = malloc(sizeof(struct CompStmt));
+    /*
+     * Similiar to a paranthesized expressions, the memory for an else is
+     * already allocated by compoun statement functions
+     */
+    struct CompStmt* node;
     free_token(**top);
     (*top)--;
 
@@ -1748,7 +1756,6 @@ static inline void reduce_to_else(void*** top)
 
     free_token(**top);
     (*top)--;
-
     free_token(**top);
 
     **top = node;
@@ -1911,6 +1918,9 @@ static inline void reduce_to_scope(void*** top)
 
     **top = node;
 }
+
+
+
 
 void write_indent(int nest_level)
 {
@@ -2197,7 +2207,7 @@ void print_RExpr(struct RExpr* node, int nest_level, char labels, char leaf)
             printf("expr %s expr\n", node->operator->lexeme);
         } else {
             write_indent(nest_level);
-            printf("expr %s expr\n", node->operator->lexeme);
+            printf("expr\n");
         }
     } else {
         if (node->type == BINOP) {
@@ -2212,6 +2222,201 @@ void print_RExpr(struct RExpr* node, int nest_level, char labels, char leaf)
 
 }
 
+
+
+
+
+void free_CompStmt(struct CompStmt* node)
+{
+    //printf("FREE COMPOUND\n");
+    for (int i = 0; i < node->n_statements; i++) {
+        free_Stmt(node->statement_list[i]);
+    }
+    free(node->statement_list);
+    free(node);
+}
+
+void free_Stmt(struct Stmt* node)
+{
+    //printf("FREE STATEMENT\n");
+    switch (node->statement_type) {
+        case VARIABLE_DECLARATION:
+            free_VarDecl(node->stmt);
+            break;
+        case FUNCTION_DECLARATION:
+            free_FuncDecl(node->stmt);
+            break;
+        case ASSIGNMENT_STATEMENT:
+            free_AStmt(node->stmt);
+            break;
+        case FUNCTION_CALL:
+            free_FuncCall(node->stmt);
+            break;
+        case IF_ELIF_ELSE_STATEMENT:
+            free_IEEStmt(node->stmt);
+            break;
+        case WHILE_LOOP:
+            free_CondStmt(node->stmt);
+            break;
+        case FOR_LOOP:
+            free_FLoop(node->stmt);
+            break;
+        case SCOPE:
+            free_CompStmt(node->stmt);
+            break;
+        default:
+            break;
+    }
+    free(node);
+}
+
+void free_VarDecl(struct VarDecl* node)
+{
+    //printf("FREE VARIABLE DECLARATION\n");
+    free_token(node->type);
+    if (node->n_indices > 0) {
+        for (int i = 0; i < node->n_indices; i++)
+            free_Expr(node->indices[i]);
+
+        free(node->indices);
+    }
+    free_token(node->name);
+    if (node->expr != NULL)
+        free_Expr(node->expr);
+    free(node);
+}
+
+void free_FuncDecl(struct FuncDecl* node)
+{
+    //printf("FREE FUNCTION DECLARATION\n");
+    free_token(node->type);
+    free_token(node->name);
+    for (int i = 0; i < node->n_params; i++)
+        free_VarDecl(node->params[i]);
+    free(node->params);
+    free_CompStmt(node->body);
+    free(node);
+}
+
+void free_VarAcc(struct VarAcc* node)
+{
+    //printf("FREE VARIABLE ACCESS\n");
+    free_token(node->variable);
+    for (int i = 0; i < node->n_indices; i++)
+        free_Expr(node->indices[i]);
+    free(node->indices);
+    free(node);
+}
+
+void free_Expr(struct Expr* node)
+{
+    //printf("FREE EXPR\n");
+        switch (node->type) {
+        case BINOP:
+            free_Expr(node->left);
+            free_token(node->binary_op);
+            free_Expr(node->right);
+            break;
+        case UOP:
+            free_token(node->unary_op);
+            free_Expr(node->expr);
+            break;
+        case CONST:
+            free_token(node->val);
+            break;
+        case FUNCCALL:
+            free_FuncCall(node->function_call);
+            break;
+        case VARACC:
+            free_VarAcc(node->variable_access);
+            break;
+    }
+    free(node);
+}
+
+void free_AStmt(struct AStmt* node)
+{
+    //printf("FREE ASSIGMENT STATEMENT\n");
+
+    free_VarAcc(node->variable_access);
+    free_token(node->assignment_type);
+    free_Expr(node->expr);
+    free(node);
+}
+
+void free_FuncCall(struct FuncCall* node)
+{
+    //printf("FREE FUNCTION CALL\n");
+    free_token(node->func);
+    for (int i = 0; i < node->n_args; i++)
+        free_Expr(node->args[i]);
+    free(node->args);
+    free(node);
+}
+
+void free_IEEStmt(struct IEEStmt* node)
+{
+    //printf("FREE IF ELIF ELSE STATEMENT\n");
+    free_CondStmt(node->if_stmt);
+    if (node->n_elifs > 0) {
+        for (int i = 0; i < node->n_elifs; i++)
+            free_CondStmt(node->elif_list[i]);
+        free(node->elif_list);
+    }
+    if (node->_else != NULL)
+        free_CompStmt(node->_else);
+    free(node);
+}
+
+void free_CondStmt(struct CondStmt* node)
+{
+    //printf("FREE CONDITIONAL STATEMENT\n");
+    free_BExpr(node->boolean);
+    free_CompStmt(node->body);
+    free(node);
+}
+
+void free_FLoop(struct FLoop* node)
+{
+    //printf("FREE FOR LOOP\n");
+    if (node->type == VARIABLE_DECLARATION)
+        free_VarDecl(node->init_stmt);
+    else
+        free_AStmt(node->init_stmt);
+    free_BExpr(node->boolean);
+    free_AStmt(node->update_statement);
+    free_CompStmt(node->body);
+    free(node);
+}
+
+void free_BExpr(struct BExpr* node)
+{
+    //printf("FREE BOOLEAN EXPR\n");
+    if (node->type == BINOP) {
+        free_BExpr(node->left);
+        free_BExpr(node->right);
+    } else {
+        free_RExpr(node->r_expr);
+    }
+    free(node);
+}
+
+void free_RExpr(struct RExpr* node)
+{
+    //printf("FREE RELATIONAL EXPR\n");
+
+    if (node->type == BINOP) {
+        free_Expr(node->left);
+        free_token(node->operator);
+        free_Expr(node->right);
+    } else {
+        free_Expr(node->expr);
+    }
+    free(node);
+}
+
+
+
 int main(int argc, const char** argv)
 {
     const char* table_file = "parsing_table.txt";
@@ -2219,7 +2424,8 @@ int main(int argc, const char** argv)
     file_desc = open(filename, O_RDONLY);
     init_lexer();
     generate_parse_table(table_file);
-    lr_parser(1);
+    struct CompStmt* tree = lr_parser(1);
+    free_CompStmt(tree);
     destroy_parse_table();
     SymTab_destroy(symbol_table);
     close(file_desc);

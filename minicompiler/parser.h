@@ -176,12 +176,13 @@ struct RExpr {
     };
 };
 
-void lr_parser(char verbose);
+struct CompStmt* lr_parser(char verbose);
 void parser_error(int length, const char* expected,
           int fatal, int line, int column,
           int inject_symbol, char symbol);
 struct Token* inject_token(enum TokenType type);
 
+static inline void free_token(struct Token* token);
 static inline void create_token_record(void*** record_ptr, struct Token* token);
 void create_node_record(void*** stack, int n_pop);
 
@@ -312,3 +313,18 @@ void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs)
 void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs);
 void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs);
 void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs);
+
+void free_CompStmt(struct CompStmt* node);
+void free_Stmt(struct Stmt* node);
+void free_VarDecl(struct VarDecl* node);
+void free_FuncDecl(struct FuncDecl* node);
+void free_VarAcc(struct VarAcc* node);
+void free_Expr(struct Expr* node);
+void free_AStmt(struct AStmt* node);
+void free_FuncCall(struct FuncCall* node);
+void free_IEEStmt(struct IEEStmt* node);
+void free_CondStmt(struct CondStmt* node);
+void free_WLoop(struct CondStmt* node);
+void free_FLoop(struct FLoop* node);
+void free_BExpr(struct BExpr* node);
+void free_RExpr(struct RExpr* node);
