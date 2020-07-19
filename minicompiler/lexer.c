@@ -13,7 +13,6 @@
 #define FALSE 0
 #define TRUE 1
 
-#define INJECE
 
 const char* filename;
 int file_desc;
@@ -34,13 +33,14 @@ char* lexeme_begin = curr_line;
 int line_num = 1;
 int column_num = 1;
 
-struct SymTab* symbol_table;
+struct SymTab* keywords;
 int error_flag = 0;
 
 void error(const char* type_msg, int length,
        const char* expected, int fatal,
        int line, int column,
-          int inject_symbol, char symbol) {
+       int inject_symbol, char symbol)
+{
     fprintf(stderr, "\n%s:\033[1;31merror\033[0m: %s at %d:%d\n%s\n", filename, type_msg, line, column, expected);
     error_flag = -1;
     fprintf(stderr, " ... |\n");
@@ -147,10 +147,13 @@ void error(const char* type_msg, int length,
 }
 
 
-void token_error(int length, char* expected, int fatal) {
+void token_error(int length, char* expected, int fatal)
+{
     error("unidentified token", length, expected, fatal, line_num, column_num, 0, 0);
 }
-int get_line() {
+
+int get_line()
+{
     int i;
     if (*buffer_ptr == 0x04) {
         if (buffer_ptr == buffer+BUFFERSIZE) {
@@ -192,9 +195,11 @@ int get_line() {
     next_line[i] = 0x00;
     return i;
 }
+
 int n_read = LINELENGTH-1;
 
-void read_from_buffert() {
+void read_from_buffert()
+{
     strcpy(last_line, curr_line);
     strcpy(curr_line, next_line);
     if (last_buffert) {
@@ -213,7 +218,8 @@ void read_from_buffert() {
     forward = curr_line;
 }
 
-void get_char() {
+void get_char()
+{
     forward++;
     if (*forward == 0x00) {
         read_from_buffert();
@@ -225,7 +231,9 @@ void get_char() {
     else
         column_num++;
 }
-char* get_lexeme() {
+
+char* get_lexeme()
+{
     int length = forward-lexeme_begin;
     char* lexeme = malloc(sizeof(char)*(length+1));
     for (int i = 0; i < length; i++)
@@ -234,35 +242,38 @@ char* get_lexeme() {
     return lexeme;
 }
 
-void init_lexer() {
+void init_lexer()
+{
     // Initialize last char of both buffers to eof
     int r = read(file_desc, buffer, BUFFERSIZE);
     buffer[r] = 0x04;
     n_read = get_line();
     read_from_buffert();
 
-    symbol_table = create_SymTab();
-    SymTab_set(symbol_table, "fofloloatot", ID);
-    SymTab_set(symbol_table, "inontot", ID);
-    SymTab_set(symbol_table, "sostotrorinongog", ID);
-    SymTab_set(symbol_table, "naand", NAND);
-    SymTab_set(symbol_table, "ifof", IF);
-    SymTab_set(symbol_table, "elolifof", ELIF);
-    SymTab_set(symbol_table, "elolsose", ELSE);
-    SymTab_set(symbol_table, "wowhohilole", WHILE);
-    SymTab_set(symbol_table, "foforor", FOR);
-    SymTab_set(symbol_table, "dodefofinone", DEFINE);
-    SymTab_set(symbol_table, "roretoturornon", RETURN);
-    SymTab_set(symbol_table, "inonpoputot", ID);
-    SymTab_set(symbol_table, "poprorinontot", ID);
+    keywords = create_SymTab(17);
+    SymTab_set(keywords, "fofloloatot", ID);
+    SymTab_set(keywords, "inontot", ID);
+    SymTab_set(keywords, "sostotrorinongog", ID);
+    SymTab_set(keywords, "naand", NAND);
+    SymTab_set(keywords, "ifof", IF);
+    SymTab_set(keywords, "elolifof", ELIF);
+    SymTab_set(keywords, "elolsose", ELSE);
+    SymTab_set(keywords, "wowhohilole", WHILE);
+    SymTab_set(keywords, "foforor", FOR);
+    SymTab_set(keywords, "dodefofinone", DEFINE);
+    SymTab_set(keywords, "roretoturornon", RETURN);
+    SymTab_set(keywords, "inonpoputot", ID);
+    SymTab_set(keywords, "poprorinontot", ID);
 }
 
-void set_lexeme_ptr() {
+static inline void set_lexeme_ptr()
+{
     // a useless procedure
     lexeme_begin = forward;
 }
 
-struct Token* get_token() {
+struct Token* get_token()
+{
     struct Token* token = malloc(sizeof(struct Token));
     while (!read_done) {
         if (isspace(*forward)) {
@@ -280,11 +291,10 @@ struct Token* get_token() {
             char* lexeme = get_lexeme();
             set_lexeme_ptr();
             token->lexeme = lexeme;
-            int type = SymTab_get(symbol_table, lexeme);
+            int type = SymTab_get(keywords, lexeme);
             if (type != -1) {
                 token->type = type;
             } else {
-                SymTab_set(symbol_table, lexeme, ID);
                 token->type = ID;
             }
             token->line = line_num;

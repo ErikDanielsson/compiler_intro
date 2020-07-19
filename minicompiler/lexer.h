@@ -28,7 +28,7 @@ struct Token {
 };
 extern const char* filename;
 extern int file_desc;
-extern struct SymTab* symbol_table;
+extern struct SymTab* keywords;
 extern int error_flag;
 
 void init_lexer();

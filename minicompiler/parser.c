@@ -2490,9 +2490,11 @@ int main(int argc, const char** argv)
     init_lexer();
     generate_parse_table(table_file);
     struct CompStmt* tree = lr_parser(1);
+    SymTab_dump(keywords);
     free_CompStmt(tree);
+
     destroy_parse_table();
-    SymTab_destroy(symbol_table);
+    SymTab_destroy(keywords);
     close(file_desc);
 
 }
