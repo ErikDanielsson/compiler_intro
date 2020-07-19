@@ -4,10 +4,10 @@
 #include <limits.h>
 #include "symbol_table.h"
 #include "lexer.h"
-#define TABLE_SIZE 100
 #define MAX_ID_SIZE 256
 
-unsigned int hash( const char* key) {
+unsigned int hash(const char* key, int table_size)
+{
     // FVN (Fowler / Noll / Vo) hash function:
     const char *p = key;
     unsigned int key_len = strlen(key);
@@ -17,21 +17,24 @@ unsigned int hash( const char* key) {
     for ( i = 0; i < key_len; i++ ) {
         h = ( h ^ p[i] ) * 0x01000193;
     }
-    return h % TABLE_SIZE;
+    return h % table_size;
 }
 
-struct SymTab* create_SymTab() {
+struct SymTab* create_SymTab(int table_size)
+{
     struct SymTab* symboltable = malloc(sizeof(struct SymTab) * 1);
+    symboltable->table_size  = table_size;
+    symboltable->entries = malloc(sizeof(struct entry*) * table_size);
 
-    symboltable->entries = malloc(sizeof(struct entry*) * TABLE_SIZE);
-
-    for (int i = 0; i < TABLE_SIZE; i++) {
+    for (int i = 0; i < table_size; i++) {
         symboltable->entries[i] = NULL;
     }
 
     return symboltable;
 }
-struct entry* SymTab_pair(const char* key, enum TokenType type) {
+
+struct entry* SymTab_pair(const char* key, enum TokenType type)
+{
     struct entry* entry = malloc(sizeof(struct entry) * 1);
     entry->key = malloc(sizeof(char)*strlen(key)+1);
     strcpy(entry->key, key);
@@ -39,8 +42,10 @@ struct entry* SymTab_pair(const char* key, enum TokenType type) {
     entry->next = NULL;
     return entry;
 }
-void SymTab_set(struct SymTab* symboltable, const char* key, enum TokenType type) {
-    unsigned int slot = hash(key);
+
+void SymTab_set(struct SymTab* symboltable, const char* key, enum TokenType type)
+{
+    unsigned int slot = hash(key, symboltable->table_size);
     struct entry* entry = symboltable->entries[slot];
     struct entry* prev;
     if (entry == NULL) {
@@ -58,8 +63,9 @@ void SymTab_set(struct SymTab* symboltable, const char* key, enum TokenType type
     prev->next = SymTab_pair(key, type);
 }
 
-enum TokenType SymTab_get(struct SymTab* symboltable, const char* key) {
-    unsigned int slot = hash(key);
+enum TokenType SymTab_get(struct SymTab* symboltable, const char* key)
+{
+    unsigned int slot = hash(key, symboltable->table_size);
     struct entry* entry = symboltable->entries[slot];
 
     while (entry != NULL) {
@@ -71,7 +77,8 @@ enum TokenType SymTab_get(struct SymTab* symboltable, const char* key) {
     return -1;
 }
 
-char* closest_key(struct SymTab* symboltable, const char* string) {
+char* closest_key(struct SymTab* symboltable, const char* string)
+{
     int n = strlen(string);
     int v0[n+1];
 
@@ -82,7 +89,7 @@ char* closest_key(struct SymTab* symboltable, const char* string) {
         tmp1[i] = 0x20;
     tmp1[MAX_ID_SIZE-1] = 0x00;
     int shortest_diff = 2147483647;
-    for (int q = 0; q< TABLE_SIZE; q++) {
+    for (int q = 0; q< symboltable->table_size; q++) {
         struct entry* c_entry = symboltable->entries[q];
         while (1) {
             if (c_entry == NULL) {
@@ -132,12 +139,13 @@ char* closest_key(struct SymTab* symboltable, const char* string) {
     return res;
 }
 
-void SymTab_destroy(struct SymTab* symboltable) {
+void SymTab_destroy(struct SymTab* symboltable)
+{
     if (symboltable == NULL)
         return;
     if (symboltable->entries != NULL) {
         size_t i = 0;
-        while (i < TABLE_SIZE) {
+        while (i < symboltable->table_size) {
             struct entry* head = symboltable->entries[i];
             while (head != NULL) {
                 struct entry* tmp = head;
@@ -158,10 +166,11 @@ void SymTab_destroy(struct SymTab* symboltable) {
     symboltable = NULL;
 }
 
-void SymTab_dump(struct SymTab* symboltable) {
+void SymTab_dump(struct SymTab* symboltable)
+{
     printf("\n");
     printf("Symbol table:\n");
-    for (int i = 0; i < TABLE_SIZE; i++) {
+    for (int i = 0; i < symboltable->table_size; i++) {
         struct entry* entry = symboltable->entries[i];
         if (entry == NULL) {
             continue;

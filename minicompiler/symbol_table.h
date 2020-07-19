@@ -1,7 +1,7 @@
 #pragma once
 #include "lexer.h"
 
-unsigned int hash(const char* key);
+unsigned int hash(const char* key, int table_size);
 
 struct entry {
     char* key;
@@ -10,6 +10,7 @@ struct entry {
 };
 
 struct SymTab {
+    int table_size;
     struct entry** entries;
 };
 
