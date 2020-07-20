@@ -25,6 +25,7 @@ enum NodeType {
     B_EXPR,
     R_EXPR,
     SCOPE,
+    RETURN_STATEMENT,
     TOKEN
 };
 
@@ -181,6 +182,7 @@ void parser_error(int length, const char* expected,
           int fatal, int line, int column,
           int inject_symbol, char symbol);
 struct Token* inject_token(enum TokenType type);
+struct Token* insertion_fix(int* action_row, int len, struct Token** a_ptr, enum TokenType* type);
 
 static inline void free_token(struct Token* token);
 static inline void create_token_record(void*** record_ptr, struct Token* token);
@@ -206,97 +208,102 @@ static inline void reduce_to_stmt_floop(void*** top);
 // 10
 static inline void reduce_to_stmt_scope(void*** top);
 // 11
-static inline void reduce_to_vardecl_w_ind(void*** top);
+static inline void reduce_to_stmt_return(void*** top);
 // 12
-static inline void reduce_to_vardecl_w_ind_n_expr(void*** top);
+static inline void reduce_to_vardecl_w_ind(void*** top);
 // 13
-static inline void reduce_to_vardecl(void*** top);
+static inline void reduce_to_vardecl_w_ind_n_expr(void*** top);
 // 14
-static inline void reduce_to_vardecl_w_expr(void*** top);
+static inline void reduce_to_vardecl(void*** top);
 // 15
-static inline void reduce_to_func_decl_w_ind_n_params(void*** top);
+static inline void reduce_to_vardecl_w_expr(void*** top);
 // 16
-static inline void reduce_to_func_decl_w_ind(void*** top);
+static inline void reduce_to_func_decl_w_ind_n_params(void*** top);
 // 17
-static inline void reduce_to_func_decl_w_params(void*** top);
+static inline void reduce_to_func_decl_w_ind(void*** top);
 // 18
-static inline void reduce_to_func_decl(void*** top);
+static inline void reduce_to_func_decl_w_params(void*** top);
 // 19
+static inline void reduce_to_func_decl(void*** top);
+// 20
 static inline void reduce_to_empty_ind_list(void*** top);
-//20
+//21
 static inline void reduce_to_empty_ind(void*** top);
-// 21
-static inline void reduce_to_param_list(void*** top);
 // 22
-static inline void reduce_to_param(void*** top);
+static inline void reduce_to_param_list(void*** top);
 // 23
+static inline void reduce_to_param(void*** top);
+// 24
 static inline void reduce_to_ind_list_w_expr(void*** top);
-//24
-static inline void reduce_to_ind_w_expr(void*** top);
 //25
+static inline void reduce_to_ind_w_expr(void*** top);
+//26
 static inline void reduce_to_ind_list(void*** top);
-// 26
-static inline void reduce_to_ind(void*** top);
 // 27
-static inline void reduce_to_varacc(void*** top);
+static inline void reduce_to_ind(void*** top);
 // 28
+static inline void reduce_to_varacc(void*** top);
+// 29
 static inline void reduce_to_varacc_w_ind(void*** top);
-// 29, 30, 31, 32, 33, 34
+// 30, 30, 31, 32, 33, 34
 static inline void reduce_to_expr_binop(void*** top);
-// 35
+// 36
 static inline void reduce_to_expr_paren(void*** top);
-// 36, 37, 38
+// 37, 37, 38
 static inline void reduce_to_expr_const(void*** top);
-// 39
-static inline void reduce_to_expr_varacc(void*** top);
 // 40
+static inline void reduce_to_expr_varacc(void*** top);
+// 41
 static inline void reduce_to_expr_funccall(void*** top);
-// 41, 42
+// 42, 42
 static inline void reduce_to_expr_unary(void*** top);
-// 43, 44
+// 44, 44
 static inline void reduce_to_assign(void*** top);
-// 45
-static inline void reduce_to_assign_suffixop(void*** top);
 // 46
-static inline void reduce_to_funccall_w_args(void*** top);
+static inline void reduce_to_assign_suffixop(void*** top);
 // 47
-static inline void reduce_to_funccall(void*** top);
+static inline void reduce_to_funccall_w_args(void*** top);
 // 48
-static inline void reduce_to_args_args(void*** top);
+static inline void reduce_to_funccall(void*** top);
 // 49
-static inline void reduce_to_args_expr(void*** top);
+static inline void reduce_to_args_args(void*** top);
 // 50
-static inline void reduce_to_ieestmt_ifstmt(void*** top);
+static inline void reduce_to_args_expr(void*** top);
 // 51
-static inline void reduce_to_ieestmt_eliflist(void*** top);
+static inline void reduce_to_ieestmt_ifstmt(void*** top);
 // 52
-static inline void reduce_to_eliflist_eliflist(void*** top);
+static inline void reduce_to_ieestmt_eliflist(void*** top);
 // 53
-static inline void reduce_to_eliflist_elif(void*** top);
+static inline void reduce_to_eliflist_eliflist(void*** top);
 // 54
+static inline void reduce_to_eliflist_elif(void*** top);
+// 55
 static inline void reduce_to_eliflist_else(void*** top);
-// 55, 56, 58
+// 56, 56, 58
 static inline void reduce_to_cond(void*** top);
-// 57
+// 58
 static inline void reduce_to_else(void*** top);
-// 59
-static inline void reduce_to_for_vardecl(void*** top);
 // 60
-static inline void reduce_to_for_assign(void*** top);
+static inline void reduce_to_for_vardecl(void*** top);
 // 61
-static inline void reduce_to_bexpr_binop(void*** top);
+static inline void reduce_to_for_assign(void*** top);
 // 62
-static inline void reduce_to_bexpr_binop_w_paren(void*** top);
+static inline void reduce_to_bexpr_binop(void*** top);
 // 63
-static inline void reduce_to_b_expr_r_expr(void*** top);
+static inline void reduce_to_bexpr_binop_w_paren(void*** top);
 // 64
-static inline void reduce_to_bexpr_bexpr_w_paren(void*** top);
+static inline void reduce_to_b_expr_r_expr(void*** top);
 // 65
-static inline void reduce_to_rexpr_binop(void*** top);
+static inline void reduce_to_bexpr_bexpr_w_paren(void*** top);
 // 66
-static inline void reduce_to_rexpr_expr(void*** top);
+static inline void reduce_to_rexpr_binop(void*** top);
 // 67
+static inline void reduce_to_rexpr_expr(void*** top);
+// 68
 static inline void reduce_to_scope(void*** top);
+//69
+static inline void reduce_to_return(void*** top);
+
 
 static inline void write_indent(int nest_level);
 void print_CompStmt(struct CompStmt* node, int nest_level, char labels, char leafs);
@@ -313,6 +320,7 @@ void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs)
 void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs);
 void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs);
 void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs);
+void print_ReturnStmt(struct Expr* node, int nest_level, char labels, char leaf);
 
 void free_CompStmt(struct CompStmt* node);
 void free_Stmt(struct Stmt* node);

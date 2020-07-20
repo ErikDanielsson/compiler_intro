@@ -13,11 +13,24 @@
 #define TRUE 1
 #define FALSE 0
 #define VERBOSE 1
-#define DEBUG 0
+#define DEBUG 1
 #define TREEBUILDER 1
 #define LABELS 0
 char grammar_error = FALSE;
 char recovery_mode = FALSE;
+/*
+ * Since nested function declaration and return statementnot within function
+ * bodies are allowed by the grammar according to the grammar, enforcing these
+ * rules are handled by the following variable which are set during parsing
+ * according to context.
+ * Note: while enforcing this in the grammar would be possible, this requieres
+ * duplication of several productions and is thus wasteful.
+ */
+char return_found = FALSE;
+char return_row[LINELENGTH];
+int return_line_num;
+int return_col_num;
+char func_decl_found = FALSE;
 
 /*
  * bla bla bla
@@ -39,6 +52,7 @@ struct CompStmt* lr_parser(char verbose)
     int stack[STACK_SIZE];
     int* s_ptr = stack;
     struct Token* a = get_token();
+    enum TokenType type = a->type;
     struct Token* recovery_token = NULL;
     *s_ptr = 0;
     *record_ptr = NULL;
@@ -46,17 +60,23 @@ struct CompStmt* lr_parser(char verbose)
     int action;
     parsing_loop:
     while (1) {
-        action = action_table[*s_ptr][a->type];
+        action = action_table[*s_ptr][type];
+
         #if DEBUG
         printf("Stack depth %ld, top: %d\n", s_ptr-stack, *s_ptr);
-        printf("action: %d, lexeme: '%s', %x\n", action, a->lexeme, a->type);
+        printf("action %d lexeme: ", action);
+        print_token_str(a);
+        printf(", %x\n", type);
         #endif
 
         if (action >= n_states) {
-            if (a->type == 0x04)
-                printf("error in state %d on input 'EOF'\n", *s_ptr);
+            printf("error in state %d on input ", *s_ptr);
+            if (type == 0x04)
+                printf("'EOF'\n");
             else
-                printf("error in state %d on input '%s'\n", *s_ptr, a->lexeme);
+                print_token_str(a);
+            printf("type %d", a->type);
+            printf("\n");
             #if DEBUG
             printf("Stack: ");
             for (int i = 0; i <=  s_ptr-stack; i++)
@@ -65,42 +85,23 @@ struct CompStmt* lr_parser(char verbose)
             #endif
             int* row = action_table[*s_ptr];
             int len;
-            if (a->lexeme == NULL)
-                len = 0;
+            if (type < 128)
+                len = 1;
             else
                 len = strlen(a->lexeme);
-            if (row['}'] < n_states) {
-                char* msg = malloc(sizeof(char)*(strlen("Expected '}' before ")+strlen(a->lexeme)+3));
-                strcpy(msg, "Expected '}' before '");
-                strcat(msg, a->lexeme);
-                strcat(msg, "'");
-
-                struct Token* tmp = inject_token('}');
-                parser_error(len, msg, 0, a->line, a->column, a->column+1, '}');
-                free(msg);
-                grammar_error = TRUE;
-                recovery_token = a;
-                a = tmp;
-                recovery_mode = TRUE;
-                goto parsing_loop;
-            } else if (row[';'] < n_states) {
-                char* msg = malloc(sizeof(char)*(strlen("Expected ',' before ")+strlen(a->lexeme)+3));
-                strcpy(msg, "Expected ';' before '");
-                strcat(msg, a->lexeme);
-                strcat(msg, "'");
-                struct Token* tmp = inject_token(';');
-                parser_error(len, msg, 0, a->line, a->column, -1, ';');
-                free(msg);
-                grammar_error = TRUE;
-                recovery_token = a;
-                a = tmp;
-                recovery_mode = TRUE;
-
+            if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL) {
+                printf("rec\n");
+                printf("in error: ");
+                print_token_str(recovery_token);
+                printf("\n");
+                print_token_str(a);
+                printf("\n");
                 goto parsing_loop;
             }
-            free(a);
+            free_token(a);
             parser_error(len, "", 0, a->line, a->column, 0, 0);
             return NULL;
+
         } else if (action >= 0) {
             s_ptr++;
             #if DEBUG
@@ -114,9 +115,17 @@ struct CompStmt* lr_parser(char verbose)
                 printf("IN RECORVERY\n");
                 #endif
                 a = recovery_token;
+                type = a->type;
                 recovery_mode = FALSE;
+                exit(0);
             } else {
                 a = get_token();
+                type = a->type;
+                if (type == RETURN) {
+                    char* tmp = return_row;
+                    return_line_num = copy_current_line(&tmp);
+                    return_col_num = a->column;
+                }
             }
 
         } else if (action == -1) {
@@ -126,6 +135,7 @@ struct CompStmt* lr_parser(char verbose)
             #endif
             free(a); // struct Token* a is necessarily eof, therefore no lexeme
             return (struct CompStmt*)(*record_ptr);
+
         } else {
             action = -(action+1);
             enum NodeType r = reduction_rules[action];
@@ -157,6 +167,56 @@ void parser_error(int length, const char* expected,
         inject_symbol, symbol);
 }
 
+struct Token* insertion_fix(int* action_row, int len, struct Token** a_ptr, enum TokenType* type_ptr)
+{
+    char msg[20+len+3];
+    char anker_symbols[] = {';', '}'};
+    for (char i = 0; i < 2; i++) {
+        char symbol = anker_symbols[i];
+        if (action_row[symbol] < n_states) {
+            printf("SYMBOL: %c\n", symbol);
+            printf("ACTION: %d\n", -action_row[symbol]-1);
+            strcpy(msg, "Expected ");
+            printf("SYMBOL: %c\n", symbol);
+            strncat(msg, &symbol, 1);
+            printf("SYMBOL: %c\n", symbol);
+            strcat(msg, " before '");
+            if ((*type_ptr) == 0x04)
+                strcat(msg, "eof");
+            else if ((*type_ptr) < 128)
+                strncat(msg, &((*a_ptr)->c_val), 1);
+            else
+                strcat(msg, (*a_ptr)->lexeme);
+            strcat(msg, "'");
+            printf("SYMBOL: %c\n", symbol);
+            struct Token* tmp = inject_token(symbol);
+            printf("SYMBOL: %c\n", symbol);
+            parser_error(len, msg, 0, (*a_ptr)->line, (*a_ptr)->column, -1, symbol);
+            grammar_error = TRUE;
+            struct Token* recovery_token = (*a_ptr);
+            (*a_ptr) = tmp;
+            (*type_ptr) = tmp->type;
+            recovery_mode = TRUE;
+            return recovery_token;
+        }
+    }
+    return NULL;
+}
+
+void return_error()
+{
+    printf("\n%s:\033[1;31merror\033[0m: Return error at line %d\n", filename, return_line_num);
+    printf(" ... |\n");
+    printf("     |\n");
+    printf("%4d | %s", return_line_num, return_row);
+    printf("     |");
+    for (int i = 0; i < return_col_num; i++)
+        printf(" ");
+    printf("\033[1;31m^~~~~~~~~~~~~~\033[0m\n");
+
+    printf(" ... |\n\n");
+}
+
 struct Token* inject_token(enum TokenType type) {
     /*
      * Creates a token which is injected into the token stream,
@@ -164,7 +224,11 @@ struct Token* inject_token(enum TokenType type) {
      */
     struct Token* imaginary_token = malloc(sizeof(struct Token));
     imaginary_token->type = type;
-    imaginary_token->lexeme = NULL;
+    if (type != 4 && type < 128)
+        imaginary_token->c_val = 'i';
+    else
+        imaginary_token->lexeme = "imag";
+
     return imaginary_token;
 }
 
@@ -180,7 +244,8 @@ static inline void free_token(struct Token* token)
  * Token destruction. Simple abstraction for readability
  */
 {
-    free(token->lexeme);
+    if (token->type >= 128)
+        free(token->lexeme);
     free(token);
 }
 
@@ -323,10 +388,22 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-
         case 11:
             #if DEBUG || TREEBUILDER
-            printf("(11) variable_declaration -> 'ID' indices 'ID'\n");
+            printf("(11) statement -> return_statement ';''\n");
+            #endif
+            reduce_to_stmt_return(top);
+            #if TREEBUILDER
+            print_Stmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
+            break;
+
+        case 12:
+            #if DEBUG || TREEBUILDER
+            printf("(12) variable_declaration -> 'ID' indices 'ID'\n");
             #endif
             reduce_to_vardecl_w_ind(top);
             #if TREEBUILDER
@@ -337,9 +414,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 12:
+        case 13:
             #if DEBUG || TREEBUILDER
-            printf("(12) variable_declaration -> 'ID' indices 'ID' '=' expr\n");
+            printf("(13) variable_declaration -> 'ID' indices 'ID' '=' expr\n");
             #endif
             reduce_to_vardecl_w_ind_n_expr(top);
             #if TREEBUILDER
@@ -350,9 +427,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 13:
+        case 14:
             #if DEBUG || TREEBUILDER
-            printf("(13) variable_declaration -> 'ID' 'ID'\n");
+            printf("(14) variable_declaration -> 'ID' 'ID'\n");
             #endif
             reduce_to_vardecl(top);
             #if TREEBUILDER
@@ -363,9 +440,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 14:
+        case 15:
             #if DEBUG || TREEBUILDER
-            printf("(14) variable_declaration -> 'ID' 'ID' '=' expr\n");
+            printf("(15) variable_declaration -> 'ID' 'ID' '=' expr\n");
             #endif
             reduce_to_vardecl_w_expr(top);
             #if TREEBUILDER
@@ -376,9 +453,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 15:
+        case 16:
             #if DEBUG || TREEBUILDER
-            printf("(15) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'\n");
+            printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl_w_ind_n_params(top);
             #if TREEBUILDER
@@ -389,9 +466,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 16:
+        case 17:
             #if DEBUG || TREEBUILDER
-            printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'\n");
+            printf("(17) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl_w_ind(top);
             #if TREEBUILDER
@@ -402,9 +479,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 17:
+        case 18:
             #if DEBUG || TREEBUILDER
-            printf("(17) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
+            printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl_w_params(top);
             #if TREEBUILDER
@@ -415,9 +492,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 18:
+        case 19:
             #if DEBUG || TREEBUILDER
-            printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'\n");
+            printf("(19) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'\n");
             #endif
             reduce_to_func_decl(top);
             #if TREEBUILDER
@@ -428,65 +505,65 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 19:
+        case 20:
             #if DEBUG || TREEBUILDER
-            printf("(19) empty_indices -> empty_indices '[' ']'\n");
+            printf("(20) empty_indices -> empty_indices '[' ']'\n");
             #endif
             reduce_to_empty_ind_list(top);
             break;
 
-        case 20:
+        case 21:
             #if DEBUG || TREEBUILDER
-            printf("(20) empty_indices -> '[' ']'\n");
+            printf("(21) empty_indices -> '[' ']'\n");
             #endif
             reduce_to_empty_ind(top);
             break;
 
-        case 21:
+        case 22:
             #if DEBUG || TREEBUILDER
-            printf("(21) params -> params ',' variable_declaration\n");
+            printf("(22) params -> params ',' variable_declaration\n");
             #endif
             reduce_to_param_list(top);
             break;
 
-        case 22:
+        case 23:
             #if DEBUG || TREEBUILDER
-            printf("(22) params -> variable_declaration\n");
+            printf("(23) params -> variable_declaration\n");
             #endif
             reduce_to_param(top);
             break;
 
-        case 23:
+        case 24:
             #if DEBUG || TREEBUILDER
-            printf("(23) indices -> indices '[' expr ']'\n");
+            printf("(24) indices -> indices '[' expr ']'\n");
             #endif
             reduce_to_ind_list_w_expr(top);
             break;
 
-        case 24:
+        case 25:
             #if DEBUG || TREEBUILDER
-            printf("(24) indices -> '[' expr ']'\n");
+            printf("(25) indices -> '[' expr ']'\n");
             #endif
             reduce_to_ind_w_expr(top);
             break;
 
-        case 25:
+        case 26:
             #if DEBUG || TREEBUILDER
-            printf("(25) indices -> indices '[' ']'\n");
+            printf("(26) indices -> indices '[' ']'\n");
             #endif
             reduce_to_ind_list(top);
             break;
 
-        case 26:
+        case 27:
             #if DEBUG || TREEBUILDER
-            printf("(26) indices -> '[' ']'\n");
+            printf("(27) indices -> '[' ']'\n");
             #endif
             reduce_to_ind(top);
             break;
 
-        case 27:
+        case 28:
             #if DEBUG || TREEBUILDER
-            printf("(27) variable_access -> 'ID'\n");
+            printf("(28) variable_access -> 'ID'\n");
             #endif
             reduce_to_varacc(top);
             #if TREEBUILDER
@@ -497,9 +574,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 28:
+        case 29:
             #if DEBUG || TREEBUILDER
-            printf("(28) variable_access -> 'ID' indices\n");
+            printf("(29) variable_access -> 'ID' indices\n");
             #endif
             reduce_to_varacc_w_ind(top);
             #if TREEBUILDER
@@ -510,22 +587,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 29:
-            #if DEBUG || TREEBUILDER
-            printf("(29) expr -> expr '-' expr\n");
-            #endif
-            reduce_to_expr_binop(top);
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
         case 30:
             #if DEBUG || TREEBUILDER
-            printf("(30) expr -> expr '+' expr\n");
+            printf("(30) expr -> expr '-' expr\n");
             #endif
             reduce_to_expr_binop(top);
             #if TREEBUILDER
@@ -538,7 +602,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 31:
             #if DEBUG || TREEBUILDER
-            printf("(31) expr -> expr '/' expr\n");
+            printf("(31) expr -> expr '+' expr\n");
             #endif
             reduce_to_expr_binop(top);
             #if TREEBUILDER
@@ -551,7 +615,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 32:
             #if DEBUG || TREEBUILDER
-            printf("(32) expr -> expr '%%' expr\n");
+            printf("(32) expr -> expr '/' expr\n");
             #endif
             reduce_to_expr_binop(top);
             #if TREEBUILDER
@@ -564,7 +628,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 33:
             #if DEBUG || TREEBUILDER
-            printf("(33) expr -> expr '*' expr\n");
+            printf("(33) expr -> expr '%%' expr\n");
             #endif
             reduce_to_expr_binop(top);
             #if TREEBUILDER
@@ -577,7 +641,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 34:
             #if DEBUG || TREEBUILDER
-            printf("(34) expr -> expr '^' expr\n");
+            printf("(34) expr -> expr '*' expr\n");
             #endif
             reduce_to_expr_binop(top);
             #if TREEBUILDER
@@ -590,9 +654,9 @@ void create_node_record(void*** top, int rule_num)
 
         case 35:
             #if DEBUG || TREEBUILDER
-            printf("(35) expr -> '(' expr ')'\n");
+            printf("(35) expr -> expr '^' expr\n");
             #endif
-            reduce_to_expr_paren(top);
+            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -603,9 +667,9 @@ void create_node_record(void*** top, int rule_num)
 
         case 36:
             #if DEBUG || TREEBUILDER
-            printf("(36) expr -> 'ICONST'\n");
+            printf("(36) expr -> '(' expr ')'\n");
             #endif
-            reduce_to_expr_const(top);
+            reduce_to_expr_paren(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -616,7 +680,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 37:
             #if DEBUG || TREEBUILDER
-            printf("(37) expr -> 'FCONST'\n");
+            printf("(37) expr -> 'ICONST'\n");
             #endif
             reduce_to_expr_const(top);
             #if TREEBUILDER
@@ -629,7 +693,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 38:
             #if DEBUG || TREEBUILDER
-            printf("(38) expr -> 'SCONST'\n");
+            printf("(38) expr -> 'FCONST'\n");
             #endif
             reduce_to_expr_const(top);
             #if TREEBUILDER
@@ -642,9 +706,9 @@ void create_node_record(void*** top, int rule_num)
 
         case 39:
             #if DEBUG || TREEBUILDER
-            printf("(39) expr -> variable_access\n");
+            printf("(39) expr -> 'SCONST'\n");
             #endif
-            reduce_to_expr_varacc(top);
+            reduce_to_expr_const(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -655,9 +719,9 @@ void create_node_record(void*** top, int rule_num)
 
         case 40:
             #if DEBUG || TREEBUILDER
-            printf("(40) expr -> function_call\n");
+            printf("(40) expr -> variable_access\n");
             #endif
-            reduce_to_expr_funccall(top);
+            reduce_to_expr_varacc(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -668,9 +732,9 @@ void create_node_record(void*** top, int rule_num)
 
         case 41:
             #if DEBUG || TREEBUILDER
-            printf("(41) expr -> '+' expr\n");
+            printf("(41) expr -> function_call\n");
             #endif
-            reduce_to_expr_unary(top);
+            reduce_to_expr_funccall(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -681,7 +745,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 42:
             #if DEBUG || TREEBUILDER
-            printf("(42) expr -> '-' expr\n");
+            printf("(42) expr -> '+' expr\n");
             #endif
             reduce_to_expr_unary(top);
             #if TREEBUILDER
@@ -694,11 +758,11 @@ void create_node_record(void*** top, int rule_num)
 
         case 43:
             #if DEBUG || TREEBUILDER
-            printf("(43) assignment_statement -> variable_access 'ASSIGN' expr\n");
+            printf("(43) expr -> '-' expr\n");
             #endif
-            reduce_to_assign(top);
+            reduce_to_expr_unary(top);
             #if TREEBUILDER
-            print_AStmt(**top, 0, 1, 1);
+            print_Expr(**top, 0, 1, 1);
             printf("\n");
             printf("----------------------------------------------------------\n");
             printf("\n");
@@ -707,7 +771,7 @@ void create_node_record(void*** top, int rule_num)
 
         case 44:
             #if DEBUG || TREEBUILDER
-            printf("(44) assignment_statement -> variable_access '=' expr\n");
+            printf("(44) assignment_statement -> variable_access 'ASSIGN' expr\n");
             #endif
             reduce_to_assign(top);
             #if TREEBUILDER
@@ -720,9 +784,9 @@ void create_node_record(void*** top, int rule_num)
 
         case 45:
             #if DEBUG || TREEBUILDER
-            printf("(45) assignment_statement -> variable_access 'SUFFIXOP'\n");
+            printf("(45) assignment_statement -> variable_access '=' expr\n");
             #endif
-            reduce_to_assign_suffixop(top);
+            reduce_to_assign(top);
             #if TREEBUILDER
             print_AStmt(**top, 0, 1, 1);
             printf("\n");
@@ -733,7 +797,20 @@ void create_node_record(void*** top, int rule_num)
 
         case 46:
             #if DEBUG || TREEBUILDER
-            printf("(46) function_call -> 'ID' '(' args ')'\n");
+            printf("(46) assignment_statement -> variable_access 'SUFFIXOP'\n");
+            #endif
+            reduce_to_assign_suffixop(top);
+            #if TREEBUILDER
+            print_AStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
+            break;
+
+        case 47:
+            #if DEBUG || TREEBUILDER
+            printf("(47) function_call -> 'ID' '(' args ')'\n");
             #endif
             reduce_to_funccall_w_args(top);
             #if TREEBUILDER
@@ -744,9 +821,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 47:
+        case 48:
             #if DEBUG || TREEBUILDER
-            printf("(47) function_call -> 'ID' '(' ')'\n");
+            printf("(48) function_call -> 'ID' '(' ')'\n");
             #endif
             reduce_to_funccall(top);
             #if TREEBUILDER
@@ -757,23 +834,23 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 48:
+        case 49:
             #if DEBUG || TREEBUILDER
-            printf("(48) args -> args ',' expr\n");
+            printf("(49) args -> args ',' expr\n");
             #endif
             reduce_to_args_args(top);
             break;
 
-        case 49:
+        case 50:
             #if DEBUG || TREEBUILDER
-            printf("(49) args -> expr\n");
+            printf("(50) args -> expr\n");
             #endif
             reduce_to_args_expr(top);
             break;
 
-        case 50:
+        case 51:
             #if DEBUG || TREEBUILDER
-            printf("(50) if_elif_else_statement -> if_statement\n");
+            printf("(51) if_elif_else_statement -> if_statement\n");
             #endif
             reduce_to_ieestmt_ifstmt(top);
             #if TREEBUILDER
@@ -784,9 +861,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 51:
+        case 52:
             #if DEBUG || TREEBUILDER
-            printf("(51) if_elif_else_statement -> if_statement elif_list\n");
+            printf("(52) if_elif_else_statement -> if_statement elif_list\n");
             #endif
             reduce_to_ieestmt_eliflist(top);
             #if TREEBUILDER
@@ -797,43 +874,30 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 52:
+        case 53:
             #if DEBUG || TREEBUILDER
-            printf("(52) elif_list -> elif_statement elif_list\n");
+            printf("(53) elif_list -> elif_statement elif_list\n");
             #endif
             reduce_to_eliflist_eliflist(top);
             break;
 
-        case 53:
+        case 54:
             #if DEBUG || TREEBUILDER
-            printf("(53) elif_list -> elif_statement\n");
+            printf("(54) elif_list -> elif_statement\n");
             #endif
             reduce_to_eliflist_elif(top);
             break;
 
-        case 54:
+        case 55:
             #if DEBUG || TREEBUILDER
-            printf("(54) elif_list -> else_statement\n");
+            printf("(55) elif_list -> else_statement\n");
             #endif
             reduce_to_eliflist_else(top);
             break;
 
-        case 55:
-            #if DEBUG || TREEBUILDER
-            printf("(55) if_statement -> 'IF' b_expr '{' compound_statement '}'\n");
-            #endif
-            reduce_to_cond(top);
-            #if TREEBUILDER
-            print_CondStmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
         case 56:
             #if DEBUG || TREEBUILDER
-            printf("(56) elif_statement -> 'ELIF' b_expr '{' compound_statement '}'\n");
+            printf("(56) if_statement -> 'IF' b_expr '{' compound_statement '}'\n");
             #endif
             reduce_to_cond(top);
             #if TREEBUILDER
@@ -846,7 +910,20 @@ void create_node_record(void*** top, int rule_num)
 
         case 57:
             #if DEBUG || TREEBUILDER
-            printf("(57) else_statement -> 'ELSE' '{' compound_statement '}'\n");
+            printf("(57) elif_statement -> 'ELIF' b_expr '{' compound_statement '}'\n");
+            #endif
+            reduce_to_cond(top);
+            #if TREEBUILDER
+            print_CondStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
+            break;
+
+        case 58:
+            #if DEBUG || TREEBUILDER
+            printf("(58) else_statement -> 'ELSE' '{' compound_statement '}'\n");
             #endif
             reduce_to_else(top);
             #if TREEBUILDER
@@ -857,9 +934,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 58:
+        case 59:
             #if DEBUG || TREEBUILDER
-            printf("(58) while_loop -> 'WHILE' b_expr '{' compound_statement '}'\n");
+            printf("(59) while_loop -> 'WHILE' b_expr '{' compound_statement '}'\n");
             #endif
             reduce_to_cond(top);
             #if TREEBUILDER
@@ -870,9 +947,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 59:
+        case 60:
             #if DEBUG || TREEBUILDER
-            printf("(59) for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
+            printf("(60) for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
             #endif
             reduce_to_for_vardecl(top);
             #if TREEBUILDER
@@ -883,9 +960,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 60:
+        case 61:
             #if DEBUG || TREEBUILDER
-            printf("(60) for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
+            printf("(61) for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
             #endif
             reduce_to_for_assign(top);
             #if TREEBUILDER
@@ -896,9 +973,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 61:
+        case 62:
             #if DEBUG || TREEBUILDER
-            printf("(61) b_expr -> b_expr 'NAND' b_expr\n");
+            printf("(62) b_expr -> b_expr 'NAND' b_expr\n");
             #endif
             reduce_to_bexpr_binop(top);
             #if TREEBUILDER
@@ -909,9 +986,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 62:
+        case 63:
             #if DEBUG || TREEBUILDER
-            printf("(62) b_expr -> '(' b_expr 'NAND' b_expr ')'\n");
+            printf("(63) b_expr -> '(' b_expr 'NAND' b_expr ')'\n");
             #endif
             reduce_to_bexpr_binop_w_paren(top);
             #if TREEBUILDER
@@ -922,9 +999,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 63:
+        case 64:
             #if DEBUG || TREEBUILDER
-            printf("(63) b_expr -> r_expr\n");
+            printf("(64) b_expr -> r_expr\n");
             #endif
             reduce_to_b_expr_r_expr(top);
             #if TREEBUILDER
@@ -935,9 +1012,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 64:
+        case 65:
             #if DEBUG || TREEBUILDER
-            printf("(64) b_expr -> '(' b_expr ')'\n");
+            printf("(65) b_expr -> '(' b_expr ')'\n");
             #endif
             reduce_to_bexpr_bexpr_w_paren(top);
             #if TREEBUILDER
@@ -948,9 +1025,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 65:
+        case 66:
             #if DEBUG || TREEBUILDER
-            printf("(65) r_expr -> expr 'RELOP' expr\n");
+            printf("(66) r_expr -> expr 'RELOP' expr\n");
             #endif
             reduce_to_rexpr_binop(top);
             #if TREEBUILDER
@@ -961,9 +1038,9 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 66:
+        case 67:
             #if DEBUG || TREEBUILDER
-            printf("(66) r_expr -> expr\n");
+            printf("(67) r_expr -> expr\n");
             #endif
             reduce_to_rexpr_expr(top);
             #if TREEBUILDER
@@ -974,13 +1051,26 @@ void create_node_record(void*** top, int rule_num)
             #endif
             break;
 
-        case 67:
+        case 68:
             #if DEBUG || TREEBUILDER
-            printf("(67) scope -> '{' compound_statement '}'\n");
+            printf("(68) scope -> '{' compound_statement '}'\n");
             #endif
             reduce_to_scope(top);
             #if TREEBUILDER
             print_CompStmt(**top, 0, 1, 1);
+            printf("\n");
+            printf("----------------------------------------------------------\n");
+            printf("\n");
+            #endif
+            break;
+
+        case 69:
+            #if DEBUG || TREEBUILDER
+            printf("(69) return_statement -> 'RETURN' expr\n");
+            #endif
+            reduce_to_return(top);
+            #if TREEBUILDER
+            print_ReturnStmt(**top, 0, 1, 1);
             printf("\n");
             printf("----------------------------------------------------------\n");
             printf("\n");
@@ -1047,6 +1137,7 @@ static inline void reduce_to_stmt_funcdecl_(void*** top)
     node->statement_type = FUNCTION_DECLARATION;
     node->stmt = **top;
     **top = node;
+    return_found = FALSE;
 }
 
 //case 5
@@ -1088,7 +1179,7 @@ static inline void reduce_to_stmt_wloop(void*** top)
     node->stmt = **top;
     **top = node;
 }
-//9
+// case 9
 static inline void reduce_to_stmt_floop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1105,8 +1196,19 @@ static inline void reduce_to_stmt_scope(void*** top)
     node->stmt = **top;
     **top = node;
 }
-
 //case 11
+static inline void reduce_to_stmt_return(void*** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    free(**top);
+    (*top)--;
+    // Hmmm....
+    node->statement_type = RETURN_STATEMENT;
+    node->stmt = **top;
+    **top = node;
+    return_found = TRUE;
+}
+//case 12
 static inline void reduce_to_vardecl_w_ind(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1125,7 +1227,7 @@ static inline void reduce_to_vardecl_w_ind(void*** top)
     **top = node;
 }
 
-//case 12
+//case 13
 static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1151,7 +1253,7 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
     **top = node;
 }
 
-//case 13
+//case 14
 static inline void reduce_to_vardecl(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1167,7 +1269,7 @@ static inline void reduce_to_vardecl(void*** top)
     **top = node;
 }
 
-//case 14
+//case 15
 static inline void reduce_to_vardecl_w_expr(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1185,7 +1287,7 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
     **top = node;
 }
 
-//case 15
+//case 16
 static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1226,7 +1328,7 @@ static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
     **top = node;
 }
 
-//case 16
+//case 17
 static inline void reduce_to_func_decl_w_ind(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1261,7 +1363,7 @@ static inline void reduce_to_func_decl_w_ind(void*** top)
     **top = node;
 }
 
-//case 17
+//case 18
 static inline void reduce_to_func_decl_w_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1304,7 +1406,7 @@ static inline void reduce_to_func_decl_w_params(void*** top)
     **top = node;
 }
 
-//case 18
+//case 19
 static inline void reduce_to_func_decl(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1336,7 +1438,7 @@ static inline void reduce_to_func_decl(void*** top)
     **top = node;
 }
 
-//case 19
+//case 20
 static inline void reduce_to_empty_ind_list(void*** top)
 {
     int* node;
@@ -1365,7 +1467,7 @@ static inline void reduce_to_empty_ind(void*** top)
     **top = node;
 }
 
-//case 21
+//case 22
 static inline void reduce_to_param_list(void*** top)
 {
     struct Params* node = malloc(sizeof(struct Params));
@@ -1388,7 +1490,7 @@ static inline void reduce_to_param_list(void*** top)
     **top = node;
 }
 
-//case 22
+//case 23
 static inline void reduce_to_param(void*** top)
 {
     struct Params* node = malloc(sizeof(struct Params));
@@ -1402,7 +1504,7 @@ static inline void reduce_to_param(void*** top)
     **top = node;
 }
 
-//case 23
+//case 24
 static inline void reduce_to_ind_list_w_expr(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
@@ -1470,7 +1572,7 @@ static inline void reduce_to_ind_list(void*** top)
     **top = node;
 }
 
-//case 26
+//case 27
 static inline void reduce_to_ind(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
@@ -1487,7 +1589,7 @@ static inline void reduce_to_ind(void*** top)
     **top = node;
 }
 
-//case 27
+//case 28
 static inline void reduce_to_varacc(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
@@ -1498,7 +1600,7 @@ static inline void reduce_to_varacc(void*** top)
     **top = node;
 }
 
-//case 28
+//case 29
 static inline void reduce_to_varacc_w_ind(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
@@ -1516,7 +1618,7 @@ static inline void reduce_to_varacc_w_ind(void*** top)
     **top = node;
 }
 
-//case 29, 30, 31, 32, 33, 34
+//case 30, 31, 32, 33, 34, 35
 static inline void reduce_to_expr_binop(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1533,7 +1635,7 @@ static inline void reduce_to_expr_binop(void*** top)
     **top = node;
 }
 
-//case 35
+//case 36
 static inline void reduce_to_expr_paren(void*** top)
 {
     free_token(**top);
@@ -1549,7 +1651,7 @@ static inline void reduce_to_expr_paren(void*** top)
     **top = node;
 }
 
-//case 36, 37, 38
+//case 37, 38, 39
 static inline void reduce_to_expr_const(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1558,7 +1660,7 @@ static inline void reduce_to_expr_const(void*** top)
     **top = node;
 }
 
-//case 39
+//case 40
 static inline void reduce_to_expr_varacc(void*** top) {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = VARACC;
@@ -1566,7 +1668,7 @@ static inline void reduce_to_expr_varacc(void*** top) {
     **top = node;
 }
 
-//case 40
+//case 41
 static inline void reduce_to_expr_funccall(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1575,7 +1677,7 @@ static inline void reduce_to_expr_funccall(void*** top)
     **top = node;
 }
 
-//case 41, 42
+//case 42, 43
 static inline void reduce_to_expr_unary(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1589,7 +1691,7 @@ static inline void reduce_to_expr_unary(void*** top)
     **top = node;
 }
 
-//case 43, 44
+//case 44, 45
 static inline void reduce_to_assign(void*** top)
 {
     struct AStmt* node = malloc(sizeof(struct AStmt));
@@ -1602,7 +1704,7 @@ static inline void reduce_to_assign(void*** top)
     **top = node;
 }
 
-//case 45
+//case 46
 static inline void reduce_to_assign_suffixop(void*** top)
 {
     struct AStmt* node = malloc(sizeof(struct AStmt));
@@ -1613,7 +1715,7 @@ static inline void reduce_to_assign_suffixop(void*** top)
     **top = node;
 }
 
-//case 46
+//case 47
 static inline void reduce_to_funccall_w_args(void*** top)
 {
     struct FuncCall* node = malloc(sizeof(struct FuncCall));
@@ -1637,7 +1739,7 @@ static inline void reduce_to_funccall_w_args(void*** top)
     **top = node;
 }
 
-//case 47
+//case 48
 static inline void reduce_to_funccall(void*** top)
 {
     struct FuncCall* node = malloc(sizeof(struct FuncCall));
@@ -1654,7 +1756,7 @@ static inline void reduce_to_funccall(void*** top)
     **top = node;
 }
 
-//case 48
+//case 49
 static inline void reduce_to_args_args(void*** top)
 {
     struct Args* node = malloc(sizeof(struct Args));
@@ -1676,7 +1778,7 @@ static inline void reduce_to_args_args(void*** top)
     **top = node;
 }
 
-//case 49
+//case 50
 static inline void reduce_to_args_expr(void*** top)
 {
     struct Args* node = malloc(sizeof(struct Args));
@@ -1687,7 +1789,7 @@ static inline void reduce_to_args_expr(void*** top)
     **top = node;
 }
 
-//case 50
+//case 51
 static inline void reduce_to_ieestmt_ifstmt(void*** top)
 {
     struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
@@ -1699,7 +1801,7 @@ static inline void reduce_to_ieestmt_ifstmt(void*** top)
     **top = node;
 }
 
-//case 51
+//case 52
 static inline void reduce_to_ieestmt_eliflist(void*** top)
 {
     struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
@@ -1725,7 +1827,7 @@ static inline void reduce_to_ieestmt_eliflist(void*** top)
     **top = node;
 }
 
-//case 52
+//case 53
 static inline void reduce_to_eliflist_eliflist(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
@@ -1749,7 +1851,7 @@ static inline void reduce_to_eliflist_eliflist(void*** top)
     **top = node;
 }
 
-//case 53
+//case 54
 static inline void reduce_to_eliflist_elif(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
@@ -1761,7 +1863,7 @@ static inline void reduce_to_eliflist_elif(void*** top)
     **top = node;
 }
 
-//case 54
+//case 55
 static inline void reduce_to_eliflist_else(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
@@ -1772,7 +1874,7 @@ static inline void reduce_to_eliflist_else(void*** top)
     **top = node;
 }
 
-//case 55, 56, 58
+//case 56, 57, 59
 static inline void reduce_to_cond(void*** top)
 {
     struct CondStmt* node = malloc(sizeof(struct CondStmt));
@@ -1793,7 +1895,7 @@ static inline void reduce_to_cond(void*** top)
     **top = node;
 }
 
-//case 57
+//case 58
 static inline void reduce_to_else(void*** top)
 {
     /*
@@ -1814,7 +1916,7 @@ static inline void reduce_to_else(void*** top)
     **top = node;
 }
 
-//case 59
+//case 60
 static inline void reduce_to_for_vardecl(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
@@ -1843,7 +1945,7 @@ static inline void reduce_to_for_vardecl(void*** top)
     **top = node;
 }
 
-//case 60
+//case 61
 static inline void reduce_to_for_assign(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
@@ -1879,7 +1981,7 @@ static inline void reduce_to_for_assign(void*** top)
     **top = node;
 }
 
-//case 61
+//case 62
 static inline void reduce_to_bexpr_binop(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
@@ -1895,7 +1997,7 @@ static inline void reduce_to_bexpr_binop(void*** top)
     **top = node;
 }
 
-//case 62
+//case 63
 static inline void reduce_to_bexpr_binop_w_paren(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
@@ -1917,7 +2019,7 @@ static inline void reduce_to_bexpr_binop_w_paren(void*** top)
     **top = node;
 }
 
-//case 63
+//case 64
 static inline void reduce_to_b_expr_r_expr(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
@@ -1927,7 +2029,7 @@ static inline void reduce_to_b_expr_r_expr(void*** top)
     **top = node;
 }
 
-//case 64
+//case 65
 static inline void reduce_to_bexpr_bexpr_w_paren(void*** top)
 {
     free_token(**top);
@@ -1941,7 +2043,7 @@ static inline void reduce_to_bexpr_bexpr_w_paren(void*** top)
     **top = node;
 }
 
-//case 65
+//case 66
 static inline void reduce_to_rexpr_binop(void*** top)
 {
     struct RExpr* node = malloc(sizeof(struct RExpr));
@@ -1958,7 +2060,7 @@ static inline void reduce_to_rexpr_binop(void*** top)
     **top = node;
 }
 
-//case 66
+//case 67
 static inline void reduce_to_rexpr_expr(void*** top)
 {
     struct RExpr* node = malloc(sizeof(struct RExpr));
@@ -1967,7 +2069,7 @@ static inline void reduce_to_rexpr_expr(void*** top)
     **top = node;
 }
 
-//case 67
+//case 68
 static inline void reduce_to_scope(void*** top)
 {
     free_token(**top);
@@ -1978,6 +2080,17 @@ static inline void reduce_to_scope(void*** top)
 
     free_token(**top);
 
+    **top = node;
+}
+
+// case 69
+static inline void reduce_to_return(void*** top)
+{
+    struct Expr* node;
+    node = **top;
+    (*top)--;
+
+    free_token(**top);
     **top = node;
 }
 
@@ -2029,6 +2142,8 @@ void print_Stmt(struct Stmt* node, int nest_level, char labels, char leaf)
         case SCOPE:
             print_CompStmt(node->stmt, nest_level+1, labels, leaf);
             return;
+        case RETURN_STATEMENT:
+            print_ReturnStmt(node->stmt, nest_level+1, labels, leaf);
         default:
             break;
     }
@@ -2048,7 +2163,11 @@ void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leaf)
             printf("\n");
         }
     } else {
-        printf("decl: %s of type %s\n", node->name->lexeme, node->type->lexeme);
+        printf("decl: ");
+        print_token_str(node->name);
+        printf(" of type ");
+        print_token_str(node->type);
+        printf("\n");
         for (int i = 0; i < node->n_indices; i++) {
             write_indent(nest_level);
             printf("[\n");
@@ -2070,7 +2189,11 @@ void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char lea
         printf(" %d params\n", node->n_params);
         print_CompStmt(node->body, nest_level+1, labels, leaf);
     } else {
-        printf("func: %s of type %s %dd\n", node->name->lexeme, node->type->lexeme, node->n_indices);
+        printf("func: ");
+        print_token_str(node->name);
+        printf(" of type ");
+        print_token_str(node->type);
+        printf(" %dd\n", node->n_indices);
         for (int i = 0; i < node->n_params; i++) {
             write_indent(nest_level);
             printf("\n");
@@ -2088,15 +2211,20 @@ void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
     if (leaf) {
-        printf("Acc '%s'", node->variable->lexeme);
+        printf("Acc");
+        print_token_str(node->variable);
+        printf("\n");
         for (int i = 0; i < node->n_indices; i++)
             printf("[]");
         printf("\n");
     } else if (labels) {
-
+        print_token_str(node->variable);
+        for (int i = 0; i < node->n_indices; i++)
+            printf("[]");
+        printf("\n");
     }
     else {
-        printf("'%s'", node->variable->lexeme);
+        print_token_str(node->variable);
         for (int i = 0; i < node->n_indices; i++) {
             printf("\n");
             write_indent(nest_level);
@@ -2115,25 +2243,30 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
             case BINOP:
                 print_Expr(node->left, nest_level+1, labels, leaf);
                 write_indent(nest_level);
-                printf("'%s'\n", node->binary_op->lexeme);
+                print_token_str(node->binary_op);
+                printf("\n");
                 print_Expr(node->right, nest_level+1, labels, leaf);
                 return;
             case UOP:
                 write_indent(nest_level);
-                printf("'%s'\n", node->unary_op->lexeme);
+                print_token_str(node->unary_op);
+                printf("\n");
                 print_Expr(node->expr, nest_level+1, labels, leaf);
                 return;
             case CONST:
                 write_indent(nest_level);
-                printf("'%s'\n", node->val->lexeme);
+                print_token_str(node->val);
+                printf("\n");
                 return;
             case FUNCCALL:
                 write_indent(nest_level);
-                printf("%s()\n", node->function_call->func->lexeme);
+                print_token_str(node->function_call->func);
+                printf("\n");
                 return;
             case VARACC:
                 write_indent(nest_level);
-                printf("%s\n", node->variable_access->variable->lexeme);
+                print_token_str(node->variable_access->variable);
+                printf("\n");
                 return;
         }
     } else {
@@ -2141,16 +2274,19 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
             case BINOP:
                 print_Expr(node->left, nest_level+1, labels, leaf);
                 write_indent(nest_level);
-                printf("'%s'\n", node->binary_op->lexeme);
+                print_token_str(node->binary_op);
+                printf("\n");
                 print_Expr(node->right, nest_level+1, labels, leaf);
             case UOP:
                 write_indent(nest_level);
-                printf("'%s'\n", node->unary_op->lexeme);
+                print_token_str(node->unary_op);
+                printf("\n");
                 print_Expr(node->expr, nest_level+1, labels, leaf);
                 return;
             case CONST:
                 write_indent(nest_level);
-                printf("'%s'\n", node->val->lexeme);
+                print_token_str(node->val);
+                printf("\n");
                 return;
             case FUNCCALL:
                 print_FuncCall(node->function_call, nest_level, labels, leaf);
@@ -2168,11 +2304,15 @@ void print_AStmt(struct AStmt* node, int nest_level, char labels, char leaf)
 
 
     if (leaf) {
-        printf("var");
-        if (node->assignment_type->type == SUFFIXOP)
-            printf("%s\n", node->assignment_type->lexeme);
-        else
-            printf(" %s expr\n", node->assignment_type->lexeme);
+        printf("var ");
+        if (node->assignment_type->type == SUFFIXOP) {
+            print_token_str(node->assignment_type);
+            printf("\n");
+        }
+        else {
+            print_token_str(node->assignment_type);
+            printf(" expr\n");
+        }
     } else if (labels) {
         printf("Assign\n");
     } else {
@@ -2180,7 +2320,9 @@ void print_AStmt(struct AStmt* node, int nest_level, char labels, char leaf)
         print_VarAcc(node->variable_access, nest_level+1, labels, leaf);
         printf("\n");
         write_indent(nest_level);
-        printf("by '%s'\n", node->assignment_type->lexeme);
+        printf("by ");
+        print_token_str(node->assignment_type);
+        printf("\n");
         print_Expr(node->expr, nest_level+1, labels, leaf);
     }
 }
@@ -2191,7 +2333,9 @@ void print_FuncCall(struct FuncCall* node, int nest_level, char labels, char lea
     if (labels) {
         printf("FuncCall\n");
     } else {
-        printf("Call %s with: \n", node->func->lexeme);
+        printf("Call ");
+        print_token_str(node->func);
+        printf("with: \n");
         for (int i = 0; i < node->n_args; i++) {
             print_Expr(node->args[i], nest_level+1, labels, leaf);
         }
@@ -2268,7 +2412,9 @@ void print_RExpr(struct RExpr* node, int nest_level, char labels, char leaf)
     if (labels) {
         if (node->type == BINOP) {
             write_indent(nest_level);
-            printf("expr %s expr\n", node->operator->lexeme);
+            printf("expr ");
+            print_token_str(node->operator);
+            printf(" expr \n");
         } else {
             write_indent(nest_level);
             printf("expr\n");
@@ -2277,13 +2423,23 @@ void print_RExpr(struct RExpr* node, int nest_level, char labels, char leaf)
         if (node->type == BINOP) {
             print_Expr(node->left, nest_level+1, labels, leaf);
             write_indent(nest_level);
-            printf("%s\n", node->operator->lexeme);
+            print_token_str(node->operator);
+            printf("\n");
             print_Expr(node->right, nest_level+1, labels, leaf);
         } else {
             print_Expr(node->expr, nest_level, labels, leaf);
         }
     }
 
+}
+
+void print_ReturnStmt(struct Expr* node, int nest_level, char labels, char leaf)
+{
+    write_indent(nest_level);
+    printf("return\n");
+    if (leaf) {
+        print_Expr(node, nest_level+1, labels, leaf);
+    }
 }
 
 
@@ -2328,6 +2484,9 @@ void free_Stmt(struct Stmt* node)
             break;
         case SCOPE:
             free_CompStmt(node->stmt);
+            break;
+        case RETURN_STATEMENT:
+            free_Expr(node->stmt);
             break;
         default:
             break;
@@ -2405,7 +2564,8 @@ void free_AStmt(struct AStmt* node)
 
     free_VarAcc(node->variable_access);
     free_token(node->assignment_type);
-    free_Expr(node->expr);
+    if (node->expr != NULL)
+        free_Expr(node->expr);
     free(node);
 }
 
@@ -2449,6 +2609,7 @@ void free_FLoop(struct FLoop* node)
     else
         free_AStmt(node->init_stmt);
     free_BExpr(node->boolean);
+    printf("free update\n");
     free_AStmt(node->update_statement);
     free_CompStmt(node->body);
     free(node);
@@ -2489,12 +2650,17 @@ int main(int argc, const char** argv)
     file_desc = open(filename, O_RDONLY);
     init_lexer();
     generate_parse_table(table_file);
+    printf("parsing...\n");
     struct CompStmt* tree = lr_parser(1);
+    if (return_found)
+        return_error();
+    close(file_desc);
     SymTab_dump(keywords);
+    printf("free tree\n");
     free_CompStmt(tree);
-
+    printf("free table\n");
     destroy_parse_table();
     SymTab_destroy(keywords);
-    close(file_desc);
+
 
 }
