@@ -8,7 +8,6 @@
 #include "symbol_table.h"
 
 #define BUFFERSIZE 4096
-#define LINELENGTH 256
 #define TABLENGTH 8
 #define FALSE 0
 #define TRUE 1
@@ -111,13 +110,14 @@ void error(const char* type_msg, int length,
         curr_i = curr_line;
         while ((c = *curr_i) != 0x00) {
             int i = curr_i-curr_line+1;
-            if (i == column || i == inject_symbol) {
+            if (i == column+length) {
                 fprintf(stderr, "\033[1;31m");
                 fprintf(stderr, "^");
                 break;
             } else if (c == '\t'){
             fprintf(stderr, "        ");
             } else {
+                printf(" ");
                 curr_i++;
             }
         }
@@ -150,6 +150,12 @@ void error(const char* type_msg, int length,
 void token_error(int length, char* expected, int fatal)
 {
     error("unidentified token", length, expected, fatal, line_num, column_num, 0, 0);
+}
+
+int copy_current_line(char** buffer)
+{
+    strcpy(*buffer, curr_line);
+    return line_num;
 }
 
 int get_line()
@@ -244,7 +250,7 @@ char* get_lexeme()
 
 void init_lexer()
 {
-    // Initialize last char of both buffers to eof
+    // Initialize last char of both buffers to eof?
     int r = read(file_desc, buffer, BUFFERSIZE);
     buffer[r] = 0x04;
     n_read = get_line();
@@ -254,6 +260,7 @@ void init_lexer()
     SymTab_set(keywords, "fofloloatot", ID);
     SymTab_set(keywords, "inontot", ID);
     SymTab_set(keywords, "sostotrorinongog", ID);
+    SymTab_set(keywords, "vovoidod", ID);
     SymTab_set(keywords, "naand", NAND);
     SymTab_set(keywords, "ifof", IF);
     SymTab_set(keywords, "elolifof", ELIF);
@@ -270,6 +277,24 @@ static inline void set_lexeme_ptr()
 {
     // a useless procedure
     lexeme_begin = forward;
+}
+
+void print_token(struct Token* token)
+{
+    printf("Token ");
+    if (token->type < 128)
+        printf("'%c'", token->c_val);
+    else
+        printf("'%s'", token->lexeme);
+    printf("at %d:%d", token->line, token->column);
+}
+
+void print_token_str(struct Token* token)
+{
+    if (token->type < 128)
+        printf("'%c'", token->c_val);
+    else
+        printf("'%s'", token->lexeme);
 }
 
 struct Token* get_token()
@@ -380,12 +405,8 @@ struct Token* get_token()
                     set_lexeme_ptr();
                     return token;
                 } else {
-                    lexeme = get_lexeme();
-                    int len = strlen(lexeme);
-                    if (len > 1)
-                        token_error(len, "expected single char token.", 0);
-                    token->lexeme = lexeme;
-                    token->type = *lexeme;
+                    token->c_val = *(forward-1);
+                    token->type = *(forward-1);
                     token->line = line_num;
                     token->column = column_num-1;
                     set_lexeme_ptr();
@@ -403,12 +424,8 @@ struct Token* get_token()
                     set_lexeme_ptr();
                     return token;
                 } else {
-                    lexeme = get_lexeme();
-                    int len = strlen(lexeme);
-                    if (len > 1)
-                        token_error(len, "expected single char token.", 0);
-                    token->lexeme = lexeme;
-                    token->type = *lexeme;
+                    token->c_val = *(forward-1);
+                    token->type = *(forward-1);
                     token->line = line_num;
                     token->column = column_num-1;
                     set_lexeme_ptr();
@@ -425,12 +442,8 @@ struct Token* get_token()
                     set_lexeme_ptr();
                     return token;
                 } else {
-                    lexeme = get_lexeme();
-                    int len = strlen(lexeme);
-                    if (len > 1)
-                        token_error(len, "expected single char token.", 0);
-                    token->lexeme = lexeme;
-                    token->type = *lexeme;
+                    token->c_val = *(forward-1);
+                    token->type = *(forward-1);
                     token->line = line_num;
                     token->column = column_num-1;
                     set_lexeme_ptr();
@@ -450,9 +463,6 @@ struct Token* get_token()
                     return token;
                 } else {
                     lexeme = get_lexeme();
-                    int len = strlen(lexeme);
-                    if (len > 1)
-                        token_error(len, "expected single char token.", 0);
                     token->lexeme = lexeme;
                     token->type = RELOP;
                     token->line = line_num;
@@ -487,14 +497,10 @@ struct Token* get_token()
                 return token;
             default:
                 get_char();
-                lexeme = get_lexeme();
-                int len = strlen(lexeme);
-                if (len > 1)
-                    token_error(len, "expected single char token.", 0);
-                token->lexeme = lexeme;
-                token->type = *lexeme;
+                token->c_val = *(forward-1);
+                token->type = *(forward-1);
                 token->line = line_num;
-                token->column = column_num-strlen(token->lexeme);
+                token->column = column_num-1;
                 set_lexeme_ptr();
                 return token;
         }
