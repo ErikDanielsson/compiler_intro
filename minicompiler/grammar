@@ -10,6 +10,7 @@ statement -> if_elif_else_statement
 statement -> while_loop
 statement -> for_loop
 statement -> scope
+statement -> return_statement ';'
 
 variable_declaration -> 'ID' indices 'ID' | 'ID' indices 'ID' '=' expr
 variable_declaration -> 'ID' 'ID' | 'ID' 'ID' '=' expr
@@ -78,3 +79,5 @@ b_expr -> '(' b_expr ')'
 r_expr -> expr 'RELOP' expr | expr
 
 scope -> '{' compound_statement '}'
+
+return_statement -> 'RETURN' expr
