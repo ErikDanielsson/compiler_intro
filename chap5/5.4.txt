@@ -1,0 +1,66 @@
+Exercises for Section 5 .4
+Exercise 5.4.1: We mentioned in Section 5.4.2 that it is possible to deduce,
+from the LR state on the parsing stack, what grammar symbol is represented
+by the state. How would we discover this information?
+    trivial?
+Exercise 5.4.2 : Rewrite the following SDT:
+A -> A {a} B | A B {b} | 0
+B -> B {c} A | B A {d} | 1
+so that the underlying grammar becomes non-left-recursive. Here, a, b, c and
+d are actions, and 0 and 1 are terminals.
+    Since the actions doesn't affect the grammar, and thus not the parse, I would conclude the grammar is ambiguous.
+
+! Exercise 5.4.3 : The following SDT computes the value of a string of O's and
+1's interpreted as a positive, binary integer.
+B -> B1 0 {B.val = 2 x B1 .val}
+   | B1 1 {B.val = 2 x B1 .val + 1 }
+   | 1 {B.val = 1 }
+Rewrite this SDT so the underlying grammar is not left recursive, and yet the
+same value of B.val is computed for the entire input string.
+
+    B -> 1 R        {B.val = R.val}
+                    {R.inh = 1}
+    R -> 0 R1       {R.val = R1.val}
+                    {R1.inh = 2*R.inh}
+    R -> 1 R1       {R.val = R1.val}
+                    {R1.inh = 2*R.inh+1}
+    R -> epsilon    {R.val = R.inh}
+
+! Exercise 5.4.4 : Write L-attributed SDD 's analogous to that of Example 5.19
+for the following productions, each of which represents a familiar flow-of-control
+construct, as in the programming language C. You may need to generate a three­
+address statement to jump to a particular label L, in which case you should
+generate goto L.
+a) S -> if ( C ) S1 else S2
+
+    L1 = new()
+    L2 = new()
+    C.false = L1
+    S1.next = L2
+    S.code = C.code || S1.code || label || L1 || S2.code || label || L2
+
+b) S -> do S1 while ( C )
+    L = new()
+    C.true = L
+    S.code = label || L || S1.code || C.code
+
+c) S -> '{' L '}';
+   L -> L S | epsilon
+        Didn't understand the comment so skipped this one...
+Note that any statement in the list can have a jump from its middle to
+the next statement, so it is not sufficient simply to generate code for each
+statement in order.
+
+Exercise 5.4.5: Convert each of your SDD's from Exercise 5.4.4 to an SDT
+in the manner of Example 5.19.
+Noope
+
+Exercise 5.4.6 : Modify the SDD of Fig. 5.25 to include a synthesized attribute
+B.le, the length of a box. The length of the concatenation of two boxes is the
+sum of the lengths of each. Then add your new rules to the proper positions in
+the SDT of Fig. 5.26
+
+Exercise 5.4.7: Modify the SDD of Fig. 5.25 to include superscripts denoted
+by operator sup between boxes. If box B2 is a superscript of box B1 ; then
+position the baseline of B2 0.6 times the point size of B1 above the baseline of
+B1 • Add the new production and rules to the SDT of Fig. 5.26.
