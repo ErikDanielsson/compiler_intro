@@ -11,7 +11,7 @@
 #define TABLENGTH 8
 #define FALSE 0
 #define TRUE 1
-
+#define CONTEXT 5
 
 const char* filename;
 int file_desc;
@@ -23,6 +23,9 @@ char* eof = "eof";
 // Two buffers but fit into one, two extra chars for eof i.e 0x04
 char buffer[2*BUFFERSIZE+2];
 char* buffer_ptr = buffer;
+#if CONTEXT
+char prev_lines[CONTEXT][LINELENGTH];
+#endif
 char last_line[LINELENGTH];
 char curr_line[LINELENGTH];
 char next_line[LINELENGTH];
@@ -43,6 +46,16 @@ void error(const char* type_msg, int length,
     fprintf(stderr, "\n%s:\033[1;31merror\033[0m: %s at %d:%d\n%s\n", filename, type_msg, line, column, expected);
     error_flag = -1;
     fprintf(stderr, " ... |\n");
+    #if CONTEXT
+    if (line < CONTEXT)
+        for (int i = CONTEXT-line+2; i < CONTEXT; i++)
+            fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i]);
+
+    else
+        for (int i = 0; i < CONTEXT; i++)
+            fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i]);
+    fprintf(stderr, "     |\n");
+    #endif
     if (line > 1) {
         if (inject_symbol == -1) {
             fprintf(stderr, "%4d |", line-1);
@@ -110,14 +123,14 @@ void error(const char* type_msg, int length,
         curr_i = curr_line;
         while ((c = *curr_i) != 0x00) {
             int i = curr_i-curr_line+1;
-            if (i == column+length) {
+            if (i == column) {
                 fprintf(stderr, "\033[1;31m");
                 fprintf(stderr, "^");
                 break;
             } else if (c == '\t'){
             fprintf(stderr, "        ");
             } else {
-                printf(" ");
+                fprintf(stderr, " ");
                 curr_i++;
             }
         }
@@ -206,6 +219,11 @@ int n_read = LINELENGTH-1;
 
 void read_from_buffert()
 {
+    #if CONTEXT
+    for (int i = 1; i < CONTEXT; i++)
+        strcpy(prev_lines[i-1], prev_lines[i]);
+    strcpy(prev_lines[CONTEXT-1], last_line);
+    #endif
     strcpy(last_line, curr_line);
     strcpy(curr_line, next_line);
     if (last_buffert) {
