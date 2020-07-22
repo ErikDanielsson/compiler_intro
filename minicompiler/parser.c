@@ -9,33 +9,39 @@
 #include "parser.h"
 #include "table_generator.h"
 
+/*
+ * The following file implements an LR parser and constructs an abstract
+ * syntax tree (AST). The implementation of AST construction follows the
+ * scheme described in the Dragon book for postfix SDT's.
+ * Disclaimer: while some error repairing techniques are implemented, this is
+ * a work in progress.
+ */
+
 #define STACK_SIZE 8192
 #define TRUE 1
 #define FALSE 0
 #define VERBOSE 1
-#define DEBUG 1
+#define DEBUG 0
 #define TREEBUILDER 1
 #define LABELS 0
+
 char grammar_error = FALSE;
 char recovery_mode = FALSE;
+
 /*
- * Since nested function declaration and return statementnot within function
+ * Since nested function declaration and return statement not within function
  * bodies are allowed by the grammar according to the grammar, enforcing these
- * rules are handled by the following variable which are set during parsing
+ * rules are handled by the following variables which are set during parsing
  * according to context.
  * Note: while enforcing this in the grammar would be possible, this requieres
- * duplication of several productions and is thus wasteful.
+ * duplication of several productions resulting in a bigger parsing table and
+ * thus a waste of resources.
  */
 char return_found = FALSE;
 char return_row[LINELENGTH];
 int return_line_num;
 int return_col_num;
 char func_decl_found = FALSE;
-
-/*
- * bla bla bla
- *
- */
 
 struct CompStmt* lr_parser(char verbose)
 /*
@@ -67,6 +73,8 @@ struct CompStmt* lr_parser(char verbose)
         printf("action %d lexeme: ", action);
         print_token_str(a);
         printf(", %x\n", type);
+        #else
+        printf("Stack depth: %ld\n", s_ptr-stack);
         #endif
 
         if (action >= n_states) {
@@ -75,7 +83,6 @@ struct CompStmt* lr_parser(char verbose)
                 printf("'EOF'\n");
             else
                 print_token_str(a);
-            printf("type %d", a->type);
             printf("\n");
             #if DEBUG
             printf("Stack: ");
@@ -89,17 +96,11 @@ struct CompStmt* lr_parser(char verbose)
                 len = 1;
             else
                 len = strlen(a->lexeme);
-            if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL) {
-                printf("rec\n");
-                printf("in error: ");
-                print_token_str(recovery_token);
-                printf("\n");
-                print_token_str(a);
-                printf("\n");
+            if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL)
                 goto parsing_loop;
-            }
+            generic_error(a, len);
             free_token(a);
-            parser_error(len, "", 0, a->line, a->column, 0, 0);
+
             return NULL;
 
         } else if (action >= 0) {
@@ -117,7 +118,6 @@ struct CompStmt* lr_parser(char verbose)
                 a = recovery_token;
                 type = a->type;
                 recovery_mode = FALSE;
-                exit(0);
             } else {
                 a = get_token();
                 type = a->type;
@@ -167,19 +167,16 @@ void parser_error(int length, const char* expected,
         inject_symbol, symbol);
 }
 
-struct Token* insertion_fix(int* action_row, int len, struct Token** a_ptr, enum TokenType* type_ptr)
+struct Token* insertion_fix(int* action_row, int len,
+                            struct Token** a_ptr, enum TokenType* type_ptr)
 {
     char msg[20+len+3];
     char anker_symbols[] = {';', '}'};
     for (char i = 0; i < 2; i++) {
         char symbol = anker_symbols[i];
         if (action_row[symbol] < n_states) {
-            printf("SYMBOL: %c\n", symbol);
-            printf("ACTION: %d\n", -action_row[symbol]-1);
             strcpy(msg, "Expected ");
-            printf("SYMBOL: %c\n", symbol);
             strncat(msg, &symbol, 1);
-            printf("SYMBOL: %c\n", symbol);
             strcat(msg, " before '");
             if ((*type_ptr) == 0x04)
                 strcat(msg, "eof");
@@ -188,10 +185,8 @@ struct Token* insertion_fix(int* action_row, int len, struct Token** a_ptr, enum
             else
                 strcat(msg, (*a_ptr)->lexeme);
             strcat(msg, "'");
-            printf("SYMBOL: %c\n", symbol);
             struct Token* tmp = inject_token(symbol);
-            printf("SYMBOL: %c\n", symbol);
-            parser_error(len, msg, 0, (*a_ptr)->line, (*a_ptr)->column, -1, symbol);
+            parser_error(len, msg, 0, (*a_ptr)->line, (*a_ptr)->column, 2*i-1, symbol);
             grammar_error = TRUE;
             struct Token* recovery_token = (*a_ptr);
             (*a_ptr) = tmp;
@@ -202,6 +197,22 @@ struct Token* insertion_fix(int* action_row, int len, struct Token** a_ptr, enum
     }
     return NULL;
 }
+
+void generic_error(struct Token* token, int len)
+{
+
+    char msg[29+len];
+    strcpy(msg, "Did not expect token '");
+
+    if (token->type < 128)
+        strncat(msg, &(token->c_val), 1);
+    else
+        strcat(msg, token->lexeme);
+    strcat(msg, "'");
+    parser_error(len, msg, 0, token->line, token->column, 0, 0);
+
+}
+
 
 void return_error()
 {
@@ -217,7 +228,8 @@ void return_error()
     printf(" ... |\n\n");
 }
 
-struct Token* inject_token(enum TokenType type) {
+struct Token* inject_token(enum TokenType type)
+{
     /*
      * Creates a token which is injected into the token stream,
      * to alleviate the damage caused by the user.
@@ -2656,9 +2668,8 @@ int main(int argc, const char** argv)
         return_error();
     close(file_desc);
     SymTab_dump(keywords);
-    printf("free tree\n");
-    free_CompStmt(tree);
-    printf("free table\n");
+    if (tree != NULL)
+        free_CompStmt(tree);
     destroy_parse_table();
     SymTab_destroy(keywords);
 
