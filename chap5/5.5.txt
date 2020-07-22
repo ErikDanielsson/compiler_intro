@@ -1,0 +1,17 @@
+I will not do these currently since I'm going the lazy way and generating a
+parse tree through LALR parsing on a grammar which is not LL. 
+
+5.5.5 Exercises for Section 5 .5
+Exercise 5.5.1: Implement each of your SDD's of Exercise 5.4.4 as a recursive­
+descent parser in the style of Section 5.5.1.
+Exercise 5.5.2: Implement each of your SDD's of Exercise 5.4.4 as a recursive­
+descent parser in the style of Section 5.5.2.
+Exercise 5.5.3: Implement each of your SDD's of Exercise 5.4.4 with an LL
+parser in the style of Section 5.5.3, with code generated "on the fly."
+Exercise 5.5 .4: Implement each of your SDD's of Exercise 5.4.4 with an LL
+parser in the style of Section 5.5.3, but with code (or pointers to the code)
+stored on the stack.
+Exercise 5.5.5: Implement each of your SDD's of Exercise 5.4.4 with an LR
+parser in the style of Section 5.5.4.
+Exercise 5.5.6: Implement your SDD of Exercise 5.2.4 in the style of Sec­tion
+5.5.1. Would an implementation in the style of Section 5.5.2 be any differ­ent?
