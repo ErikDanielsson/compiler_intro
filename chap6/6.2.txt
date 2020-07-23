@@ -1,0 +1,162 @@
+
+Exercises for Section 6.2
+Exercise 6.2.1: Translate the arithmetic expression a + -(b + c ) into:
+a) A syntax tree.
+       '+'
+      /   \
+     'a'   '-'
+             \
+              +
+            /   \
+          'b'   'c'
+b) Quadruples.
+    +   b   c   t1
+    min t1      t2
+    +   a   t2  t3
+c) Triples.
+
+    0 | +   b   c
+    1 | min 0
+    2 | +   a   1
+
+d) Indirect triples.
+
+    2
+    0
+    1
+    -------------
+    0 | min 2
+    1 | +   a   0
+    2 | +   b   c
+
+Exercise 6.2.2: Repeat Exercise 6.2.1 for the following assignment state­ments:
+i. a = b[i] + c[j].
+    a)
+            =
+          /   \
+         'a'  '+'
+             /   \
+           arr    arr
+          /   \   |   \
+         b     i  c    i
+    b)
+    arr b   i   t1
+    arr c   i   t2
+    +   t1  t2  t3
+    =       t3  a
+    c)
+    0 | arr b   i
+    1 | arr c   i
+    2 | +   0  1
+    3 | =   a   2
+    d)
+    0
+    1
+    2
+    3
+    -------------
+    0 | arr b   i
+    1 | arr c   i
+    2 | +   0   1
+    3 | =   a   2
+ii. a[i] = b * c - b * d.
+    a)
+           '='
+          /   \
+         /     \
+       arr     '*'
+      /   \    |  \
+    'a'   'i' 'b'  \
+                   '-'
+                  /   \
+                'c'   'd'
+    b)
+    -   c   d   t1
+    *   b   t1  t2
+    arr a   i   t3
+    =   t2      t3
+    c)
+    0 | -   c   d
+    1 | *   b   0
+    2 | arr a   i
+    3 | =   2   1
+    d)
+    0
+    1
+    2
+    3
+    -------------
+    0 | -   c   d
+    1 | *   b   0
+    2 | arr a   i
+    3 | =   2   1
+iii. x = f(y + 1) + 2.
+    a)
+        =
+      /   \
+    'x'    +
+         /   \
+       call  '2'
+       /  \
+     'f'  '+'
+         /   \
+       'y'   '1'
+    b)
+    +   y   1   t1
+    par t1
+    cal f       t2
+    +   t2  2   t3
+    =   t3      x
+    c)
+    0 | +   y   1
+    1 | par (0)
+    2 | cal f
+    3 | +   (2)  2
+    4 | =   x   (3)
+    d)
+    0
+    1
+    2
+    3
+    4
+    -------------
+    0 | +   y   1
+    1 | par (0)
+    2 | cal f
+    3 | +   (2)  2
+    4 | =   x   (3)
+iv. x = *P + &y.
+    a)
+            '='
+           /   \
+         'x'    '+'
+               /   \
+              de    ad
+             /        \
+           'P'        'y'
+    b)
+    de  P       t1
+    ad  y       t2
+    +   t1  t2  t3
+    =   t3      x
+    c)
+    0 | de  P
+    1 | ad  y
+    2 | +   0  1
+    3 | =   x  2
+    d)
+    0
+    1
+    2
+    3
+    -------------
+    0 | de  P
+    1 | ad  y
+    2 | +   0  1
+    3 | =   x  2
+
+! Exercise 6.2.3: Show how to transform a three-address code sequence into
+one in which each defined variable gets a unique variable name.
+    Well in the first example the temporary variable names were created upon
+    creation of the code. Simply do that, and if there is a branching were the
+    same variable is assigned different value, use the phi operator. 

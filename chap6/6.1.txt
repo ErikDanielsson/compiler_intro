@@ -1,0 +1,10 @@
+6.1.3
+Exercises for Section 6.1
+Exercise 6.1.1: Construct the DAG for the expression
+((x + y) - ((x + y) * (x - y))) + ((x + y) * (x - y))
+
+Exercise 6.1.2: Construct the DAG and identify the value numbers for the
+sub expressions of the following expressions, assuming + associates from the left.
+a) a + b + (a + b) .
+b) a + b + a + b.
+c) a + a + ((a + a + a + (a + a + a + a)) .
