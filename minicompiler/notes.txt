@@ -1,0 +1,16 @@
+lexer.c
+    Add relational operators to keyword symbol table. Create variable and
+    function symbol table during lexical analysis. Inline the hash function
+    in get_lexeme(), so the function only mallocates for new variable.
+    Otherwise return a pointer to the value of the correct symbol table
+    entry. 
+
+parser.c:
+    Implement DAG creation by putting nodes in hash table. This should
+    be quite simple for expressions since they are made of simple constructs
+    with straightforward hash calculation, but harder for things such as
+    statements since the hash calculation is more complicated. Doing this
+    does, however, have many advantages in both in terms of performance
+    (fewer mallocs) and optimization of intermediate representation with
+    things such as pre-calculation of expressions and generating fewer
+    assembly lines.
