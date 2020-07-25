@@ -74,7 +74,7 @@ struct CompStmt* lr_parser(char verbose)
         print_token_str(a);
         printf(", %x\n", type);
         #else
-        printf("Stack depth: %ld\n", s_ptr-stack);
+        //printf("Stack depth: %ld\n", s_ptr-stack);
         #endif
 
         if (action >= n_states) {
@@ -283,11 +283,13 @@ void (*record_creator[])(void***) = {
     &reduce_to_vardecl_w_ind_n_expr,
     &reduce_to_vardecl,
     &reduce_to_vardecl_w_expr,
-    &reduce_to_structdecl,
-    &reduce_to_decllist_decllist_vardecl,
+    &reduce_to_structdecl_type,
+    &reduce_to_structdecl_name,
+    &reduce_to_structdecl_type_n_name,
     &reduce_to_decllist_decllist_structdecl,
-    &reduce_to_decllist_vardecl,
+    &reduce_to_decllist_decllist_vardecl,
     &reduce_to_decllist_structdecl,
+    &reduce_to_decllist_vardecl,
     &reduce_to_func_decl_w_ind_n_params,
     &reduce_to_func_decl_w_ind,
     &reduce_to_func_decl_w_params,
@@ -302,6 +304,8 @@ void (*record_creator[])(void***) = {
     &reduce_to_ind,
     &reduce_to_varacc,
     &reduce_to_varacc_w_ind,
+    &reduce_to_varacc_list,
+    &reduce_to_varacc_w_ind_list,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
@@ -343,6 +347,7 @@ void (*record_creator[])(void***) = {
     &reduce_to_scope,
     &reduce_to_return,
 };
+
 void create_node_record(void*** top, int rule_num)
 /*
  * Creation of a node of AST (abstract syntax tree). When the parsers
@@ -1308,7 +1313,27 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
     **top = node;
 }
 
-static inline void reduce_to_structdecl(void*** top)
+static inline void reduce_to_structdecl_type(void*** top)
+{
+    struct StructDecl* node = malloc(sizeof(struct StructDecl));
+    node->name = NULL;
+    free_token(**top);
+    (*top)--;
+    struct DeclList* tmp = **top;
+    node->bool_arr = tmp->bool_arr;
+    node->n_decl = tmp->n_decl;
+    node->decls = tmp->decls;
+    free(tmp);
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    node->type_name = **top;
+    (*top)--;
+    free_token(**top);
+    **top = node;
+}
+
+static inline void reduce_to_structdecl_name(void*** top)
 {
     struct StructDecl* node = malloc(sizeof(struct StructDecl));
     node->name = **top;
@@ -1323,13 +1348,36 @@ static inline void reduce_to_structdecl(void*** top)
     (*top)--;
     free_token(**top);
     (*top)--;
+    node->type_name = NULL;
+    free_token(**top);
+    **top = node;
+}
+
+static inline void reduce_to_structdecl_type_n_name(void*** top)
+{
+    free_token(**top);
+    (*top)--;
+    struct StructDecl* node = malloc(sizeof(struct StructDecl));
+    node->name = **top;
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    struct DeclList* tmp = **top;
+    node->bool_arr = tmp->bool_arr;
+    node->n_decl = tmp->n_decl;
+    node->decls = tmp->decls;
+    free(tmp);
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    node->type_name = **top;
+    (*top)--;
     free_token(**top);
     **top = node;
 }
 
 static inline void reduce_to_decllist_decllist_vardecl(void*** top)
 {
-
     free_token(**top);
     (*top)--;
     struct VarDecl* tmp = **top;
@@ -1345,12 +1393,13 @@ static inline void reduce_to_decllist_decllist_vardecl(void*** top)
     void** prev_decls = node->decls;
     node->bool_arr = malloc(sizeof(char)*n_decl);
     node->decls = malloc(sizeof(void*)*n_decl);
-    memcpy(node->bool_arr, prev_b_arr, n_decl-1);
-    memcpy(node->decls, prev_decls, n_decl-1);
+    memcpy(node->bool_arr, prev_b_arr, sizeof(char) * (n_decl-1));
+    memcpy(node->decls, prev_decls, sizeof(void*) * (n_decl-1));
     free(prev_b_arr);
     free(prev_decls);
     node->bool_arr[n_decl-1] = 0;
     node->decls[n_decl-1] = tmp;
+
     **top = node;
 }
 
@@ -1370,8 +1419,8 @@ static inline void reduce_to_decllist_decllist_structdecl(void*** top)
     void** prev_decls = node->decls;
     node->bool_arr = malloc(sizeof(char)*n_decl);
     node->decls = malloc(sizeof(void*)*n_decl);
-    memcpy(node->bool_arr, prev_b_arr, n_decl-1);
-    memcpy(node->decls, prev_decls, n_decl-1);
+    memcpy(node->bool_arr, prev_b_arr, sizeof(char) * (n_decl-1));
+    memcpy(node->decls, prev_decls, sizeof(void*) * (n_decl-1));
     free(prev_b_arr);
     free(prev_decls);
     node->bool_arr[n_decl-1] = 1;
@@ -1385,7 +1434,6 @@ static inline void reduce_to_decllist_vardecl(void*** top)
     node->bool_arr = malloc(sizeof(char));
     node->bool_arr[0] = 0;
     node->n_decl = 1;
-
     free_token(**top);
     (*top)--;
 
@@ -1404,7 +1452,9 @@ static inline void reduce_to_decllist_structdecl(void*** top)
     node->decls = malloc(sizeof(void*));
     node->decls[0] = **top;
     **top = node;
+
 }
+
 static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1700,6 +1750,7 @@ static inline void reduce_to_ind(void*** top)
 static inline void reduce_to_varacc(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
+    node->next = NULL;
     node->n_indices = 0;
     node->indices = NULL;
     node->variable = **top;
@@ -1710,6 +1761,7 @@ static inline void reduce_to_varacc(void*** top)
 static inline void reduce_to_varacc_w_ind(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
+    node->next = NULL;
     struct Inds* ind = **top;
     int n_indices = ind->n_indices;
     node->n_indices = n_indices;
@@ -1721,6 +1773,38 @@ static inline void reduce_to_varacc_w_ind(void*** top)
 
     node->variable = **top;
 
+    **top = node;
+}
+
+static inline void reduce_to_varacc_list(void*** top)
+{
+    struct VarAcc* node = malloc(sizeof(struct VarAcc));
+    node->n_indices = 0;
+    node->indices = NULL;
+    node->variable = **top;
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    node->next = **top;
+    **top = node;
+}
+
+static inline void reduce_to_varacc_w_ind_list(void*** top)
+{
+    struct VarAcc* node = malloc(sizeof(struct VarAcc));
+    struct Inds* ind = **top;
+    int n_indices = ind->n_indices;
+    node->n_indices = n_indices;
+    node->indices = malloc(sizeof(struct Expr*)*n_indices);
+    memcpy(node->indices, ind->indices, sizeof(struct Expr*)*n_indices);
+    free(ind->indices);
+    free(ind);
+    (*top)--;
+    node->variable = **top;
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    node->next = **top;
     **top = node;
 }
 
@@ -1763,7 +1847,8 @@ static inline void reduce_to_expr_const(void*** top)
     **top = node;
 }
 
-static inline void reduce_to_expr_varacc(void*** top) {
+static inline void reduce_to_expr_varacc(void*** top)
+{
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = VARACC;
     node->variable_access = **top;
@@ -2201,6 +2286,9 @@ void print_Stmt(struct Stmt* node, int nest_level, char labels, char leaf)
         case FUNCTION_DECLARATION:
             print_FuncDecl(node->stmt, nest_level+1, labels, leaf);
             return;
+        case STRUCT_DECLARATION:
+            print_StructDecl(node->stmt, nest_level+1, labels, leaf);
+            return;
         case ASSIGNMENT_STATEMENT:
             print_AStmt(node->stmt, nest_level+1, labels, leaf);
             return;
@@ -2255,6 +2343,24 @@ void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leaf)
     }
 }
 
+void print_StructDecl(struct StructDecl* node, int nest_level, char labels, char leaf)
+{
+    write_indent(nest_level);
+    printf("struct");
+
+    if (node->type_name != NULL)
+        printf(" %s", node->type_name->lexeme);
+    if (node->name != NULL)
+        printf(" %s", node->name->lexeme);
+    printf("\n");
+    for (int i = 0; i < node->n_decl; i++) {
+        if (node->bool_arr[i])
+            print_StructDecl(node->decls[i], nest_level+1, labels, leaf);
+        else
+            print_VarDecl(node->decls[i], nest_level+1, labels, leaf);
+    }
+}
+
 void print_FuncDecl(struct FuncDecl* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
@@ -2294,11 +2400,15 @@ void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leaf)
         for (int i = 0; i < node->n_indices; i++)
             printf("[]");
         printf("\n");
+        if (node->next != NULL)
+            print_VarAcc(node->next, nest_level+1, labels, leaf);
     } else if (labels) {
         print_token_str(node->variable);
         for (int i = 0; i < node->n_indices; i++)
             printf("[]");
         printf("\n");
+        if (node->next != NULL)
+            print_VarAcc(node->next, nest_level+1, labels, leaf);
     }
     else {
         print_token_str(node->variable);
@@ -2309,6 +2419,8 @@ void print_VarAcc(struct VarAcc* node, int nest_level, char labels, char leaf)
             print_Expr(node->indices[i], nest_level+1, labels, leaf);
             write_indent(nest_level);
             printf("]\n");
+            if (node->next != NULL)
+                print_VarAcc(node->next, nest_level+1, labels, leaf);
         }
     }
 }
@@ -2605,6 +2717,8 @@ void free_VarAcc(struct VarAcc* node)
     free_token(node->variable);
     for (int i = 0; i < node->n_indices; i++)
         free_Expr(node->indices[i]);
+    if (node->next != NULL)
+        free_VarAcc(node->next);
     free(node->indices);
     free(node);
 }
