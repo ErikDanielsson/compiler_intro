@@ -260,7 +260,140 @@ static inline void free_token(struct Token* token)
         free(token->lexeme);
     free(token);
 }
-
+/*
+ * Creation of node records by array of function pointers corresponding
+ * to reduction rules
+ */
+void (*record_creator[])(void***) = {
+    // 1
+    &reduce_to_compound_compound_list,
+    // 2
+    &reduce_to_compound_statement,
+    // 3
+    &reduce_to_stmt_vardecl,
+    // 4
+    &reduce_to_stmt_funcdecl_,
+    // 5
+    &reduce_to_stmt_assignment_statement,
+    // 6
+    &reduce_to_stmt_funccall,
+    // 7
+    &reduce_to_stmt_ieestmt,
+    // 8
+    &reduce_to_stmt_wloop,
+    //9
+    &reduce_to_stmt_floop,
+    // 10
+    &reduce_to_stmt_scope,
+    // 11
+    &reduce_to_stmt_return,
+    // 12
+    &reduce_to_vardecl_w_ind,
+    // 13
+    &reduce_to_vardecl_w_ind_n_expr,
+    // 14
+    &reduce_to_vardecl,
+    // 15
+    &reduce_to_vardecl_w_expr,
+    // 16
+    &reduce_to_func_decl_w_ind_n_params,
+    // 17
+    &reduce_to_func_decl_w_ind,
+    // 18
+    &reduce_to_func_decl_w_params,
+    // 19
+    &reduce_to_func_decl,
+    // 20
+    &reduce_to_empty_ind_list,
+    //21
+    &reduce_to_empty_ind,
+    // 22
+    &reduce_to_param_list,
+    // 23
+    &reduce_to_param,
+    // 24
+    &reduce_to_ind_list_w_expr,
+    //25
+    &reduce_to_ind_w_expr,
+    //26
+    &reduce_to_ind_list,
+    // 27
+    &reduce_to_ind,
+    // 28
+    &reduce_to_varacc,
+    // 29
+    &reduce_to_varacc_w_ind,
+    // 30, 31, 32, 33, 34,  35
+    &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
+    // 36
+    &reduce_to_expr_paren,
+    // 37, 37, 38
+    &reduce_to_expr_const,
+    &reduce_to_expr_const,
+    &reduce_to_expr_const,
+    // 40
+    &reduce_to_expr_varacc,
+    // 41
+    &reduce_to_expr_funccall,
+    // 42, 42
+    &reduce_to_expr_unary,
+    &reduce_to_expr_unary,
+    // 44, 44
+    &reduce_to_assign,
+    &reduce_to_assign,
+    // 46
+    &reduce_to_assign_suffixop,
+    // 47
+    &reduce_to_funccall_w_args,
+    // 48
+    &reduce_to_funccall,
+    // 49
+    &reduce_to_args_args,
+    // 50
+    &reduce_to_args_expr,
+    // 51
+    &reduce_to_ieestmt_ifstmt,
+    // 52
+    &reduce_to_ieestmt_eliflist,
+    // 53
+    &reduce_to_eliflist_eliflist,
+    // 54
+    &reduce_to_eliflist_elif,
+    // 55
+    &reduce_to_eliflist_else,
+    // 56, 57, 59
+    &reduce_to_cond,
+    &reduce_to_cond,
+    // 58
+    &reduce_to_else,
+    // 59
+    &reduce_to_cond,
+    // 60
+    &reduce_to_for_vardecl,
+    // 61
+    &reduce_to_for_assign,
+    // 62
+    &reduce_to_bexpr_binop,
+    // 63
+    &reduce_to_bexpr_binop_w_paren,
+    // 64
+    &reduce_to_b_expr_r_expr,
+    // 65
+    &reduce_to_bexpr_bexpr_w_paren,
+    // 66
+    &reduce_to_rexpr_binop,
+    // 67
+    &reduce_to_rexpr_expr,
+    // 68
+    &reduce_to_scope,
+    //69
+    &reduce_to_return,
+};
 void create_node_record(void*** top, int rule_num)
 /*
  * Creation of a node of AST (abstract syntax tree). When the parsers
@@ -271,12 +404,14 @@ void create_node_record(void*** top, int rule_num)
  * linked list if left on their own, they are converted to arrays.
  */
 {
+    printf("rule num %d\n", rule_num);
+    (*record_creator[rule_num-1])(top);
+
     switch (rule_num) {
         case 1:
             #if DEBUG || TREEBUILDER
             printf("compound_statement -> compound_statement statement\n\n");
             #endif
-            reduce_to_compound_compound_list(top);
             #if TREEBUILDER
             print_CompStmt(**top, 0, 1, 1);
             printf("\n");
@@ -288,7 +423,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("compound_statement -> statement\n");
             #endif
-            reduce_to_compound_statement(top);
             #if TREEBUILDER
             print_CompStmt(**top, 0, 1, 1);
             printf("\n");
@@ -300,7 +434,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(3) statement -> variable_declaration ';'\n");
             #endif
-            reduce_to_stmt_vardecl(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -313,7 +446,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(4) statement -> function_declaration\n");
             #endif
-            reduce_to_stmt_funcdecl_(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -326,7 +458,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(5) statement -> assignment_statement ';'\n");
             #endif
-            reduce_to_stmt_assignment_statement(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -339,7 +470,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(6) statement -> function_call ';'\n");
             #endif
-            reduce_to_stmt_funccall(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -352,7 +482,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(7) statement -> if_elif_else_statement\n");
             #endif
-            reduce_to_stmt_ieestmt(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -365,7 +494,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(8) statement -> while_loop\n");
             #endif
-            reduce_to_stmt_wloop(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -378,7 +506,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(9) statement -> for_loop\n");
             #endif
-            reduce_to_stmt_floop(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -391,7 +518,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(10) statement -> scope\n");
             #endif
-            reduce_to_stmt_scope(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -404,7 +530,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(11) statement -> return_statement ';''\n");
             #endif
-            reduce_to_stmt_return(top);
             #if TREEBUILDER
             print_Stmt(**top, 0, 1, 1);
             printf("\n");
@@ -417,7 +542,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(12) variable_declaration -> 'ID' indices 'ID'\n");
             #endif
-            reduce_to_vardecl_w_ind(top);
             #if TREEBUILDER
             print_VarDecl(**top, 0, 1, 1);
             printf("\n");
@@ -430,7 +554,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(13) variable_declaration -> 'ID' indices 'ID' '=' expr\n");
             #endif
-            reduce_to_vardecl_w_ind_n_expr(top);
             #if TREEBUILDER
             print_VarDecl(**top, 0, 1, 1);
             printf("\n");
@@ -443,7 +566,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(14) variable_declaration -> 'ID' 'ID'\n");
             #endif
-            reduce_to_vardecl(top);
             #if TREEBUILDER
             print_VarDecl(**top, 0, 1, 1);
             printf("\n");
@@ -456,7 +578,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(15) variable_declaration -> 'ID' 'ID' '=' expr\n");
             #endif
-            reduce_to_vardecl_w_expr(top);
             #if TREEBUILDER
             print_VarDecl(**top, 0, 1, 1);
             printf("\n");
@@ -469,7 +590,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'\n");
             #endif
-            reduce_to_func_decl_w_ind_n_params(top);
             #if TREEBUILDER
             print_FuncDecl(**top, 0, 1, 1);
             printf("\n");
@@ -482,7 +602,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(17) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'\n");
             #endif
-            reduce_to_func_decl_w_ind(top);
             #if TREEBUILDER
             print_FuncDecl(**top, 0, 1, 1);
             printf("\n");
@@ -495,7 +614,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
             #endif
-            reduce_to_func_decl_w_params(top);
             #if TREEBUILDER
             print_FuncDecl(**top, 0, 1, 1);
             printf("\n");
@@ -508,7 +626,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(19) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'\n");
             #endif
-            reduce_to_func_decl(top);
             #if TREEBUILDER
             print_FuncDecl(**top, 0, 1, 1);
             printf("\n");
@@ -521,63 +638,54 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(20) empty_indices -> empty_indices '[' ']'\n");
             #endif
-            reduce_to_empty_ind_list(top);
             break;
 
         case 21:
             #if DEBUG || TREEBUILDER
             printf("(21) empty_indices -> '[' ']'\n");
             #endif
-            reduce_to_empty_ind(top);
             break;
 
         case 22:
             #if DEBUG || TREEBUILDER
             printf("(22) params -> params ',' variable_declaration\n");
             #endif
-            reduce_to_param_list(top);
             break;
 
         case 23:
             #if DEBUG || TREEBUILDER
             printf("(23) params -> variable_declaration\n");
             #endif
-            reduce_to_param(top);
             break;
 
         case 24:
             #if DEBUG || TREEBUILDER
             printf("(24) indices -> indices '[' expr ']'\n");
             #endif
-            reduce_to_ind_list_w_expr(top);
             break;
 
         case 25:
             #if DEBUG || TREEBUILDER
             printf("(25) indices -> '[' expr ']'\n");
             #endif
-            reduce_to_ind_w_expr(top);
             break;
 
         case 26:
             #if DEBUG || TREEBUILDER
             printf("(26) indices -> indices '[' ']'\n");
             #endif
-            reduce_to_ind_list(top);
             break;
 
         case 27:
             #if DEBUG || TREEBUILDER
             printf("(27) indices -> '[' ']'\n");
             #endif
-            reduce_to_ind(top);
             break;
 
         case 28:
             #if DEBUG || TREEBUILDER
             printf("(28) variable_access -> 'ID'\n");
             #endif
-            reduce_to_varacc(top);
             #if TREEBUILDER
             print_VarAcc(**top, 0, 1, 1);
             printf("\n");
@@ -590,7 +698,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(29) variable_access -> 'ID' indices\n");
             #endif
-            reduce_to_varacc_w_ind(top);
             #if TREEBUILDER
             print_VarAcc(**top, 0, 1, 1);
             printf("\n");
@@ -603,7 +710,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(30) expr -> expr '-' expr\n");
             #endif
-            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -616,7 +722,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(31) expr -> expr '+' expr\n");
             #endif
-            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -629,7 +734,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(32) expr -> expr '/' expr\n");
             #endif
-            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -642,7 +746,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(33) expr -> expr '%%' expr\n");
             #endif
-            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -655,7 +758,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(34) expr -> expr '*' expr\n");
             #endif
-            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -668,7 +770,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(35) expr -> expr '^' expr\n");
             #endif
-            reduce_to_expr_binop(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -681,7 +782,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(36) expr -> '(' expr ')'\n");
             #endif
-            reduce_to_expr_paren(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -694,7 +794,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(37) expr -> 'ICONST'\n");
             #endif
-            reduce_to_expr_const(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -707,7 +806,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(38) expr -> 'FCONST'\n");
             #endif
-            reduce_to_expr_const(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -720,7 +818,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(39) expr -> 'SCONST'\n");
             #endif
-            reduce_to_expr_const(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -733,7 +830,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(40) expr -> variable_access\n");
             #endif
-            reduce_to_expr_varacc(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -746,7 +842,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(41) expr -> function_call\n");
             #endif
-            reduce_to_expr_funccall(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -759,7 +854,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(42) expr -> '+' expr\n");
             #endif
-            reduce_to_expr_unary(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -772,7 +866,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(43) expr -> '-' expr\n");
             #endif
-            reduce_to_expr_unary(top);
             #if TREEBUILDER
             print_Expr(**top, 0, 1, 1);
             printf("\n");
@@ -785,7 +878,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(44) assignment_statement -> variable_access 'ASSIGN' expr\n");
             #endif
-            reduce_to_assign(top);
             #if TREEBUILDER
             print_AStmt(**top, 0, 1, 1);
             printf("\n");
@@ -798,7 +890,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(45) assignment_statement -> variable_access '=' expr\n");
             #endif
-            reduce_to_assign(top);
             #if TREEBUILDER
             print_AStmt(**top, 0, 1, 1);
             printf("\n");
@@ -811,7 +902,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(46) assignment_statement -> variable_access 'SUFFIXOP'\n");
             #endif
-            reduce_to_assign_suffixop(top);
             #if TREEBUILDER
             print_AStmt(**top, 0, 1, 1);
             printf("\n");
@@ -824,7 +914,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(47) function_call -> 'ID' '(' args ')'\n");
             #endif
-            reduce_to_funccall_w_args(top);
             #if TREEBUILDER
             print_FuncCall(**top, 0, 1, 1);
             printf("\n");
@@ -837,7 +926,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(48) function_call -> 'ID' '(' ')'\n");
             #endif
-            reduce_to_funccall(top);
             #if TREEBUILDER
             print_FuncCall(**top, 0, 1, 1);
             printf("\n");
@@ -850,21 +938,18 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(49) args -> args ',' expr\n");
             #endif
-            reduce_to_args_args(top);
             break;
 
         case 50:
             #if DEBUG || TREEBUILDER
             printf("(50) args -> expr\n");
             #endif
-            reduce_to_args_expr(top);
             break;
 
         case 51:
             #if DEBUG || TREEBUILDER
             printf("(51) if_elif_else_statement -> if_statement\n");
             #endif
-            reduce_to_ieestmt_ifstmt(top);
             #if TREEBUILDER
             print_IEEStmt(**top, 0, 1, 1);
             printf("\n");
@@ -877,7 +962,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(52) if_elif_else_statement -> if_statement elif_list\n");
             #endif
-            reduce_to_ieestmt_eliflist(top);
             #if TREEBUILDER
             print_IEEStmt(**top, 0, 1, 1);
             printf("\n");
@@ -890,28 +974,24 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(53) elif_list -> elif_statement elif_list\n");
             #endif
-            reduce_to_eliflist_eliflist(top);
             break;
 
         case 54:
             #if DEBUG || TREEBUILDER
             printf("(54) elif_list -> elif_statement\n");
             #endif
-            reduce_to_eliflist_elif(top);
             break;
 
         case 55:
             #if DEBUG || TREEBUILDER
             printf("(55) elif_list -> else_statement\n");
             #endif
-            reduce_to_eliflist_else(top);
             break;
 
         case 56:
             #if DEBUG || TREEBUILDER
             printf("(56) if_statement -> 'IF' b_expr '{' compound_statement '}'\n");
             #endif
-            reduce_to_cond(top);
             #if TREEBUILDER
             print_CondStmt(**top, 0, 1, 1);
             printf("\n");
@@ -924,7 +1004,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(57) elif_statement -> 'ELIF' b_expr '{' compound_statement '}'\n");
             #endif
-            reduce_to_cond(top);
             #if TREEBUILDER
             print_CondStmt(**top, 0, 1, 1);
             printf("\n");
@@ -937,7 +1016,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(58) else_statement -> 'ELSE' '{' compound_statement '}'\n");
             #endif
-            reduce_to_else(top);
             #if TREEBUILDER
             print_CompStmt(**top, 0, 1, 1);
             printf("\n");
@@ -950,7 +1028,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(59) while_loop -> 'WHILE' b_expr '{' compound_statement '}'\n");
             #endif
-            reduce_to_cond(top);
             #if TREEBUILDER
             print_WLoop(**top, 0, 1, 1);
             printf("\n");
@@ -963,7 +1040,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(60) for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
             #endif
-            reduce_to_for_vardecl(top);
             #if TREEBUILDER
             print_FLoop(**top, 0, 1, 1);
             printf("\n");
@@ -976,7 +1052,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(61) for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'\n");
             #endif
-            reduce_to_for_assign(top);
             #if TREEBUILDER
             print_FLoop(**top, 0, 1, 1);
             printf("\n");
@@ -989,7 +1064,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(62) b_expr -> b_expr 'NAND' b_expr\n");
             #endif
-            reduce_to_bexpr_binop(top);
             #if TREEBUILDER
             print_BExpr(**top, 0, 1, 1);
             printf("\n");
@@ -1002,7 +1076,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(63) b_expr -> '(' b_expr 'NAND' b_expr ')'\n");
             #endif
-            reduce_to_bexpr_binop_w_paren(top);
             #if TREEBUILDER
             print_BExpr(**top, 0, 1, 1);
             printf("\n");
@@ -1015,7 +1088,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(64) b_expr -> r_expr\n");
             #endif
-            reduce_to_b_expr_r_expr(top);
             #if TREEBUILDER
             print_BExpr(**top, 0, 1, 1);
             printf("\n");
@@ -1028,7 +1100,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(65) b_expr -> '(' b_expr ')'\n");
             #endif
-            reduce_to_bexpr_bexpr_w_paren(top);
             #if TREEBUILDER
             print_BExpr(**top, 0, 1, 1);
             printf("\n");
@@ -1041,7 +1112,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(66) r_expr -> expr 'RELOP' expr\n");
             #endif
-            reduce_to_rexpr_binop(top);
             #if TREEBUILDER
             print_RExpr(**top, 0, 1, 1);
             printf("\n");
@@ -1054,7 +1124,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(67) r_expr -> expr\n");
             #endif
-            reduce_to_rexpr_expr(top);
             #if TREEBUILDER
             print_RExpr(**top, 0, 1, 1);
             printf("\n");
@@ -1067,7 +1136,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(68) scope -> '{' compound_statement '}'\n");
             #endif
-            reduce_to_scope(top);
             #if TREEBUILDER
             print_CompStmt(**top, 0, 1, 1);
             printf("\n");
@@ -1080,7 +1148,6 @@ void create_node_record(void*** top, int rule_num)
             #if DEBUG || TREEBUILDER
             printf("(69) return_statement -> 'RETURN' expr\n");
             #endif
-            reduce_to_return(top);
             #if TREEBUILDER
             print_ReturnStmt(**top, 0, 1, 1);
             printf("\n");
