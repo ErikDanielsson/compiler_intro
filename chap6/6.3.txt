@@ -1,0 +1,62 @@
+
+Exercise 6.3.1 : Determine the types and relative addresses for the identifiers
+in the following sequence of declarations:
+
+float x;
+record { float x; float y; } p ;
+record { int tag; float x; float y ; } q;
+
+
+
+x: float : 0
+p : record : 4
+    x : float : 0
+    y : float : 4
+q : record : 12
+    tag : int : 0
+    x : float : 4
+    y : float : 8
+
+! Exercise 6.3.2 : Extend the handling of field names in Fig. 6.18 to classes and
+single-inheritance class hierarchies.
+
+a) Give an implementation of class Env that allows linked symbol tables, so
+that a subclass can either redefine a field name or refer directly to a field
+name in a superclass.
+
+    class Env {
+        Dictionary symbols;
+        Env parent;
+
+        define get_definition(var id)
+        {
+            definition = self.symbols.get(id)
+            if definition == NULL
+                return parent.find_definition()
+            else
+                return definition
+        }
+        define set_definition(...)
+        {
+        ...
+        }
+    }
+
+b) Give a translation scheme that allocates a contiguous data area for the
+fields in a class, including inherited fields. Inherited fields must maintain
+the relative addresses they were assigned in the layout for the superclass.
+
+T -> class '{'                  {Env.push(top); top = new Env();
+                                Stack.push(offset); offset = 0;}
+    definitions '}'             {T.type = class(top); T.width = offset;
+                                top = Env.pop(); offset = Stack.pop();}
+T -> class (                    {Env.push(top); top = new Env();
+                                Stack.push(offset); offset = 0;}
+    superclass ) '{'            {for symbol in Envs[superclass]:
+                                    top.puts(symbol.lexeme, symbol.type, offset)
+                                    offset += symbol.width}
+    definitions                     {if top.contains(id):
+                                    remove previous entry
+                                    lower all later entries offsets by previous_entry.width}
+    '}'                         {T.type = class(top); T.width = offset;
+                                top = Env.pop(); offset = Stack.pop();}
