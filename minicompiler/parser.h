@@ -6,6 +6,7 @@ enum NodeType {
     COMPOUND_STATEMENT,
     STATEMENT,
     VARIABLE_DECLARATION,
+    STRUCT_DECLARATION,
     FUNCTION_DECLARATION,
     EMPTY_INDICES,
     PARAMS,
@@ -45,6 +46,19 @@ struct VarDecl {
     struct Expr** indices;
     struct Token* name;
     struct Expr* expr;
+};
+
+struct StructDecl {
+    struct Token* name;
+    char* bool_arr;
+    int n_decl;
+    void** decls;
+};
+
+struct DeclList {
+    char* bool_arr;
+    int n_decl;
+    void** decls;
 };
 
 struct FuncDecl {
@@ -193,6 +207,13 @@ static inline void reduce_to_compound_compound_list(void*** top);
 static inline void reduce_to_compound_statement(void*** top);
 // 3
 static inline void reduce_to_stmt_vardecl(void*** top);
+
+
+
+static inline void reduce_to_stmt_structdecl(void*** top);
+
+
+
 // 4
 static inline void reduce_to_stmt_funcdecl_(void*** top);
 // 5
@@ -217,6 +238,15 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top);
 static inline void reduce_to_vardecl(void*** top);
 // 15
 static inline void reduce_to_vardecl_w_expr(void*** top);
+
+static inline void reduce_to_structdecl(void*** top);
+static inline void reduce_to_decllist_decllist_vardecl(void*** top);
+static inline void reduce_to_decllist_decllist_structdecl(void*** top);
+static inline void reduce_to_decllist_vardecl(void*** top);
+static inline void reduce_to_decllist_structdecl(void*** top);
+
+
+
 // 16
 static inline void reduce_to_func_decl_w_ind_n_params(void*** top);
 // 17

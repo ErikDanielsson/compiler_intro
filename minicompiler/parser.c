@@ -260,138 +260,87 @@ static inline void free_token(struct Token* token)
         free(token->lexeme);
     free(token);
 }
+
 /*
  * Creation of node records by array of function pointers corresponding
  * to reduction rules
  */
 void (*record_creator[])(void***) = {
-    // 1
+
     &reduce_to_compound_compound_list,
-    // 2
     &reduce_to_compound_statement,
-    // 3
     &reduce_to_stmt_vardecl,
-    // 4
+    &reduce_to_stmt_structdecl,
     &reduce_to_stmt_funcdecl_,
-    // 5
     &reduce_to_stmt_assignment_statement,
-    // 6
     &reduce_to_stmt_funccall,
-    // 7
     &reduce_to_stmt_ieestmt,
-    // 8
     &reduce_to_stmt_wloop,
-    //9
     &reduce_to_stmt_floop,
-    // 10
     &reduce_to_stmt_scope,
-    // 11
     &reduce_to_stmt_return,
-    // 12
     &reduce_to_vardecl_w_ind,
-    // 13
     &reduce_to_vardecl_w_ind_n_expr,
-    // 14
     &reduce_to_vardecl,
-    // 15
     &reduce_to_vardecl_w_expr,
-    // 16
+    &reduce_to_structdecl,
+    &reduce_to_decllist_decllist_vardecl,
+    &reduce_to_decllist_decllist_structdecl,
+    &reduce_to_decllist_vardecl,
+    &reduce_to_decllist_structdecl,
     &reduce_to_func_decl_w_ind_n_params,
-    // 17
     &reduce_to_func_decl_w_ind,
-    // 18
     &reduce_to_func_decl_w_params,
-    // 19
     &reduce_to_func_decl,
-    // 20
     &reduce_to_empty_ind_list,
-    //21
     &reduce_to_empty_ind,
-    // 22
     &reduce_to_param_list,
-    // 23
     &reduce_to_param,
-    // 24
     &reduce_to_ind_list_w_expr,
-    //25
     &reduce_to_ind_w_expr,
-    //26
     &reduce_to_ind_list,
-    // 27
     &reduce_to_ind,
-    // 28
     &reduce_to_varacc,
-    // 29
     &reduce_to_varacc_w_ind,
-    // 30, 31, 32, 33, 34,  35
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
-    // 36
     &reduce_to_expr_paren,
-    // 37, 37, 38
     &reduce_to_expr_const,
     &reduce_to_expr_const,
     &reduce_to_expr_const,
-    // 40
     &reduce_to_expr_varacc,
-    // 41
     &reduce_to_expr_funccall,
-    // 42, 42
     &reduce_to_expr_unary,
     &reduce_to_expr_unary,
-    // 44, 44
     &reduce_to_assign,
     &reduce_to_assign,
-    // 46
     &reduce_to_assign_suffixop,
-    // 47
     &reduce_to_funccall_w_args,
-    // 48
     &reduce_to_funccall,
-    // 49
     &reduce_to_args_args,
-    // 50
     &reduce_to_args_expr,
-    // 51
     &reduce_to_ieestmt_ifstmt,
-    // 52
     &reduce_to_ieestmt_eliflist,
-    // 53
     &reduce_to_eliflist_eliflist,
-    // 54
     &reduce_to_eliflist_elif,
-    // 55
     &reduce_to_eliflist_else,
-    // 56, 57, 59
     &reduce_to_cond,
     &reduce_to_cond,
-    // 58
     &reduce_to_else,
-    // 59
     &reduce_to_cond,
-    // 60
     &reduce_to_for_vardecl,
-    // 61
     &reduce_to_for_assign,
-    // 62
     &reduce_to_bexpr_binop,
-    // 63
     &reduce_to_bexpr_binop_w_paren,
-    // 64
     &reduce_to_b_expr_r_expr,
-    // 65
     &reduce_to_bexpr_bexpr_w_paren,
-    // 66
     &reduce_to_rexpr_binop,
-    // 67
     &reduce_to_rexpr_expr,
-    // 68
     &reduce_to_scope,
-    //69
     &reduce_to_return,
 };
 void create_node_record(void*** top, int rule_num)
@@ -400,14 +349,14 @@ void create_node_record(void*** top, int rule_num)
  * determines a reduction, this function is called. Since the algorithm is
  * stack based, it works from right to left in the production, shifting symbols
  * from the stack into structs of the correct type. Some productions,
- * such as'indices', generate lists, and while they would naturally produce a
+ * such as 'indices', generate lists, and while they would naturally produce a
  * linked list if left on their own, they are converted to arrays.
  */
 {
     printf("rule num %d\n", rule_num);
     (*record_creator[rule_num-1])(top);
 
-    switch (rule_num) {
+    /*switch (rule_num) {
         case 1:
             #if DEBUG || TREEBUILDER
             printf("compound_statement -> compound_statement statement\n\n");
@@ -1158,14 +1107,13 @@ void create_node_record(void*** top, int rule_num)
         default:
             printf("Something went wrong\n\n");
             exit(-1);
-    }
+    }*/
 }
 
 /*
  * Reduction case functions.
  */
 
-//case 1
 static inline void reduce_to_compound_compound_list(void*** top)
 {
     struct CompStmt* node = malloc(sizeof(struct CompStmt));
@@ -1185,7 +1133,6 @@ static inline void reduce_to_compound_compound_list(void*** top)
     **top = node;
 }
 
-//case 2
 static inline void reduce_to_compound_statement(void*** top)
 {
     struct CompStmt* node = malloc(sizeof(struct CompStmt));
@@ -1195,7 +1142,6 @@ static inline void reduce_to_compound_statement(void*** top)
     **top = node;
 }
 
-//case 3
 static inline void reduce_to_stmt_vardecl(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1206,7 +1152,14 @@ static inline void reduce_to_stmt_vardecl(void*** top)
     **top = node;
 }
 
-//case 4
+static inline void reduce_to_stmt_structdecl(void*** top)
+{
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->statement_type = STRUCT_DECLARATION;
+    node->stmt = **top;
+    **top = node;
+}
+
 static inline void reduce_to_stmt_funcdecl_(void*** top)
 {
     #if DEBUG
@@ -1219,7 +1172,6 @@ static inline void reduce_to_stmt_funcdecl_(void*** top)
     return_found = FALSE;
 }
 
-//case 5
 static inline void reduce_to_stmt_assignment_statement(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1230,7 +1182,6 @@ static inline void reduce_to_stmt_assignment_statement(void*** top)
     **top = node;
 }
 
-//case 6
 static inline void reduce_to_stmt_funccall(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1241,7 +1192,6 @@ static inline void reduce_to_stmt_funccall(void*** top)
     **top = node;
 }
 
-//case 7
 static inline void reduce_to_stmt_ieestmt(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1250,7 +1200,6 @@ static inline void reduce_to_stmt_ieestmt(void*** top)
     **top = node;
 }
 
-//case 8
 static inline void reduce_to_stmt_wloop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1258,7 +1207,6 @@ static inline void reduce_to_stmt_wloop(void*** top)
     node->stmt = **top;
     **top = node;
 }
-// case 9
 static inline void reduce_to_stmt_floop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1267,7 +1215,6 @@ static inline void reduce_to_stmt_floop(void*** top)
     **top = node;
 }
 
-//case 10
 static inline void reduce_to_stmt_scope(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1275,7 +1222,6 @@ static inline void reduce_to_stmt_scope(void*** top)
     node->stmt = **top;
     **top = node;
 }
-//case 11
 static inline void reduce_to_stmt_return(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1287,7 +1233,6 @@ static inline void reduce_to_stmt_return(void*** top)
     **top = node;
     return_found = TRUE;
 }
-//case 12
 static inline void reduce_to_vardecl_w_ind(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1306,7 +1251,6 @@ static inline void reduce_to_vardecl_w_ind(void*** top)
     **top = node;
 }
 
-//case 13
 static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1332,7 +1276,6 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
     **top = node;
 }
 
-//case 14
 static inline void reduce_to_vardecl(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1348,7 +1291,6 @@ static inline void reduce_to_vardecl(void*** top)
     **top = node;
 }
 
-//case 15
 static inline void reduce_to_vardecl_w_expr(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1366,7 +1308,103 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
     **top = node;
 }
 
-//case 16
+static inline void reduce_to_structdecl(void*** top)
+{
+    struct StructDecl* node = malloc(sizeof(struct StructDecl));
+    node->name = **top;
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    struct DeclList* tmp = **top;
+    node->bool_arr = tmp->bool_arr;
+    node->n_decl = tmp->n_decl;
+    node->decls = tmp->decls;
+    free(tmp);
+    (*top)--;
+    free_token(**top);
+    (*top)--;
+    free_token(**top);
+    **top = node;
+}
+
+static inline void reduce_to_decllist_decllist_vardecl(void*** top)
+{
+
+    free_token(**top);
+    (*top)--;
+    struct VarDecl* tmp = **top;
+    (*top)--;
+    /*
+     * We can save the struct from previous iteration, but need to modify its
+     * values
+     */
+    struct DeclList* node = **top;
+    node->n_decl++;
+    int n_decl = node->n_decl;
+    char* prev_b_arr = node->bool_arr;
+    void** prev_decls = node->decls;
+    node->bool_arr = malloc(sizeof(char)*n_decl);
+    node->decls = malloc(sizeof(void*)*n_decl);
+    memcpy(node->bool_arr, prev_b_arr, n_decl-1);
+    memcpy(node->decls, prev_decls, n_decl-1);
+    free(prev_b_arr);
+    free(prev_decls);
+    node->bool_arr[n_decl-1] = 0;
+    node->decls[n_decl-1] = tmp;
+    **top = node;
+}
+
+static inline void reduce_to_decllist_decllist_structdecl(void*** top)
+{
+
+    struct StructDecl* tmp = **top;
+    (*top)--;
+    /*
+     * We can save the struct from previous iteration, but need to modify its
+     * values
+     */
+    struct DeclList* node = **top;
+    node->n_decl++;
+    int n_decl = node->n_decl;
+    char* prev_b_arr = node->bool_arr;
+    void** prev_decls = node->decls;
+    node->bool_arr = malloc(sizeof(char)*n_decl);
+    node->decls = malloc(sizeof(void*)*n_decl);
+    memcpy(node->bool_arr, prev_b_arr, n_decl-1);
+    memcpy(node->decls, prev_decls, n_decl-1);
+    free(prev_b_arr);
+    free(prev_decls);
+    node->bool_arr[n_decl-1] = 1;
+    node->decls[n_decl-1] = tmp;
+    **top = node;
+}
+
+static inline void reduce_to_decllist_vardecl(void*** top)
+{
+    struct DeclList* node = malloc(sizeof(struct DeclList));
+    node->bool_arr = malloc(sizeof(char));
+    node->bool_arr[0] = 0;
+    node->n_decl = 1;
+
+    free_token(**top);
+    (*top)--;
+
+    node->decls = malloc(sizeof(void*));
+    node->decls[0] = **top;
+    **top = node;
+}
+
+static inline void reduce_to_decllist_structdecl(void*** top)
+{
+    struct DeclList* node = malloc(sizeof(struct DeclList));
+    node->bool_arr = malloc(sizeof(char));
+    node->bool_arr[0] = 1;
+    node->n_decl = 1;
+
+    node->decls = malloc(sizeof(void*));
+    node->decls[0] = **top;
+    **top = node;
+}
 static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1407,7 +1445,6 @@ static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
     **top = node;
 }
 
-//case 17
 static inline void reduce_to_func_decl_w_ind(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1442,7 +1479,6 @@ static inline void reduce_to_func_decl_w_ind(void*** top)
     **top = node;
 }
 
-//case 18
 static inline void reduce_to_func_decl_w_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1485,7 +1521,6 @@ static inline void reduce_to_func_decl_w_params(void*** top)
     **top = node;
 }
 
-//case 19
 static inline void reduce_to_func_decl(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
@@ -1517,7 +1552,6 @@ static inline void reduce_to_func_decl(void*** top)
     **top = node;
 }
 
-//case 20
 static inline void reduce_to_empty_ind_list(void*** top)
 {
     int* node;
@@ -1546,7 +1580,6 @@ static inline void reduce_to_empty_ind(void*** top)
     **top = node;
 }
 
-//case 22
 static inline void reduce_to_param_list(void*** top)
 {
     struct Params* node = malloc(sizeof(struct Params));
@@ -1569,7 +1602,6 @@ static inline void reduce_to_param_list(void*** top)
     **top = node;
 }
 
-//case 23
 static inline void reduce_to_param(void*** top)
 {
     struct Params* node = malloc(sizeof(struct Params));
@@ -1583,7 +1615,6 @@ static inline void reduce_to_param(void*** top)
     **top = node;
 }
 
-//case 24
 static inline void reduce_to_ind_list_w_expr(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
@@ -1609,7 +1640,6 @@ static inline void reduce_to_ind_list_w_expr(void*** top)
     **top = node;
 }
 
-//24
 static inline void reduce_to_ind_w_expr(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
@@ -1628,7 +1658,7 @@ static inline void reduce_to_ind_w_expr(void*** top)
 
     **top = node;
 }
-//25
+
 static inline void reduce_to_ind_list(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
@@ -1651,7 +1681,6 @@ static inline void reduce_to_ind_list(void*** top)
     **top = node;
 }
 
-//case 27
 static inline void reduce_to_ind(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
@@ -1668,7 +1697,6 @@ static inline void reduce_to_ind(void*** top)
     **top = node;
 }
 
-//case 28
 static inline void reduce_to_varacc(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
@@ -1679,7 +1707,6 @@ static inline void reduce_to_varacc(void*** top)
     **top = node;
 }
 
-//case 29
 static inline void reduce_to_varacc_w_ind(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
@@ -1697,7 +1724,6 @@ static inline void reduce_to_varacc_w_ind(void*** top)
     **top = node;
 }
 
-//case 30, 31, 32, 33, 34, 35
 static inline void reduce_to_expr_binop(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1714,7 +1740,6 @@ static inline void reduce_to_expr_binop(void*** top)
     **top = node;
 }
 
-//case 36
 static inline void reduce_to_expr_paren(void*** top)
 {
     free_token(**top);
@@ -1730,7 +1755,6 @@ static inline void reduce_to_expr_paren(void*** top)
     **top = node;
 }
 
-//case 37, 38, 39
 static inline void reduce_to_expr_const(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1739,7 +1763,6 @@ static inline void reduce_to_expr_const(void*** top)
     **top = node;
 }
 
-//case 40
 static inline void reduce_to_expr_varacc(void*** top) {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = VARACC;
@@ -1747,7 +1770,6 @@ static inline void reduce_to_expr_varacc(void*** top) {
     **top = node;
 }
 
-//case 41
 static inline void reduce_to_expr_funccall(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1756,7 +1778,6 @@ static inline void reduce_to_expr_funccall(void*** top)
     **top = node;
 }
 
-//case 42, 43
 static inline void reduce_to_expr_unary(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1770,7 +1791,6 @@ static inline void reduce_to_expr_unary(void*** top)
     **top = node;
 }
 
-//case 44, 45
 static inline void reduce_to_assign(void*** top)
 {
     struct AStmt* node = malloc(sizeof(struct AStmt));
@@ -1783,7 +1803,6 @@ static inline void reduce_to_assign(void*** top)
     **top = node;
 }
 
-//case 46
 static inline void reduce_to_assign_suffixop(void*** top)
 {
     struct AStmt* node = malloc(sizeof(struct AStmt));
@@ -1794,7 +1813,6 @@ static inline void reduce_to_assign_suffixop(void*** top)
     **top = node;
 }
 
-//case 47
 static inline void reduce_to_funccall_w_args(void*** top)
 {
     struct FuncCall* node = malloc(sizeof(struct FuncCall));
@@ -1818,7 +1836,6 @@ static inline void reduce_to_funccall_w_args(void*** top)
     **top = node;
 }
 
-//case 48
 static inline void reduce_to_funccall(void*** top)
 {
     struct FuncCall* node = malloc(sizeof(struct FuncCall));
@@ -1835,7 +1852,6 @@ static inline void reduce_to_funccall(void*** top)
     **top = node;
 }
 
-//case 49
 static inline void reduce_to_args_args(void*** top)
 {
     struct Args* node = malloc(sizeof(struct Args));
@@ -1857,7 +1873,6 @@ static inline void reduce_to_args_args(void*** top)
     **top = node;
 }
 
-//case 50
 static inline void reduce_to_args_expr(void*** top)
 {
     struct Args* node = malloc(sizeof(struct Args));
@@ -1868,7 +1883,6 @@ static inline void reduce_to_args_expr(void*** top)
     **top = node;
 }
 
-//case 51
 static inline void reduce_to_ieestmt_ifstmt(void*** top)
 {
     struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
@@ -1880,7 +1894,6 @@ static inline void reduce_to_ieestmt_ifstmt(void*** top)
     **top = node;
 }
 
-//case 52
 static inline void reduce_to_ieestmt_eliflist(void*** top)
 {
     struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
@@ -1906,7 +1919,6 @@ static inline void reduce_to_ieestmt_eliflist(void*** top)
     **top = node;
 }
 
-//case 53
 static inline void reduce_to_eliflist_eliflist(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
@@ -1930,7 +1942,6 @@ static inline void reduce_to_eliflist_eliflist(void*** top)
     **top = node;
 }
 
-//case 54
 static inline void reduce_to_eliflist_elif(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
@@ -1942,7 +1953,6 @@ static inline void reduce_to_eliflist_elif(void*** top)
     **top = node;
 }
 
-//case 55
 static inline void reduce_to_eliflist_else(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
@@ -1953,7 +1963,6 @@ static inline void reduce_to_eliflist_else(void*** top)
     **top = node;
 }
 
-//case 56, 57, 59
 static inline void reduce_to_cond(void*** top)
 {
     struct CondStmt* node = malloc(sizeof(struct CondStmt));
@@ -1974,7 +1983,6 @@ static inline void reduce_to_cond(void*** top)
     **top = node;
 }
 
-//case 58
 static inline void reduce_to_else(void*** top)
 {
     /*
@@ -1995,7 +2003,6 @@ static inline void reduce_to_else(void*** top)
     **top = node;
 }
 
-//case 60
 static inline void reduce_to_for_vardecl(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
@@ -2024,7 +2031,6 @@ static inline void reduce_to_for_vardecl(void*** top)
     **top = node;
 }
 
-//case 61
 static inline void reduce_to_for_assign(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
@@ -2060,7 +2066,6 @@ static inline void reduce_to_for_assign(void*** top)
     **top = node;
 }
 
-//case 62
 static inline void reduce_to_bexpr_binop(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
@@ -2076,7 +2081,6 @@ static inline void reduce_to_bexpr_binop(void*** top)
     **top = node;
 }
 
-//case 63
 static inline void reduce_to_bexpr_binop_w_paren(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
@@ -2098,7 +2102,6 @@ static inline void reduce_to_bexpr_binop_w_paren(void*** top)
     **top = node;
 }
 
-//case 64
 static inline void reduce_to_b_expr_r_expr(void*** top)
 {
     struct BExpr* node = malloc(sizeof(struct BExpr));
@@ -2108,7 +2111,6 @@ static inline void reduce_to_b_expr_r_expr(void*** top)
     **top = node;
 }
 
-//case 65
 static inline void reduce_to_bexpr_bexpr_w_paren(void*** top)
 {
     free_token(**top);
@@ -2122,7 +2124,6 @@ static inline void reduce_to_bexpr_bexpr_w_paren(void*** top)
     **top = node;
 }
 
-//case 66
 static inline void reduce_to_rexpr_binop(void*** top)
 {
     struct RExpr* node = malloc(sizeof(struct RExpr));
@@ -2139,7 +2140,6 @@ static inline void reduce_to_rexpr_binop(void*** top)
     **top = node;
 }
 
-//case 67
 static inline void reduce_to_rexpr_expr(void*** top)
 {
     struct RExpr* node = malloc(sizeof(struct RExpr));
@@ -2148,7 +2148,6 @@ static inline void reduce_to_rexpr_expr(void*** top)
     **top = node;
 }
 
-//case 68
 static inline void reduce_to_scope(void*** top)
 {
     free_token(**top);
@@ -2162,7 +2161,6 @@ static inline void reduce_to_scope(void*** top)
     **top = node;
 }
 
-// case 69
 static inline void reduce_to_return(void*** top)
 {
     struct Expr* node;

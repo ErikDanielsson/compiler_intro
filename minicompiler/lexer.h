@@ -14,6 +14,7 @@ enum TokenType {
     WHILE,
     FOR,
     DEFINE,
+    STRUCT,
     RETURN,
     ASSIGN,
     RELOP,

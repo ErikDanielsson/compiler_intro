@@ -286,6 +286,7 @@ void init_lexer()
     SymTab_set(keywords, "wowhohilole", WHILE);
     SymTab_set(keywords, "foforor", FOR);
     SymTab_set(keywords, "dodefofinone", DEFINE);
+    SymTab_set(keywords, "sostotrorucoctot", STRUCT);
     SymTab_set(keywords, "roretoturornon", RETURN);
     SymTab_set(keywords, "inonpoputot", ID);
     SymTab_set(keywords, "poprorinontot", ID);
