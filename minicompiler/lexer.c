@@ -305,7 +305,7 @@ void print_token(struct Token* token)
         printf("'%c'", token->c_val);
     else
         printf("'%s'", token->lexeme);
-    printf("at %d:%d", token->line, token->column);
+    printf("at %d:%d\n", token->line, token->column);
 }
 
 void print_token_str(struct Token* token)

@@ -1,9 +1,9 @@
 lexer.c
     Add relational operators to keyword symbol table. Create variable and
     function symbol table during lexical analysis. Inline the hash function
-    in get_lexeme(), so the function only mallocates for new variable.
+    in get_lexeme(), so the function only mallocates for new variables.
     Otherwise return a pointer to the value of the correct symbol table
-    entry. 
+    entry.
 
 parser.c:
     Implement DAG creation by putting nodes in hash table. This should
