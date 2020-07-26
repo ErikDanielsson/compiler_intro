@@ -259,10 +259,15 @@ void get_char()
 char* get_lexeme()
 {
     int length = forward-lexeme_begin;
-    char* lexeme = malloc(sizeof(char)*(length+1));
+    char tmp_lexeme[length+1];
     for (int i = 0; i < length; i++)
-        lexeme[i] = *(lexeme_begin+i);
-    lexeme[length] = 0x00;
+        tmp_lexeme[i] = *(lexeme_begin+i);
+    tmp_lexeme[length] = 0x00;
+    char* lexeme = SymTab_get_key_ptr(keywords, tmp_lexeme);
+    if (lexeme != NULL)
+        return lexeme;
+    lexeme = malloc(sizeof(char)*(length+1));
+    strcpy(lexeme, tmp_lexeme);
     return lexeme;
 }
 
@@ -274,7 +279,7 @@ void init_lexer()
     n_read = get_line();
     read_from_buffert();
 
-    keywords = create_SymTab(17);
+    keywords = create_SymTab(25);
     SymTab_set(keywords, "fofloloatot", ID);
     SymTab_set(keywords, "inontot", ID);
     SymTab_set(keywords, "sostotrorinongog", ID);
@@ -290,6 +295,20 @@ void init_lexer()
     SymTab_set(keywords, "roretoturornon", RETURN);
     SymTab_set(keywords, "inonpoputot", ID);
     SymTab_set(keywords, "poprorinontot", ID);
+    SymTab_set(keywords, "+=", ASSIGN);
+    SymTab_set(keywords, "-=", ASSIGN);
+    SymTab_set(keywords, "*=", ASSIGN);
+    SymTab_set(keywords, "/=", ASSIGN);
+    SymTab_set(keywords, "^=", ASSIGN);
+    SymTab_set(keywords, "%=", ASSIGN);
+    SymTab_set(keywords, "++", SUFFIXOP);
+    SymTab_set(keywords, "--", SUFFIXOP);
+    SymTab_set(keywords, "**", SUFFIXOP);
+    SymTab_set(keywords, "//", SUFFIXOP);
+    SymTab_set(keywords, "==", RELOP);
+    SymTab_set(keywords, "!=", RELOP);
+    SymTab_set(keywords, "<=", RELOP);
+    SymTab_set(keywords, ">=", RELOP);
 }
 
 static inline void set_lexeme_ptr()
@@ -301,10 +320,16 @@ static inline void set_lexeme_ptr()
 void print_token(struct Token* token)
 {
     printf("Token ");
+
     if (token->type < 128)
         printf("'%c'", token->c_val);
+    else if (token->type == ICONST)
+        printf("'%ld'", token->i_val);
+    else if (token->type == ICONST)
+        printf("'%lf'", token->f_val);
     else
         printf("'%s'", token->lexeme);
+    printf(" of type %d ", token->type);
     printf("at %d:%d\n", token->line, token->column);
 }
 
@@ -312,6 +337,10 @@ void print_token_str(struct Token* token)
 {
     if (token->type < 128)
         printf("'%c'", token->c_val);
+    else if (token->type == ICONST)
+        printf("'%ld'", token->i_val);
+    else if (token->type == ICONST)
+        printf("'%lf'", token->f_val);
     else
         printf("'%s'", token->lexeme);
 }
@@ -346,25 +375,34 @@ struct Token* get_token()
             return token;
         }
         if (isdigit(*forward)) {
+            int len = 1;
+            long val = *forward-0x30;
             get_char();
 
             while (isdigit(*forward)) {
+                val = val*10 + *forward-0x30;
+                len++;
                 get_char();
             }
 
             if (*forward == '.') {
+                len++;
                 get_char();
                 token->type = FCONST;
-                while (isdigit(*forward))
+                double f_val = (double)val;
+                for (double i = 0.1; isdigit(*forward); i /= 10) {
+                    f_val += (*forward-0x30)*i;
+                    len++;
                     get_char();
+                }
+                token->f_val = f_val;
             } else {
                 token->type = ICONST;
+                token->i_val = val;
             }
-            char* lexeme = get_lexeme();
             set_lexeme_ptr();
-            token->lexeme = lexeme;
             token->line = line_num;
-            token->column = column_num-strlen(lexeme);
+            token->column = column_num-len;
             return token;
         }
         switch(*forward) {
@@ -412,7 +450,7 @@ struct Token* get_token()
                     token->type = ASSIGN;
                     token->lexeme = get_lexeme();
                     token->line = line_num;
-                    token->column = column_num-strlen(token->lexeme);
+                    token->column = column_num-2;
                     set_lexeme_ptr();
                     return token;
                 } else if (tmp1 == tmp0) {
@@ -420,7 +458,7 @@ struct Token* get_token()
                     token->type = SUFFIXOP;
                     token->lexeme = get_lexeme();
                     token->line = line_num;
-                    token->column = column_num-strlen(token->lexeme);
+                    token->column = column_num-2;
                     set_lexeme_ptr();
                     return token;
                 } else {

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 #include "symbol_table.h"
 #include "lexer.h"
 #define MAX_ID_SIZE 256
@@ -75,6 +74,20 @@ enum TokenType SymTab_get(struct SymTab* symboltable, const char* key)
         entry = entry->next;
     }
     return -1;
+}
+
+const char* SymTab_get_key_ptr(struct SymTab* symboltable, const char* key)
+{
+    unsigned int slot = hash(key, symboltable->table_size);
+    struct entry* entry = symboltable->entries[slot];
+
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0) {
+            return entry->key;
+        }
+        entry = entry->next;
+    }
+    return NULL;
 }
 
 char* closest_key(struct SymTab* symboltable, const char* string)

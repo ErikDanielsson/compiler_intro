@@ -74,7 +74,7 @@ struct CompStmt* lr_parser(char verbose)
         print_token_str(a);
         printf(", %x\n", type);
         #else
-        //printf("Stack depth: %ld\n", s_ptr-stack);
+        printf("Stack depth: %ld\n", s_ptr-stack);
         #endif
 
         if (action >= n_states) {
@@ -256,8 +256,12 @@ static inline void free_token(struct Token* token)
  * Token destruction. Simple abstraction for readability
  */
 {
-    if (token->type >= 128)
-        free(token->lexeme);
+    enum TokenType type = token->type;
+    if (type >= 128 &&
+        type != ICONST &&
+        type != FCONST)
+        if (SymTab_get(keywords, token->lexeme) == -1)
+            free(token->lexeme);
     free(token);
 }
 
@@ -2836,6 +2840,7 @@ void free_RExpr(struct RExpr* node)
 
 int main(int argc, const char** argv)
 {
+
     const char* table_file = "parsing_table.txt";
     filename = argv[1];
     file_desc = open(filename, O_RDONLY);
@@ -2851,6 +2856,4 @@ int main(int argc, const char** argv)
         free_CompStmt(tree);
     destroy_parse_table();
     SymTab_destroy(keywords);
-
-
 }

@@ -28,6 +28,8 @@ struct Token {
     union {
         char* lexeme;
         char c_val;
+        long i_val;
+        double f_val;
     };
 
 };
