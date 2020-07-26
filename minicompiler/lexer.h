@@ -1,6 +1,7 @@
 
 #pragma once
-#define LINELENGTH 256
+#include "consts.h"
+
 enum TokenType {
     NUM = 128,
     ID,

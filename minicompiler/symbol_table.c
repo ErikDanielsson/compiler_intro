@@ -90,24 +90,41 @@ const char* SymTab_get_key_ptr(struct SymTab* symboltable, const char* key)
     return NULL;
 }
 
-char* closest_key(struct SymTab* symboltable, const char* string)
+const char* SymTab_first_key_by_type(struct SymTab* symboltable, enum TokenType type)
+{
+    for (int i = 0; i < symboltable->table_size; i++) {
+        struct entry* entry = symboltable->entries[i];
+        while (entry != NULL) {
+            if (entry->type == type) {
+                return entry->key;
+            }
+            entry = entry->next;
+        }
+    }
+    return NULL;
+}
+
+char* closest_keyword_with_action(struct SymTab* symboltable, const char* string,
+                                    int* action_row, int n_states,
+                                    enum TokenType* should_be)
 {
     int n = strlen(string);
     int v0[n+1];
-
     int v1[n+1];
+
     char current_match[MAX_ID_SIZE];
     char tmp1[MAX_ID_SIZE];
     for (int i = 0; i < MAX_ID_SIZE-1; i++)
         tmp1[i] = 0x20;
     tmp1[MAX_ID_SIZE-1] = 0x00;
     int shortest_diff = 2147483647;
-    for (int q = 0; q< symboltable->table_size; q++) {
+    char match = FALSE;
+    for (int q = 0; q < symboltable->table_size; q++) {
         struct entry* c_entry = symboltable->entries[q];
-        while (1) {
-            if (c_entry == NULL) {
-                break;
-            }
+        for (;c_entry != NULL; c_entry = c_entry->next) {
+
+            if (action_row[c_entry->type] > n_states)
+                continue;
             for (int i = 0; i < n+1; i++)
                 v0[i] = i;
             char* tmp = c_entry->key;
@@ -140,13 +157,17 @@ char* closest_key(struct SymTab* symboltable, const char* string)
             printf("%s: %d\n", tmp, tmp2);
             if (shortest_diff > tmp2) {
                 shortest_diff = tmp2;
+                *should_be = c_entry->type;
                 strcpy(current_match, tmp);
+                match = TRUE;
             }
             for (int i = 0; i < m; i++)
                 tmp1[i] = 0x20;
             c_entry = c_entry->next;
         }
     }
+    if (!match)
+        return NULL;
     char* res = malloc(sizeof(current_match));
     strcpy(res, current_match);
     return res;

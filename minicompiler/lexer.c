@@ -9,8 +9,6 @@
 
 #define BUFFERSIZE 4096
 #define TABLENGTH 8
-#define FALSE 0
-#define TRUE 1
 #define CONTEXT 5
 
 const char* filename;
@@ -52,7 +50,7 @@ void error(const char* type_msg, int length,
             fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i]);
 
     else
-        for (int i = 0; i < CONTEXT; i++)
+        for (int i = 1; i < CONTEXT; i++)
             fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i]);
     fprintf(stderr, "     |\n");
     #endif
@@ -129,6 +127,7 @@ void error(const char* type_msg, int length,
                 break;
             } else if (c == '\t'){
             fprintf(stderr, "        ");
+            curr_i++;
             } else {
                 fprintf(stderr, " ");
                 curr_i++;

@@ -1,5 +1,6 @@
 #pragma once
 #include "lexer.h"
+#include "consts.h"
 
 enum NodeType {
     START,

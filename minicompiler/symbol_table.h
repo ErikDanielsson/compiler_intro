@@ -1,5 +1,6 @@
 #pragma once
 #include "lexer.h"
+#include "consts.h"
 
 unsigned int hash(const char* key, int table_size);
 
@@ -23,6 +24,8 @@ void SymTab_set(struct SymTab* symboltable, const char* key, enum TokenType type
 enum TokenType SymTab_get(struct SymTab* symboltable, const char* key);
 
 const char* SymTab_get_key_ptr(struct SymTab* symboltable, const char* key);
+
+const char* SymTab_first_key_by_value(struct SymTab* symboltable, enum TokenType value);
 
 char* closest_key(struct SymTab* symboltable, const char* string);
 

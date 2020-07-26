@@ -92,13 +92,21 @@ struct CompStmt* lr_parser(char verbose)
             #endif
             int* row = action_table[*s_ptr];
             int len;
-            if (type < 128)
+            if (type < 128) {
                 len = 1;
-            else
+            }
+            else if (type == ICONST || type == FCONST) {
+                int_error(a, type);
+                goto cleanup;
+            }
+            else {
                 len = strlen(a->lexeme);
+            }
             if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL)
                 goto parsing_loop;
+
             generic_error(a, len);
+            cleanup:
             free_token(a);
 
             return NULL;
@@ -161,7 +169,7 @@ void parser_error(int length, const char* expected,
           int inject_symbol, char symbol)
 {
     /*
-     * Calls error func implemented in "lexer.c"
+     * Error interface for parser.
      */
     error("syntax error", length, expected, fatal, line, column,
         inject_symbol, symbol);
@@ -195,12 +203,45 @@ struct Token* insertion_fix(int* action_row, int len,
             return recovery_token;
         }
     }
+    if ((*type_ptr) >= NAND) {
+        enum TokenType should_be = 0;
+        char* closest_keyword = closest_keyword_with_action(keywords, (*a_ptr)->lexeme, action_row, n_states, &should_be);
+        if (closest_keyword == NULL);
+            return NULL;
+        strcpy(msg, "Expected ");
+        strcat(msg, closest_keyword);
+        strcat(msg, " before '");
+        if ((*type_ptr) == 0x04)
+            strcat(msg, "eof");
+        else if ((*type_ptr) < 128)
+            strncat(msg, &((*a_ptr)->c_val), 1);
+        else
+            strcat(msg, (*a_ptr)->lexeme);
+        strcat(msg, "'");
+        struct Token* tmp = inject_token(should_be);
+        parser_error(len, msg, 0, (*a_ptr)->line, (*a_ptr)->column, 0, 0);
+        grammar_error = TRUE;
+        struct Token* recovery_token = (*a_ptr);
+        (*a_ptr) = tmp;
+        (*type_ptr) = tmp->type;
+        recovery_mode = TRUE;
+        return recovery_token;
+    }
     return NULL;
 }
 
+void int_error(struct Token* token, enum TokenType type)
+{
+    char msg[LINELENGTH+29];
+    if (type == ICONST)
+        sprintf(msg, "Did not expect token '%ld'", token->i_val);
+    else
+        sprintf(msg, "Did not expect token '%lf'", token->f_val);
+    parser_error(0, msg, 0, token->line, token->column, 0, 0);
+
+}
 void generic_error(struct Token* token, int len)
 {
-
     char msg[29+len];
     strcpy(msg, "Did not expect token '");
 
