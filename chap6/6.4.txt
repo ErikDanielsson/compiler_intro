@@ -1,0 +1,128 @@
+Exercise 6.4. 1: Add to the translation of Fig. 6.19 rules for the following
+productions:
+a) E -> E1 * E2
+
+    E.addr = new Temp()
+    E.code = E1.code||E2.code||
+    gen(E.addr '=' E1.addr '*' E2.add)
+
+b) E -> + E1 (unary plus)
+
+    E.addr = E1.addr
+    E.code = E1.code
+
+Exercise 6.4.2: Repeat Exercise 6.4.1 for the incremental translation of Fig.
+6.20.
+a) E -> E1 * E2
+
+    E -> E1 * E2  {E.addr = new Temp()
+                    gen(E.addr '=' E1.addr '*' E2.add)}
+
+b) E -> + E1 (unary plus)
+
+    E -> + E1 {E.addr = E1.addr}
+
+Exercise 6.4.3: Use the translation of Fig. 6.22 to translate the following
+assignments:
+a) x = a[i] + b[j].
+
+    t0 = i * a_elem_len
+    t1 = a[t0]
+    t2 = j * b_elem_len
+    t3 = b[t2]
+    t4 = t1 + t3
+    x  = t4
+
+b) x = a[i][j] + b[i][j].
+
+    t0 = i * a_row_len
+    t1 = j * a_elem_len
+    t2 = t0 + t1
+    t3 = a[t2]
+    t4 = i * b_row_len
+    t5 = j * b_elem_len
+    t6 = t4 + t5
+    t7 = b[t6]
+    t8 = t3 + t7
+    x  = t9
+
+! c) x = a[b[i][j]][c[k]].
+    t0 = i * b_row_len
+    t1 = j * b_elem_len
+    t2 = t0 + t1
+    t3 = b[t2]
+    t4 = t3 * a_row_len
+    t5 = k * c_elem_len
+    t6 = c[t5]
+    t7 = t4 + t6
+    x  = t7
+
+! Exercise 6.4.4: Revise the translation of Fig. 6.22 for array references of the
+Fortran style, that is, id[EI, E2,..., En] for an n-dimensional array.
+
+    L -> id [ I ]   {global.array = top.get(id.lexeme)
+                     L.addr = I.addr
+                    }
+    I -> I1 , E     {I.array = I1.array;
+                     I.type = I1.type.elem;
+                     t = new Temp();
+                     I.addr = new Temp();
+                     gen(t '=' E.addr '*' I.type.width);
+                     gen(I.addr '=' L1.addr '+' t);}
+    I -> E          {I.array = global.array;
+                     I.type = I.array.type.elem;
+                     I.addr = new Temp();
+                     gen(I.addr = E.addr * I.type.width);}
+
+Exercise 6.4.5: Generalize formula (6.7) to multidimensional arrays, and
+in­dicate what values can be stored in the symbol table and used to compute
+offsets. Consider the following cases:
+a) An array A of two dimensions, in row-major form. The first dimension
+has indexes running from l1 to h1, and the second dimension has indexes
+from l2 to h2 . The width of a single array element is w.
+
+    [i][j] yields:
+
+    base + (i - low) * w  + (j - low) * (h1 - l1) * w
+
+b) The same as (a) , but with the array stored in column-major form.
+
+    [i][j] yields:
+
+    base + (j - low) * w  + (i - low) * (h1 - l1) * w
+
+! c) An array A of k dimensions, stored in row-major form, with elements of
+size w. The jth dimension has indexes running from lj to hj.
+
+    n = 0
+    for q in 0...k-1:
+        n = (i_q * (h_(q+1)-l_(q+1)+1))
+    n += i_k
+    n *= w
+    n += base
+
+! d) The same as (c) but with the array stored in column-major form.
+
+    n = 0
+    for q in 1...k:
+        n = (i_(k-q+1) * (h_(k-q+2)-l_(k-q+2)+1))
+    n += i_0
+    n *= w
+    n += base
+
+Exercise 6.4.6: An integer array A[i, j] has index i ranging from 1 to 10 and
+index j ranging from 1 to 20. Integers take 4 bytes each. Suppose array A is
+stored starting at byte O. Find the location of:
+a) A[4, 5] b )A[10, 8] c) A[3, 17].
+    a: 260
+    b: 752
+    c: 228
+Exercise 6.4.7: Repeat Exercise 6.4.6 if A i s stored in column-major order.
+    nope
+Exercise 6.4.8: A real array A[i, j, k] has index i ranging from 1 to 4, index
+j ranging from 0 to 4, and index k ranging from 5 to 10. Reals take 8 bytes
+each. Suppose array A is stored starting at byte O. Find the location of:
+a) A[3, 4, 5] b)A[1, 2, 7] c) A[4, 3, 9].
+    nope
+Exercise 6.4.9: Repeat Exercise 6.4.8 if A is stored in column-major order.
+    nope
