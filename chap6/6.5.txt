@@ -1,0 +1,47 @@
+Exercise 6.5.1: Assuming that function widen in Fig. 6.26 can handle any
+of the types in the hierarchy of Fig. 6.25 (a) , translate the expressions below.
+Assume that c and d are characters, s and t are short integers, i and j are
+integers, and x is a float.
+a) x = s + c.
+
+    t0 = (int) s
+    t1 = (int) c
+    t2 = t0 + t1
+    t3 = (float) t2
+    x  = t3
+
+b) i = s + c.
+
+    t0 = (int) s
+    t1 = (int) c
+    t2 = t0 + t1
+    x  = t2
+
+c) x = ( s + c ) * (t + d)
+
+    t0 = (int) s
+    t1 = (int) c
+    t2 = t0 + t1
+    t3 = (int) t
+    t4 = (int) d
+    t5 = t3 + t4
+    t6 = t2 * t5
+    t7 = (float) t6
+    x  = t7
+
+Exercise 6.5.2: As in Ada, suppose that each expression must have a unique
+type, but that from a subexpression, by itself, all we can deduce is a set of
+pos­sible types. That is, the application of function E1 to argument E2,
+represented by E -> E1(E2), has the associated rule
+
+        E.type = { t | for some s in E2.type, s -> t is in E1.type }
+
+Describe an SDD that determines a unique type for each subexpression by
+using an attribute type to synthesize a set of possible types bottom-up, and,
+once the unique type of the overall expression is determined, proceeds top-down
+to determine attribute 'unique' for the type of each subexpression.
+    S -> E        {S.type = E.type
+                   E.unique = S.type}
+    E -> E1 op E2 {E.type = max(E1.type, E2.type)
+                   E1.unique = E.unique
+                   E2.unique = E.unique}
