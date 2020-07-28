@@ -206,7 +206,7 @@ struct Token* insertion_fix(int* action_row, int len,
     if ((*type_ptr) >= NAND) {
         enum TokenType should_be = 0;
         char* closest_keyword = closest_keyword_with_action(keywords, (*a_ptr)->lexeme, action_row, n_states, &should_be);
-        if (closest_keyword == NULL);
+        if (closest_keyword == NULL)
             return NULL;
         strcpy(msg, "Expected ");
         strcat(msg, closest_keyword);
@@ -669,7 +669,7 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
     node->expr = **top;
     (*top)--;
 
-    free(*top);
+    free(**top);
     (*top)--;
 
     node->name = **top;

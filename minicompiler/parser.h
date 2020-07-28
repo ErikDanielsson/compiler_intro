@@ -173,6 +173,8 @@ struct FLoop {
 
 
 struct CompStmt* lr_parser(char verbose);
+void int_error(struct Token* token, enum TokenType type);
+void generic_error(struct Token* token, int len);
 void parser_error(int length, const char* expected,
           int fatal, int line, int column,
           int inject_symbol, char symbol);
