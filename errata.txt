@@ -1,0 +1,2 @@
+P. 408. Exercise 6.6.1: statment should be statement
+P. 409. Exercise 6.6.2: interation should be iteration
