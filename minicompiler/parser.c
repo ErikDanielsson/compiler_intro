@@ -38,7 +38,7 @@ char recovery_mode = FALSE;
  * thus a waste of resources.
  */
 char return_found = FALSE;
-char return_row[LINELENGTH];
+struct Line return_line;
 int return_line_num;
 int return_col_num;
 char func_decl_found = FALSE;
@@ -130,8 +130,7 @@ struct CompStmt* lr_parser(char verbose)
                 a = get_token();
                 type = a->type;
                 if (type == RETURN) {
-                    char* tmp = return_row;
-                    return_line_num = copy_current_line(&tmp);
+                    copy_current_line(&return_line);
                     return_col_num = a->column;
                 }
             }
@@ -260,7 +259,7 @@ void return_error()
     printf("\n%s:\033[1;31merror\033[0m: Return error at line %d\n", filename, return_line_num);
     printf(" ... |\n");
     printf("     |\n");
-    printf("%4d | %s", return_line_num, return_row);
+    printf("%4d | %s", return_line.num, return_line.line);
     printf("     |");
     for (int i = 0; i < return_col_num; i++)
         printf(" ");

@@ -22,13 +22,13 @@ char* eof = "eof";
 char buffer[2*BUFFERSIZE+2];
 char* buffer_ptr = buffer;
 #if CONTEXT
-char prev_lines[CONTEXT][LINELENGTH];
+struct Line prev_lines[CONTEXT];
 #endif
-char last_line[LINELENGTH];
-char curr_line[LINELENGTH];
-char next_line[LINELENGTH];
-char* forward = curr_line;
-char* lexeme_begin = curr_line;
+struct Line last_line = { 0 };
+struct Line curr_line = { 0 };
+struct Line next_line = { 0 };
+char* forward;
+char* lexeme_begin;
 
 int line_num = 1;
 int column_num = 1;
@@ -47,17 +47,17 @@ void error(const char* type_msg, int length,
     #if CONTEXT
     if (line < CONTEXT)
         for (int i = CONTEXT-line+2; i < CONTEXT; i++)
-            fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i]);
+            fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i].line);
 
     else
         for (int i = 1; i < CONTEXT; i++)
-            fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i]);
+            fprintf(stderr, "%4d |%s", line-CONTEXT-1+i, prev_lines[i].line);
     fprintf(stderr, "     |\n");
     #endif
     if (line > 1) {
         if (inject_symbol == -1) {
             fprintf(stderr, "%4d |", line-1);
-            char* tmp = last_line;
+            char* tmp = last_line.line;
             int count = 0;
             char c;
             for (;(c = *tmp) != '\n'; tmp++) {
@@ -78,7 +78,7 @@ void error(const char* type_msg, int length,
 
         } else {
             fprintf(stderr, "%4d |", line-1);
-            char* tmp = last_line;
+            char* tmp = last_line.line;
             char c;
             for (;(c = *tmp) != 0x00; tmp++) {
                 if (c == '\t')
@@ -90,7 +90,7 @@ void error(const char* type_msg, int length,
 
         }
     }
-    char* curr_i = curr_line;
+    char* curr_i = curr_line.line;
     char c;
 
     fprintf(stderr, "%4d |", line);
@@ -103,7 +103,7 @@ void error(const char* type_msg, int length,
             fprintf(stderr,"\033[1;31m^\033[0m");
     } else {
         while ((c = *curr_i) != 0x00) {
-            int index = curr_i-curr_line+1;
+            int index = curr_i-curr_line.line+1;
             if (inject_symbol && index == inject_symbol)
                 fprintf(stderr,"\033[1;34m%c\033[0m", symbol);
             if (index == column)
@@ -118,9 +118,9 @@ void error(const char* type_msg, int length,
         }
         fprintf(stderr, "\033[0m");
         fprintf(stderr, "     |");
-        curr_i = curr_line;
+        curr_i = curr_line.line;
         while ((c = *curr_i) != 0x00) {
-            int i = curr_i-curr_line+1;
+            int i = curr_i-curr_line.line+1;
             if (i == column) {
                 fprintf(stderr, "\033[1;31m");
                 fprintf(stderr, "^");
@@ -134,7 +134,7 @@ void error(const char* type_msg, int length,
             }
         }
         if (!inject_symbol) {
-            while (*curr_i != 0x00 && curr_i-curr_line+2 < column+length) {
+            while (*curr_i != 0x00 && curr_i-curr_line.line+2 < column+length) {
                 fprintf(stderr, "~");
                 curr_i++;
             }
@@ -143,7 +143,7 @@ void error(const char* type_msg, int length,
     fprintf(stderr, "\033[0m\n");
     if (!read_done) {
         fprintf(stderr, "%4d |", line+1);
-        for (curr_i = next_line; (c = *curr_i) != 0x00; curr_i++) {
+        for (curr_i = next_line.line; (c = *curr_i) != 0x00; curr_i++) {
             if (c == '\t')
                 fprintf(stderr, "        ");
             else
@@ -164,14 +164,15 @@ void token_error(int length, char* expected, int fatal)
     error("unidentified token", length, expected, fatal, line_num, column_num, 0, 0);
 }
 
-int copy_current_line(char** buffer)
+int copy_current_line(struct Line* buffer)
 {
-    strcpy(*buffer, curr_line);
-    return line_num;
+    strcpy((*buffer).line, curr_line.line);
+    (*buffer).num = curr_line.num;
 }
 
 int get_line()
 {
+    next_line.num = line_num;
     int i;
     if (*buffer_ptr == 0x04) {
         if (buffer_ptr == buffer+BUFFERSIZE) {
@@ -184,11 +185,12 @@ int get_line()
             buffer_ptr = buffer;
         } else {
             last_buffert = TRUE;
-            next_line[0] = 0x00;
+            next_line.line[0] = 0x00;
             return 0;
         }
     }
-    next_line[0] = *buffer_ptr;
+
+    next_line.line[0] = *buffer_ptr;
     for (i = 1; i < LINELENGTH-1 && *buffer_ptr != '\n';) {
         buffer_ptr++;
         if (*buffer_ptr == 0x04) {
@@ -202,15 +204,15 @@ int get_line()
                 buffer_ptr = buffer;
             } else {
                 last_buffert = TRUE;
-                next_line[i] = 0x00;
+                next_line.line[i] = 0x00;
                 return i;
             }
         }
-        next_line[i] = *buffer_ptr;
+        next_line.line[i] = *buffer_ptr;
         i++;
     }
     buffer_ptr++;
-    next_line[i] = 0x00;
+    next_line.line[i] = 0x00;
     return i;
 }
 
@@ -220,11 +222,11 @@ void read_from_buffert()
 {
     #if CONTEXT
     for (int i = 1; i < CONTEXT; i++)
-        strcpy(prev_lines[i-1], prev_lines[i]);
-    strcpy(prev_lines[CONTEXT-1], last_line);
+        memcpy(&prev_lines[i-1], &prev_lines[i], sizeof(struct Line));
+    memcpy(&prev_lines[CONTEXT-1], &last_line, sizeof(struct Line));
     #endif
-    strcpy(last_line, curr_line);
-    strcpy(curr_line, next_line);
+    memcpy(&last_line, &curr_line, sizeof(struct Line));
+    memcpy(&curr_line, &next_line, sizeof(struct Line));
     if (last_buffert) {
         if (n_read == 0) {
             read_done = TRUE;
@@ -238,7 +240,7 @@ void read_from_buffert()
     } else {
     n_read = get_line();
     }
-    forward = curr_line;
+    forward = curr_line.line;
 }
 
 void get_char()
@@ -272,6 +274,8 @@ char* get_lexeme()
 
 void init_lexer()
 {
+    forward = curr_line.line;
+    lexeme_begin = curr_line.line;
     // Initialize last char of both buffers to eof?
     int r = read(file_desc, buffer, BUFFERSIZE);
     buffer[r] = 0x04;

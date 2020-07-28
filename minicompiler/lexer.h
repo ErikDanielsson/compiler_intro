@@ -32,8 +32,12 @@ struct Token {
         long i_val;
         double f_val;
     };
-
 };
+struct Line {
+    char line[LINELENGTH];
+    int num;
+};
+
 extern const char* filename;
 extern int file_desc;
 extern struct SymTab* keywords;
@@ -44,7 +48,7 @@ void error(const char* type_msg, int length,
        const char* expected, int fatal,
        int line, int column,
        int inject_symbol, char symbol);
-int copy_current_line(char** buffer);
+int copy_current_line(struct Line* buffer);
 void print_token(struct Token* token);
 void print_token_str(struct Token* token);
 struct Token* get_token();
