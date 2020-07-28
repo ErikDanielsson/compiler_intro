@@ -1,0 +1,102 @@
+Exercise 6.6.1: Add rules to the syntax-directed definition of Fig. 6.36 for
+the following control-flow constructs:
+a) A repeat-statement: repeat S while B.
+
+    S -> repeat S1 while B      B.true = newlabel()
+                                B.false = fall
+                                S1.next = S.next
+
+                                S.code = label(B.true) || S1.code
+                                || B.code
+
+! b) A for-loop: for (S1; B; S2;) S3.
+
+    S -> for (S1; B; S2;) S3    begin = newlabel()
+                                B.true = newlabel()
+                                B.false = S.next
+                                S1.next = begin
+                                S2.next = begin
+                                S3.next = newlabel()
+                                S.code = S1.code || label(begin)
+                                || B.code || label(B.true) || S3.code
+                                label(S3.next) || S2.code || gen("goto begin")
+
+    The motivation for putting a label before the concatenation of S2.code
+    is that a continue within the loop should always execute S2.code. A break
+    statement on the other hand will generate a "goto" to S.next
+
+Exercise 6.6.2: Modern machines try to execute many instructions at the
+same time, including branching instructions. Thus, there is a severe cost if the
+machine speculatively follows one branch, when control actually goes another
+way (all the speculative work is thrown away). It is therefore desirable to
+minimize the number of branches. Notice that the implementation of a while-loop
+in Fig. 6.35 (c) has two branches per iteration: one to enter the body from
+the condition B and the other to jump back to the code for B. As a result,
+it is usually preferable to implement:
+
+        while (B) S
+
+as if it were:
+
+        if (B) { re­peat S until !(B) }.
+
+Show what the code layout looks like for this translation, and revise the rule
+for while-loops in Fig. 6.36.
+
+        B.code
+    B.true:
+        S.code
+        B.code
+    B.false
+
+    S -> while (B) S1       B.true = newlabel()
+                            B.false = S.next
+                            S.next = B.true
+                            S.code = B.code || label(B.true)
+                            || S.code || B.code || label(B.false)
+
+! Exercise 6.6.3 : Suppose that there were an "exclusive-or" operator (true if
+and only if exactly one of its two arguments is true) in C. Write the rule for
+this operator in the style of Fig. 6.37.
+
+    B -> B1 ^ B2    B1.true = newlabel()
+                    B1.false = newlabel()
+
+                    B3.code = B2.code
+                    B3.true = B.false
+                    B3.false = B.true
+
+                    B2.true = B.true
+                    B2.false = B.false
+
+                    B.code = B1.code || label(B1.true)
+                    || B3.code || label(B1.false) || B2.code
+
+
+
+Exercise 6.6.4: Translate the following expressions using the goto-avoiding
+translation scheme of Section 6.6.5:
+
+Semantic rule for B -> B1 && B2:
+B1.true = fall
+B1.false = if B.true != fall then B.true else newlabel()
+B2.true = B.true
+B2.false = B.false
+
+a) if (a==b && c==d || e==f) x = 1;
+
+b) if (a==b || c==d || e==f) x = 1;
+
+c) if (a==b && c==d && e==f) x = 1;
+
+
+Exercise 6.6.5: Give a translation scheme based on the syntax-directed
+definition in Figs. 6.36 and 6.37.
+
+Exercise 6.6.6: Adapt the semantic rules in Figs. 6.36 and 6.37 to allow
+control to fall through, using rules like the ones in Figs. 6.39 and 6.40.
+
+! Exercise 6.6.7: The semantic rules for statements in Exercise 6.6.6 generate
+unnecessary labels. Modify the rules for statements in Fig. 6.36 to create labels
+as needed, using a special label deferred to mean that a label has not yet been
+created. Your rules must generate code similar to that in Example 6.21.
