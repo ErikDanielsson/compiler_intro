@@ -14,3 +14,14 @@ parser.c:
     (fewer mallocs) and optimization of intermediate representation with
     things such as pre-calculation of expressions and generating fewer
     assembly lines.
+
+type checking:
+    By careful analysis of the stack states we should be able to determine
+    whether we've entered or left a new scope, since the language denotes all
+    scopes with '{' '}'. Hence symbol table creation, and therefore typechecking
+    should be possible to do parsing. This is because no inherited attributes
+    are used for simple type checking.
+
+IR generation:
+    Inherited attributes: While this is not natural for an LR parser, together
+    with either a dictionary or a stack, I believe it could be done.
