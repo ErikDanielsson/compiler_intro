@@ -402,435 +402,7 @@ void create_node_record(void*** top, int rule_num)
     printf("rule num %d\n", rule_num);
     (*record_creator[rule_num-1])(top);
 
-    /*switch (rule_num) {
-        case 1:
-
-            break;
-        case 2:
-
-            break;
-        case 3:
-
-
-        case 4:
-
-            break;
-
-        case 5:
-
-            break;
-
-        case 6:
-
-            break;
-
-        case 7:
-
-            break;
-
-        case 8:
-
-            break;
-
-        case 9:
-
-            break;
-
-        case 10:
-            #if DEBUG || TREEBUILDER
-            printf("(10) statement -> scope\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 11:
-            #if DEBUG || TREEBUILDER
-            printf("(11) statement -> return_statement ';''\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 12:
-            #if DEBUG || TREEBUILDER
-            printf("(12) variable_declaration -> 'ID' indices 'ID'\n");
-            #endif
-            #if TREEBUILDER
-            print_VarDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 13:
-            #if DEBUG || TREEBUILDER
-            printf("(13) variable_declaration -> 'ID' indices 'ID' '=' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_VarDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 14:
-            #if DEBUG || TREEBUILDER
-            printf("(14) variable_declaration -> 'ID' 'ID'\n");
-            #endif
-            #if TREEBUILDER
-            print_VarDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 15:
-            #if DEBUG || TREEBUILDER
-            printf("(15) variable_declaration -> 'ID' 'ID' '=' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_VarDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 16:
-            #if DEBUG || TREEBUILDER
-            printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'\n");
-            #endif
-            #if TREEBUILDER
-            print_FuncDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 17:
-            #if DEBUG || TREEBUILDER
-            printf("(17) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'\n");
-            #endif
-            #if TREEBUILDER
-            print_FuncDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 18:
-            #if DEBUG || TREEBUILDER
-            printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
-            #endif
-            #if TREEBUILDER
-            print_FuncDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 19:
-            #if DEBUG || TREEBUILDER
-            printf("(19) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'\n");
-            #endif
-            #if TREEBUILDER
-            print_FuncDecl(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 20:
-            #if DEBUG || TREEBUILDER
-            printf("(20) empty_indices -> empty_indices '[' ']'\n");
-            #endif
-            break;
-
-        case 21:
-            #if DEBUG || TREEBUILDER
-            printf("(21) empty_indices -> '[' ']'\n");
-            #endif
-            break;
-
-        case 22:
-            #if DEBUG || TREEBUILDER
-            printf("(22) params -> params ',' variable_declaration\n");
-            #endif
-            break;
-
-        case 23:
-            #if DEBUG || TREEBUILDER
-            printf("(23) params -> variable_declaration\n");
-            #endif
-            break;
-
-        case 24:
-            #if DEBUG || TREEBUILDER
-            printf("(24) indices -> indices '[' expr ']'\n");
-            #endif
-            break;
-
-        case 25:
-            #if DEBUG || TREEBUILDER
-            printf("(25) indices -> '[' expr ']'\n");
-            #endif
-            break;
-
-        case 26:
-            #if DEBUG || TREEBUILDER
-            printf("(26) indices -> indices '[' ']'\n");
-            #endif
-            break;
-
-        case 27:
-            #if DEBUG || TREEBUILDER
-            printf("(27) indices -> '[' ']'\n");
-            #endif
-            break;
-
-        case 28:
-            #if DEBUG || TREEBUILDER
-            printf("(28) variable_access -> 'ID'\n");
-            #endif
-            #if TREEBUILDER
-            print_VarAcc(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 29:
-            #if DEBUG || TREEBUILDER
-            printf("(29) variable_access -> 'ID' indices\n");
-            #endif
-            #if TREEBUILDER
-            print_VarAcc(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 30:
-            #if DEBUG || TREEBUILDER
-            printf("(30) expr -> expr '-' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 31:
-            #if DEBUG || TREEBUILDER
-            printf("(31) expr -> expr '+' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 32:
-            #if DEBUG || TREEBUILDER
-            printf("(32) expr -> expr '/' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 33:
-            #if DEBUG || TREEBUILDER
-            printf("(33) expr -> expr '%%' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 34:
-            #if DEBUG || TREEBUILDER
-            printf("(34) expr -> expr '*' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 35:
-            #if DEBUG || TREEBUILDER
-            printf("(35) expr -> expr '^' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 36:
-            #if DEBUG || TREEBUILDER
-            printf("(36) expr -> '(' expr ')'\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 37:
-            #if DEBUG || TREEBUILDER
-            printf("(37) expr -> 'ICONST'\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 38:
-            #if DEBUG || TREEBUILDER
-            printf("(38) expr -> 'FCONST'\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 39:
-            #if DEBUG || TREEBUILDER
-            printf("(39) expr -> 'SCONST'\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 40:
-            #if DEBUG || TREEBUILDER
-            printf("(40) expr -> variable_access\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 41:
-            #if DEBUG || TREEBUILDER
-            printf("(41) expr -> function_call\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 42:
-            #if DEBUG || TREEBUILDER
-            printf("(42) expr -> '+' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 43:
-            #if DEBUG || TREEBUILDER
-            printf("(43) expr -> '-' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_Expr(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 44:
-            #if DEBUG || TREEBUILDER
-            printf("(44) assignment_statement -> variable_access 'ASSIGN' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_AStmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 45:
-            #if DEBUG || TREEBUILDER
-            printf("(45) assignment_statement -> variable_access '=' expr\n");
-            #endif
-            #if TREEBUILDER
-            print_AStmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
-
-        case 46:
-            #if DEBUG || TREEBUILDER
-            printf("(46) assignment_statement -> variable_access 'SUFFIXOP'\n");
-            #endif
-            #if TREEBUILDER
-            print_AStmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
+    /*
 
         case 47:
             #if DEBUG || TREEBUILDER
@@ -1282,7 +854,17 @@ static inline void reduce_to_stmt_scope(void*** top)
     node->statement_type = SCOPE;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(10) statement -> scope\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
+
 static inline void reduce_to_stmt_return(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
@@ -1293,7 +875,17 @@ static inline void reduce_to_stmt_return(void*** top)
     node->stmt = **top;
     **top = node;
     return_found = TRUE;
+    #if DEBUG || TREEBUILDER
+    printf("(11) statement -> return_statement ';''\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
+
 static inline void reduce_to_vardecl_w_ind(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
@@ -1310,6 +902,15 @@ static inline void reduce_to_vardecl_w_ind(void*** top)
     (*top)--;
     node->type = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(12) variable_declaration -> 'ID' indices 'ID'\n");
+    #endif
+    #if TREEBUILDER
+    print_VarDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
@@ -1335,6 +936,15 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
 
     node->type = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(13) variable_declaration -> 'ID' indices 'ID' '=' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_VarDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_vardecl(void*** top)
@@ -1350,6 +960,15 @@ static inline void reduce_to_vardecl(void*** top)
     node->type = **top;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(14) variable_declaration -> 'ID' 'ID'\n");
+    #endif
+    #if TREEBUILDER
+    print_VarDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_vardecl_w_expr(void*** top)
@@ -1367,6 +986,15 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
 
     node->type = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(15) variable_declaration -> 'ID' 'ID' '=' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_VarDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_structdecl_type(void*** top)
@@ -1387,6 +1015,15 @@ static inline void reduce_to_structdecl_type(void*** top)
     (*top)--;
     free_token(**top);
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf(" struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}'");
+    #endif
+    #if TREEBUILDER
+    print_StructDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_structdecl_name(void*** top)
@@ -1407,6 +1044,15 @@ static inline void reduce_to_structdecl_name(void*** top)
     node->type_name = NULL;
     free_token(**top);
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf(" struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}' 'ID' ';' ");
+    #endif
+    #if TREEBUILDER
+    print_StructDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_structdecl_type_n_name(void*** top)
@@ -1430,6 +1076,15 @@ static inline void reduce_to_structdecl_type_n_name(void*** top)
     (*top)--;
     free_token(**top);
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf(" struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}' 'ID' ';' ");
+    #endif
+    #if TREEBUILDER
+    print_StructDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_decllist_decllist_vardecl(void*** top)
@@ -1457,6 +1112,10 @@ static inline void reduce_to_decllist_decllist_vardecl(void*** top)
     node->decls[n_decl-1] = tmp;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("declaration_list -> declaration_list variable_declarartion ';'");
+    #endif
+
 }
 
 static inline void reduce_to_decllist_decllist_structdecl(void*** top)
@@ -1482,6 +1141,9 @@ static inline void reduce_to_decllist_decllist_structdecl(void*** top)
     node->bool_arr[n_decl-1] = 1;
     node->decls[n_decl-1] = tmp;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("declaration_list -> declaration_list struct_declaration");
+    #endif
 }
 
 static inline void reduce_to_decllist_vardecl(void*** top)
@@ -1496,6 +1158,9 @@ static inline void reduce_to_decllist_vardecl(void*** top)
     node->decls = malloc(sizeof(void*));
     node->decls[0] = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("declaration_list -> variable_declarartion ';'");
+    #endif
 }
 
 static inline void reduce_to_decllist_structdecl(void*** top)
@@ -1508,7 +1173,9 @@ static inline void reduce_to_decllist_structdecl(void*** top)
     node->decls = malloc(sizeof(void*));
     node->decls[0] = **top;
     **top = node;
-
+    #if DEBUG || TREEBUILDER
+    printf("declaration_list -> struct_declaration");
+    #endif
 }
 
 static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
@@ -1549,6 +1216,15 @@ static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
     free_token(**top);
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(16) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'\n");
+    #endif
+    #if TREEBUILDER
+    print_FuncDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_func_decl_w_ind(void*** top)
@@ -1583,6 +1259,17 @@ static inline void reduce_to_func_decl_w_ind(void*** top)
     free_token(**top);
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(17) function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'\n");
+    #endif
+    #if TREEBUILDER
+    print_FuncDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+    break;
+
 }
 
 static inline void reduce_to_func_decl_w_params(void*** top)
@@ -1625,6 +1312,17 @@ static inline void reduce_to_func_decl_w_params(void*** top)
     free_token(**top);
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+
+    printf("(18) function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
+    #endif
+    #if TREEBUILDER
+    print_FuncDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+    break;
 }
 
 static inline void reduce_to_func_decl(void*** top)
@@ -1656,6 +1354,16 @@ static inline void reduce_to_func_decl(void*** top)
     free_token(**top);
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(19) function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')' '{' compound_statement '}'\n");
+    #endif
+    #if TREEBUILDER
+    print_FuncDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_empty_ind_list(void*** top)
@@ -1671,6 +1379,10 @@ static inline void reduce_to_empty_ind_list(void*** top)
     (*node)++;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(20) empty_indices -> empty_indices '[' ']'\n");
+    #endif
+
 }
 //20
 static inline void reduce_to_empty_ind(void*** top)
@@ -1684,6 +1396,10 @@ static inline void reduce_to_empty_ind(void*** top)
     (*node) = 1;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(21) empty_indices -> '[' ']'\n");
+    #endif
+
 }
 
 static inline void reduce_to_param_list(void*** top)
@@ -1706,6 +1422,11 @@ static inline void reduce_to_param_list(void*** top)
     free(prior_params);
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(22) params -> params ',' variable_declaration\n");
+    #endif
+
 }
 
 static inline void reduce_to_param(void*** top)
@@ -1719,6 +1440,10 @@ static inline void reduce_to_param(void*** top)
     node->params[0] = next_decl;
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(23) params -> variable_declaration\n");
+    #endif
 }
 
 static inline void reduce_to_ind_list_w_expr(void*** top)
@@ -1744,6 +1469,10 @@ static inline void reduce_to_ind_list_w_expr(void*** top)
     free(prior_node);
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(24) indices -> indices '[' expr ']'\n");
+    #endif
+
 }
 
 static inline void reduce_to_ind_w_expr(void*** top)
@@ -1763,6 +1492,11 @@ static inline void reduce_to_ind_w_expr(void*** top)
     node->indices[0] = expr;
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(25) indices -> '[' expr ']'\n");
+    #endif
+
 }
 
 static inline void reduce_to_ind_list(void*** top)
@@ -1785,6 +1519,11 @@ static inline void reduce_to_ind_list(void*** top)
     free(prior_node);
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(26) indices -> indices '[' ']'\n");
+    #endif
+
 }
 
 static inline void reduce_to_ind(void*** top)
@@ -1801,6 +1540,10 @@ static inline void reduce_to_ind(void*** top)
     node->indices[0] = NULL;
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(27) indices -> '[' ']'\n");
+    #endif
 }
 
 static inline void reduce_to_varacc(void*** top)
@@ -1812,6 +1555,17 @@ static inline void reduce_to_varacc(void*** top)
     node->variable = **top;
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(28) variable_access -> 'ID'\n");
+    #endif
+    #if TREEBUILDER
+    print_VarAcc(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
 }
 
 static inline void reduce_to_varacc_w_ind(void*** top)
@@ -1830,6 +1584,15 @@ static inline void reduce_to_varacc_w_ind(void*** top)
     node->variable = **top;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(29) variable_access -> 'ID' indices\n");
+    #endif
+    #if TREEBUILDER
+    print_VarAcc(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_varacc_list(void*** top)
@@ -1843,6 +1606,18 @@ static inline void reduce_to_varacc_list(void*** top)
     (*top)--;
     node->next = **top;
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(28) variable_access -> variable_access '.' 'ID'\n");
+    #endif
+    #if TREEBUILDER
+    print_VarAcc(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
+
 }
 
 static inline void reduce_to_varacc_w_ind_list(void*** top)
@@ -1862,6 +1637,15 @@ static inline void reduce_to_varacc_w_ind_list(void*** top)
     (*top)--;
     node->next = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(29) variable_access -> variable_access '.' 'ID' indices\n");
+    #endif
+    #if TREEBUILDER
+    print_VarAcc(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_expr_binop(void*** top)
@@ -1878,6 +1662,16 @@ static inline void reduce_to_expr_binop(void*** top)
     node->left = **top;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(30) expr -> expr 'binop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
 }
 
 static inline void reduce_to_expr_paren(void*** top)
@@ -1893,6 +1687,16 @@ static inline void reduce_to_expr_paren(void*** top)
     (*top)--;
     free_token(**top);
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(36) expr -> '(' expr ')'\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
 }
 
 static inline void reduce_to_expr_const(void*** top)
@@ -1901,6 +1705,16 @@ static inline void reduce_to_expr_const(void*** top)
     node->type = CONST;
     node->val = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(37) expr -> 'CONST'\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
 }
 
 static inline void reduce_to_expr_varacc(void*** top)
@@ -1909,6 +1723,15 @@ static inline void reduce_to_expr_varacc(void*** top)
     node->type = VARACC;
     node->variable_access = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(40) expr -> variable_access\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_expr_funccall(void*** top)
@@ -1917,6 +1740,18 @@ static inline void reduce_to_expr_funccall(void*** top)
     node->type = FUNCCALL;
     node->function_call = **top;
     **top = node;
+    break;
+
+    #if DEBUG || TREEBUILDER
+    printf("(41) expr -> function_call\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
 }
 
 static inline void reduce_to_expr_unary(void*** top)
@@ -1930,6 +1765,16 @@ static inline void reduce_to_expr_unary(void*** top)
     node->expr = **top;
 
     **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("(42) expr -> 'uop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_assign(void*** top)
@@ -1942,6 +1787,15 @@ static inline void reduce_to_assign(void*** top)
     node->variable_access = **top;
 
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(45) assignment_statement -> variable_access 'assign' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_AStmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_assign_suffixop(void*** top)
@@ -1952,6 +1806,16 @@ static inline void reduce_to_assign_suffixop(void*** top)
     (*top)--;
     node->variable_access = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(46) assignment_statement -> variable_access 'SUFFIXOP'\n");
+    #endif
+    #if TREEBUILDER
+    print_AStmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+    break;
 }
 
 static inline void reduce_to_funccall_w_args(void*** top)
