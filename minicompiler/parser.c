@@ -357,6 +357,8 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
     &reduce_to_expr_paren,
     &reduce_to_expr_const,
     &reduce_to_expr_const,
@@ -383,12 +385,6 @@ void (*record_creator[])(void***) = {
     &reduce_to_cond,
     &reduce_to_for_vardecl,
     &reduce_to_for_assign,
-    &reduce_to_bexpr_binop,
-    &reduce_to_bexpr_binop_w_paren,
-    &reduce_to_b_expr_r_expr,
-    &reduce_to_bexpr_bexpr_w_paren,
-    &reduce_to_rexpr_binop,
-    &reduce_to_rexpr_expr,
     &reduce_to_scope,
     &reduce_to_return,
 };
@@ -408,109 +404,36 @@ void create_node_record(void*** top, int rule_num)
 
     /*switch (rule_num) {
         case 1:
-            #if DEBUG || TREEBUILDER
-            printf("compound_statement -> compound_statement statement\n\n");
-            #endif
-            #if TREEBUILDER
-            print_CompStmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
         case 2:
-            #if DEBUG || TREEBUILDER
-            printf("compound_statement -> statement\n");
-            #endif
-            #if TREEBUILDER
-            print_CompStmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
         case 3:
-            #if DEBUG || TREEBUILDER
-            printf("(3) statement -> variable_declaration ';'\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
-            break;
+
 
         case 4:
-            #if DEBUG || TREEBUILDER
-            printf("(4) statement -> function_declaration\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
 
         case 5:
-            #if DEBUG || TREEBUILDER
-            printf("(5) statement -> assignment_statement ';'\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
 
         case 6:
-            #if DEBUG || TREEBUILDER
-            printf("(6) statement -> function_call ';'\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
 
         case 7:
-            #if DEBUG || TREEBUILDER
-            printf("(7) statement -> if_elif_else_statement\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
 
         case 8:
-            #if DEBUG || TREEBUILDER
-            printf("(8) statement -> while_loop\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
 
         case 9:
-            #if DEBUG || TREEBUILDER
-            printf("(9) statement -> for_loop\n");
-            #endif
-            #if TREEBUILDER
-            print_Stmt(**top, 0, 1, 1);
-            printf("\n");
-            printf("----------------------------------------------------------\n");
-            printf("\n");
-            #endif
+
             break;
 
         case 10:
@@ -1181,6 +1104,15 @@ static inline void reduce_to_compound_compound_list(void*** top)
     free(prior_compound->statement_list);
     free(prior_compound);
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("compound_statement -> compound_statement statement\n\n");
+    #endif
+    #if TREEBUILDER
+    print_CompStmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_compound_statement(void*** top)
@@ -1190,6 +1122,15 @@ static inline void reduce_to_compound_statement(void*** top)
     node->statement_list = malloc(sizeof(struct Stmt*));
     node->statement_list[0] = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("compound_statement -> statement\n");
+    #endif
+    #if TREEBUILDER
+    print_CompStmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_vardecl(void*** top)
@@ -1200,6 +1141,15 @@ static inline void reduce_to_stmt_vardecl(void*** top)
     node->statement_type = VARIABLE_DECLARATION;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(3) statement -> variable_declaration ';'\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_structdecl(void*** top)
@@ -1208,18 +1158,33 @@ static inline void reduce_to_stmt_structdecl(void*** top)
     node->statement_type = STRUCT_DECLARATION;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(3) statement -> struct_declaration ';'\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_funcdecl_(void*** top)
 {
-    #if DEBUG
-    printf("statement -> function_declaration");
-    #endif
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->statement_type = FUNCTION_DECLARATION;
     node->stmt = **top;
     **top = node;
     return_found = FALSE;
+    #if DEBUG || TREEBUILDER
+    printf("statement -> function_declaration\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_assignment_statement(void*** top)
@@ -1230,6 +1195,15 @@ static inline void reduce_to_stmt_assignment_statement(void*** top)
     node->statement_type = ASSIGNMENT_STATEMENT;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(5) statement -> assignment_statement ';'\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_funccall(void*** top)
@@ -1240,6 +1214,15 @@ static inline void reduce_to_stmt_funccall(void*** top)
     node->statement_type = FUNCTION_CALL;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(6) statement -> function_call ';'\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_ieestmt(void*** top)
@@ -1248,6 +1231,15 @@ static inline void reduce_to_stmt_ieestmt(void*** top)
     node->statement_type = IF_ELIF_ELSE_STATEMENT;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(7) statement -> if_elif_else_statement\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_wloop(void*** top)
@@ -1256,13 +1248,32 @@ static inline void reduce_to_stmt_wloop(void*** top)
     node->statement_type = WHILE_LOOP;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(8) statement -> while_loop\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
+
 static inline void reduce_to_stmt_floop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->statement_type = FOR_LOOP;
     node->stmt = **top;
     **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("(9) statement -> for_loop\n");
+    #endif
+    #if TREEBUILDER
+    print_Stmt(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
 }
 
 static inline void reduce_to_stmt_scope(void*** top)
@@ -2196,88 +2207,6 @@ static inline void reduce_to_for_assign(void*** top)
     **top = node;
 }
 
-static inline void reduce_to_bexpr_binop(void*** top)
-{
-    struct BExpr* node = malloc(sizeof(struct BExpr));
-    node->type = BINOP;
-    node->right = **top;
-    (*top)--;
-
-    free_token(**top);
-    (*top)--;
-
-    node->left = **top;
-
-    **top = node;
-}
-
-static inline void reduce_to_bexpr_binop_w_paren(void*** top)
-{
-    struct BExpr* node = malloc(sizeof(struct BExpr));
-    node->type = BINOP;
-    free_token(**top);
-    (*top)--;
-
-    node->right = **top;
-    (*top)--;
-
-    free_token(**top);
-    (*top)--;
-
-    node->left = **top;
-    (*top)--;
-
-    free_token(**top);
-
-    **top = node;
-}
-
-static inline void reduce_to_b_expr_r_expr(void*** top)
-{
-    struct BExpr* node = malloc(sizeof(struct BExpr));
-    node->type = CONST;
-    node->r_expr = **top;
-
-    **top = node;
-}
-
-static inline void reduce_to_bexpr_bexpr_w_paren(void*** top)
-{
-    free_token(**top);
-    (*top)--;
-
-    struct BExpr* node = **top;
-    (*top)--;
-
-    free_token(**top);
-
-    **top = node;
-}
-
-static inline void reduce_to_rexpr_binop(void*** top)
-{
-    struct RExpr* node = malloc(sizeof(struct RExpr));
-    node->type = BINOP;
-
-    node->right = **top;
-    (*top)--;
-
-    node->operator = **top;
-    (*top)--;
-
-    node->left = **top;
-
-    **top = node;
-}
-
-static inline void reduce_to_rexpr_expr(void*** top)
-{
-    struct RExpr* node = malloc(sizeof(struct RExpr));
-    node->type = CONST;
-    node->expr = **top;
-    **top = node;
-}
-
 static inline void reduce_to_scope(void*** top)
 {
     free_token(**top);
@@ -2597,7 +2526,7 @@ void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leaf)
 void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leaf)
 {
     if (!labels)
-        print_BExpr(node->boolean, nest_level+1, labels, leaf);
+        print_Expr(node->boolean, nest_level+1, labels, leaf);
     print_CompStmt(node->body, nest_level+1, labels, leaf);
 }
 
@@ -2620,51 +2549,13 @@ void print_FLoop(struct FLoop* node, int nest_level, char labels, char leaf)
         }
         write_indent(nest_level);
         printf(",\n");
-        print_BExpr(node->boolean, nest_level+1, labels, leaf);
+        print_Expr(node->boolean, nest_level+1, labels, leaf);
         write_indent(nest_level);
         printf(",\n");
         print_AStmt(node->update_statement, nest_level+1, labels, leaf);
         printf(",\n");
     }
     print_CompStmt(node->body, nest_level+1, labels, leaf);
-}
-
-void print_BExpr(struct BExpr* node, int nest_level, char labels, char leaf)
-{
-    if (node->type == BINOP) {
-        print_BExpr(node->left, nest_level+1, labels, leaf);
-        write_indent(nest_level);
-        printf("nand\n");
-        print_BExpr(node->right, nest_level+1, labels, leaf);
-    } else {
-        print_RExpr(node->r_expr, nest_level+1, labels, leaf);
-    }
-}
-
-void print_RExpr(struct RExpr* node, int nest_level, char labels, char leaf)
-{
-    if (labels) {
-        if (node->type == BINOP) {
-            write_indent(nest_level);
-            printf("expr ");
-            print_token_str(node->operator);
-            printf(" expr \n");
-        } else {
-            write_indent(nest_level);
-            printf("expr\n");
-        }
-    } else {
-        if (node->type == BINOP) {
-            print_Expr(node->left, nest_level+1, labels, leaf);
-            write_indent(nest_level);
-            print_token_str(node->operator);
-            printf("\n");
-            print_Expr(node->right, nest_level+1, labels, leaf);
-        } else {
-            print_Expr(node->expr, nest_level, labels, leaf);
-        }
-    }
-
 }
 
 void print_ReturnStmt(struct Expr* node, int nest_level, char labels, char leaf)
@@ -2832,7 +2723,7 @@ void free_IEEStmt(struct IEEStmt* node)
 void free_CondStmt(struct CondStmt* node)
 {
     //printf("FREE CONDITIONAL STATEMENT\n");
-    free_BExpr(node->boolean);
+    free_Expr(node->boolean);
     free_CompStmt(node->body);
     free(node);
 }
@@ -2844,36 +2735,10 @@ void free_FLoop(struct FLoop* node)
         free_VarDecl(node->init_stmt);
     else
         free_AStmt(node->init_stmt);
-    free_BExpr(node->boolean);
+    free_Expr(node->boolean);
     printf("free update\n");
     free_AStmt(node->update_statement);
     free_CompStmt(node->body);
-    free(node);
-}
-
-void free_BExpr(struct BExpr* node)
-{
-    //printf("FREE BOOLEAN EXPR\n");
-    if (node->type == BINOP) {
-        free_BExpr(node->left);
-        free_BExpr(node->right);
-    } else {
-        free_RExpr(node->r_expr);
-    }
-    free(node);
-}
-
-void free_RExpr(struct RExpr* node)
-{
-    //printf("FREE RELATIONAL EXPR\n");
-
-    if (node->type == BINOP) {
-        free_Expr(node->left);
-        free_token(node->operator);
-        free_Expr(node->right);
-    } else {
-        free_Expr(node->expr);
-    }
     free(node);
 }
 

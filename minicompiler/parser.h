@@ -149,7 +149,7 @@ struct IEEStmt {
  * they can be in the same struct(ure).
  */
 struct CondStmt {
-    struct BExpr* boolean;
+    struct Expr* boolean;
     struct CompStmt* body;
 };
 
@@ -166,33 +166,11 @@ struct EList {
 struct FLoop {
     enum NodeType type;
     void* init_stmt;
-    struct BExpr* boolean;
+    struct Expr* boolean;
     struct AStmt* update_statement;
     struct CompStmt* body;
 };
 
-struct BExpr {
-    enum ExprType type;
-    union {
-        struct {
-            struct BExpr* left;
-            struct BExpr* right;
-        };
-        struct RExpr* r_expr;
-    };
-};
-
-struct RExpr {
-    enum ExprType type;
-    union {
-        struct {
-            struct Expr* left;
-            struct Token* operator;
-            struct Expr* right;
-        };
-        struct Expr* expr;
-    };
-};
 
 struct CompStmt* lr_parser(char verbose);
 void parser_error(int length, const char* expected,
@@ -267,12 +245,6 @@ static inline void reduce_to_cond(void*** top);
 static inline void reduce_to_else(void*** top);
 static inline void reduce_to_for_vardecl(void*** top);
 static inline void reduce_to_for_assign(void*** top);
-static inline void reduce_to_bexpr_binop(void*** top);
-static inline void reduce_to_bexpr_binop_w_paren(void*** top);
-static inline void reduce_to_b_expr_r_expr(void*** top);
-static inline void reduce_to_bexpr_bexpr_w_paren(void*** top);
-static inline void reduce_to_rexpr_binop(void*** top);
-static inline void reduce_to_rexpr_expr(void*** top);
 static inline void reduce_to_scope(void*** top);
 static inline void reduce_to_return(void*** top);
 
@@ -291,8 +263,6 @@ void print_IEEStmt(struct IEEStmt* node, int nest_level, char labels, char leafs
 void print_CondStmt(struct CondStmt* node, int nest_level, char labels, char leafs);
 void print_WLoop(struct CondStmt* node, int nest_level, char labels, char leafs);
 void print_FLoop(struct FLoop* node, int nest_level, char labels, char leafs);
-void print_BExpr(struct BExpr* node, int nest_level, char labels, char leafs);
-void print_RExpr(struct RExpr* node, int nest_level, char labels, char leafs);
 void print_ReturnStmt(struct Expr* node, int nest_level, char labels, char leaf);
 
 void free_CompStmt(struct CompStmt* node);
@@ -307,5 +277,3 @@ void free_IEEStmt(struct IEEStmt* node);
 void free_CondStmt(struct CondStmt* node);
 void free_WLoop(struct CondStmt* node);
 void free_FLoop(struct FLoop* node);
-void free_BExpr(struct BExpr* node);
-void free_RExpr(struct RExpr* node);

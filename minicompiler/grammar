@@ -45,6 +45,8 @@ expr -> expr '/' expr
 expr -> expr '%' expr
 expr -> expr '*' expr
 expr -> expr '^' expr
+expr -> expr 'RELOP' expr
+expr -> expr 'NAND' expr
 expr -> '(' expr ')'
 expr -> 'ICONST'
 expr -> 'FCONST'
@@ -55,6 +57,7 @@ expr -> '+' expr
 expr -> '-' expr
 
 precedence: '-' : 0, '+' : 0, '*' : 1, '/' : 1, '%' : 1, '^' : 2
+precedence: 'RELOP' : 3, 'NAND' : 4
 
 
 assignment_statement -> variable_access 'ASSIGN' expr
@@ -70,23 +73,17 @@ if_elif_else_statement -> if_statement | if_statement elif_list
 
 elif_list -> elif_statement elif_list | elif_statement | else_statement
 
-if_statement -> 'IF' b_expr '{' compound_statement '}'
+if_statement -> 'IF' expr '{' compound_statement '}'
 
-elif_statement -> 'ELIF' b_expr '{' compound_statement '}'
+elif_statement -> 'ELIF' expr '{' compound_statement '}'
 
 else_statement -> 'ELSE' '{' compound_statement '}'
 
 
-while_loop -> 'WHILE' b_expr '{' compound_statement '}'
+while_loop -> 'WHILE' expr '{' compound_statement '}'
 
-for_loop -> 'FOR' variable_declaration ',' b_expr ',' assignment_statement '{' compound_statement '}'
-for_loop -> 'FOR' assignment_statement ',' b_expr ',' assignment_statement '{' compound_statement '}'
-
-b_expr -> b_expr 'NAND' b_expr
-b_expr -> '(' b_expr 'NAND' b_expr ')' | r_expr
-b_expr -> '(' b_expr ')'
-
-r_expr -> expr 'RELOP' expr | expr
+for_loop -> 'FOR' variable_declaration ',' expr ',' assignment_statement '{' compound_statement '}'
+for_loop -> 'FOR' assignment_statement ',' expr ',' assignment_statement '{' compound_statement '}'
 
 scope -> '{' compound_statement '}'
 
