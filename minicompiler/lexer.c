@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "lexer.h"
-#include "symbol_table.h"
+#include "keyword_table.h"
 
 #define BUFFERSIZE 4096
 #define TABLENGTH 8
@@ -33,7 +33,7 @@ char* lexeme_begin;
 int line_num = 1;
 int column_num = 1;
 
-struct SymTab* keywords;
+struct KeywordTab* keywords;
 int error_flag = 0;
 
 void error(const char* type_msg, int length,
@@ -164,7 +164,7 @@ void token_error(int length, char* expected, int fatal)
     error("unidentified token", length, expected, fatal, line_num, column_num, 0, 0);
 }
 
-int copy_current_line(struct Line* buffer)
+void copy_current_line(struct Line* buffer)
 {
     strcpy((*buffer).line, curr_line.line);
     (*buffer).num = curr_line.num;
@@ -264,7 +264,7 @@ char* get_lexeme()
     for (int i = 0; i < length; i++)
         tmp_lexeme[i] = *(lexeme_begin+i);
     tmp_lexeme[length] = 0x00;
-    char* lexeme = SymTab_get_key_ptr(keywords, tmp_lexeme);
+    char* lexeme = KeywordTab_get_key_ptr(keywords, tmp_lexeme);
     if (lexeme != NULL)
         return lexeme;
     lexeme = malloc(sizeof(char)*(length+1));
@@ -282,36 +282,37 @@ void init_lexer()
     n_read = get_line();
     read_from_buffert();
 
-    keywords = create_SymTab(25);
-    SymTab_set(keywords, "fofloloatot", ID);
-    SymTab_set(keywords, "inontot", ID);
-    SymTab_set(keywords, "sostotrorinongog", ID);
-    SymTab_set(keywords, "vovoidod", ID);
-    SymTab_set(keywords, "naand", NAND);
-    SymTab_set(keywords, "ifof", IF);
-    SymTab_set(keywords, "elolifof", ELIF);
-    SymTab_set(keywords, "elolsose", ELSE);
-    SymTab_set(keywords, "wowhohilole", WHILE);
-    SymTab_set(keywords, "foforor", FOR);
-    SymTab_set(keywords, "dodefofinone", DEFINE);
-    SymTab_set(keywords, "sostotrorucoctot", STRUCT);
-    SymTab_set(keywords, "roretoturornon", RETURN);
-    SymTab_set(keywords, "inonpoputot", ID);
-    SymTab_set(keywords, "poprorinontot", ID);
-    SymTab_set(keywords, "+=", ASSIGN);
-    SymTab_set(keywords, "-=", ASSIGN);
-    SymTab_set(keywords, "*=", ASSIGN);
-    SymTab_set(keywords, "/=", ASSIGN);
-    SymTab_set(keywords, "^=", ASSIGN);
-    SymTab_set(keywords, "%=", ASSIGN);
-    SymTab_set(keywords, "++", SUFFIXOP);
-    SymTab_set(keywords, "--", SUFFIXOP);
-    SymTab_set(keywords, "**", SUFFIXOP);
-    SymTab_set(keywords, "//", SUFFIXOP);
-    SymTab_set(keywords, "==", RELOP);
-    SymTab_set(keywords, "!=", RELOP);
-    SymTab_set(keywords, "<=", RELOP);
-    SymTab_set(keywords, ">=", RELOP);
+    keywords = create_KeywordTab(25);
+    KeywordTab_set(keywords, "fofloloatot", ID);
+    KeywordTab_set(keywords, "inontot", ID);
+    KeywordTab_set(keywords, "sostotrorinongog", ID);
+    KeywordTab_set(keywords, "vovoidod", ID);
+    KeywordTab_set(keywords, "ifof", IF);
+    KeywordTab_set(keywords, "elolifof", ELIF);
+    KeywordTab_set(keywords, "elolsose", ELSE);
+    KeywordTab_set(keywords, "wowhohilole", WHILE);
+    KeywordTab_set(keywords, "foforor", FOR);
+    KeywordTab_set(keywords, "dodefofinone", DEFINE);
+    KeywordTab_set(keywords, "sostotrorucoctot", STRUCT);
+    KeywordTab_set(keywords, "roretoturornon", RETURN);
+    KeywordTab_set(keywords, "inonpoputot", ID);
+    KeywordTab_set(keywords, "poprorinontot", ID);
+    KeywordTab_set(keywords, "+=", ASSIGN);
+    KeywordTab_set(keywords, "-=", ASSIGN);
+    KeywordTab_set(keywords, "*=", ASSIGN);
+    KeywordTab_set(keywords, "/=", ASSIGN);
+    KeywordTab_set(keywords, "^=", ASSIGN);
+    KeywordTab_set(keywords, "%=", ASSIGN);
+    KeywordTab_set(keywords, "++", SUFFIXOP);
+    KeywordTab_set(keywords, "--", SUFFIXOP);
+    KeywordTab_set(keywords, "**", SUFFIXOP);
+    KeywordTab_set(keywords, "//", SUFFIXOP);
+    KeywordTab_set(keywords, "==", RELOP);
+    KeywordTab_set(keywords, "!=", RELOP);
+    KeywordTab_set(keywords, "<=", RELOP);
+    KeywordTab_set(keywords, ">=", RELOP);
+    KeywordTab_set(keywords, "&&", AND);
+    KeywordTab_set(keywords, "||", OR);
 }
 
 static inline void set_lexeme_ptr()
@@ -367,7 +368,7 @@ struct Token* get_token()
             char* lexeme = get_lexeme();
             set_lexeme_ptr();
             token->lexeme = lexeme;
-            int type = SymTab_get(keywords, lexeme);
+            int type = KeywordTab_get(keywords, lexeme);
             if (type != -1) {
                 token->type = type;
             } else {
@@ -490,6 +491,32 @@ struct Token* get_token()
                     token->column = column_num-1;
                     set_lexeme_ptr();
                     return token;
+                }
+            case '&':
+                get_char();
+                if (*forward == '&') {
+                    get_char();
+                    token->type = AND;
+                    token->lexeme = get_lexeme();
+                    token->line = line_num;
+                    token->column = column_num-2;
+                    set_lexeme_ptr();
+                    return token;
+                } else {
+                    token_error(1, "There is currently no & token in the lang", 1);
+                }
+            case '|':
+                get_char();
+                if (*forward == '|') {
+                    get_char();
+                    token->type = OR;
+                    token->lexeme = get_lexeme();
+                    token->line = line_num;
+                    token->column = column_num-2;
+                    set_lexeme_ptr();
+                    return token;
+                } else {
+                    token_error(1, "There is currently no | token in the lang", 1);
                 }
             case '=':
                 get_char();

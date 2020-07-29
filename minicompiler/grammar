@@ -46,7 +46,8 @@ expr -> expr '%' expr
 expr -> expr '*' expr
 expr -> expr '^' expr
 expr -> expr 'RELOP' expr
-expr -> expr 'NAND' expr
+expr -> expr 'AND' expr
+expr -> expr 'OR' expr
 expr -> '(' expr ')'
 expr -> 'ICONST'
 expr -> 'FCONST'
@@ -55,9 +56,10 @@ expr -> variable_access
 expr -> function_call
 expr -> '+' expr
 expr -> '-' expr
-
+expr -> '!' expr
+precedence: 'RELOP' : 3, 'OR' : 4, 'AND' : 5, '!' : 6
 precedence: '-' : 0, '+' : 0, '*' : 1, '/' : 1, '%' : 1, '^' : 2
-precedence: 'RELOP' : 3, 'NAND' : 4
+
 
 
 assignment_statement -> variable_access 'ASSIGN' expr

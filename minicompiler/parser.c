@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "lexer.h"
-#include "symbol_table.h"
+#include "keyword_table.h"
 #include "parser.h"
 #include "table_generator.h"
 
@@ -102,8 +102,8 @@ struct CompStmt* lr_parser(char verbose)
             else {
                 len = strlen(a->lexeme);
             }
-            if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL)
-                goto parsing_loop;
+            //if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL)
+            //    goto parsing_loop;
 
             generic_error(a, len);
             cleanup:
@@ -202,7 +202,7 @@ struct Token* insertion_fix(int* action_row, int len,
             return recovery_token;
         }
     }
-    if ((*type_ptr) >= NAND) {
+    if ((*type_ptr) >= IF) {
         enum TokenType should_be = 0;
         char* closest_keyword = closest_keyword_with_action(keywords, (*a_ptr)->lexeme, action_row, n_states, &should_be);
         if (closest_keyword == NULL)
@@ -239,6 +239,7 @@ void int_error(struct Token* token, enum TokenType type)
     parser_error(0, msg, 0, token->line, token->column, 0, 0);
 
 }
+
 void generic_error(struct Token* token, int len)
 {
     char msg[29+len];
@@ -300,7 +301,7 @@ static inline void free_token(struct Token* token)
     if (type >= 128 &&
         type != ICONST &&
         type != FCONST)
-        if (SymTab_get(keywords, token->lexeme) == -1)
+        if (KeywordTab_get(keywords, token->lexeme) == -1)
             free(token->lexeme);
     free(token);
 }
@@ -358,12 +359,14 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
     &reduce_to_expr_paren,
     &reduce_to_expr_const,
     &reduce_to_expr_const,
     &reduce_to_expr_const,
     &reduce_to_expr_varacc,
     &reduce_to_expr_funccall,
+    &reduce_to_expr_unary,
     &reduce_to_expr_unary,
     &reduce_to_expr_unary,
     &reduce_to_assign,
@@ -2489,9 +2492,9 @@ int main(int argc, const char** argv)
     if (return_found)
         return_error();
     close(file_desc);
-    SymTab_dump(keywords);
+    KeywordTab_dump(keywords);
     if (tree != NULL)
         free_CompStmt(tree);
     destroy_parse_table();
-    SymTab_destroy(keywords);
+    KeywordTab_destroy(keywords);
 }

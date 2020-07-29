@@ -47,6 +47,7 @@ struct VarDecl {
     struct Expr** indices;
     struct Token* name;
     struct Expr* expr;
+    char decl_row[LINELENGTH];
 };
 
 struct StructDecl {
@@ -55,6 +56,7 @@ struct StructDecl {
     char* bool_arr;
     int n_decl;
     void** decls;
+    char decl_row[LINELENGTH];
 };
 
 struct DeclList {
@@ -70,6 +72,7 @@ struct FuncDecl {
     int n_params;
     struct VarDecl** params;
     struct CompStmt* body;
+    char decl_row[LINELENGTH];
 };
 
 struct Params {
