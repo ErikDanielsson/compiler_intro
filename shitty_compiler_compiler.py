@@ -28,7 +28,12 @@ cmd_line_parser.add_argument('infile')
 cmd_line_parser.add_argument('-w','--write', nargs=3)
 cmd_line_parser.add_argument('-c', '--default-chars', action="store_true")
 cmd_line_parser.add_argument('-t', '--table', nargs=1)
+cmd_line_parser.add_argument('-s', '--silent', action="store_true")
 cmd_line_args = cmd_line_parser.parse_args()
+
+def log(msg):
+    if not cmd_line_args.silent:
+        print(msg)
 
 class item:
     def __init__(self, head, body, index, prod_num):
@@ -123,7 +128,7 @@ class SLR_item_set:
             elif type(arg) == SLR_item:
                 self.set = [arg]
             else:
-                print("error: Mismatched types")
+                log("error: Mismatched types")
                 quit()
         else:
             self.set = list()
@@ -160,7 +165,7 @@ class LR_item_set:
             elif type(arg) == LR_item:
                 self.set = [arg]
             else:
-                print("error: Mismatched types")
+                log("error: Mismatched types")
                 quit()
         else:
             self.set = list()
@@ -643,12 +648,12 @@ def generate_parse_table(lalr_kernel, goto_table, terminals, nonterminals, first
                                                     error = False
                                                     break
                                 if error:
-                                    print(f"shift/reduce conflict on symbol " \
+                                    log(f"shift/reduce conflict on symbol " \
                                         f"{terminal} in:\n{item_set}.\n"
                                         f"Will resolve by shifting\n")
 
                             else:
-                                print(f"reduce/reduce conflict on symbol {terminal} in\n{item_set}")
+                                log(f"reduce/reduce conflict on symbol {terminal} in\n{item_set}")
                         else:
                             tmp_row[terminal] = -1-item.prod_num
         for nonterminal in nonterminals:
@@ -659,7 +664,7 @@ def generate_parse_table(lalr_kernel, goto_table, terminals, nonterminals, first
     return table
 
 def LR_parsing_algorithm(parsing_table, reduction_rules, input):
-    print("parsing...")
+    log("parsing...")
 
     stack = list()
     symbol_stack = list()
@@ -672,21 +677,21 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
         action = parsing_table[stack[-1]].get(a)
         s = str(stack)
         s1 = "".join(input[i:])
-        print("STACK\t" + s[1:-1])
-        print("INPUT\t" + s1+"$")
-        print("ACTION", end="\t")
+        log("STACK\t" + s[1:-1])
+        log("INPUT\t" + s1+"$")
+        log("ACTION", end="\t")
         if action == None:
-            print(f"error in state {stack[-1]} on symbol {a}: stack {stack}")
-            print("".join(input[i:]))
+            log(f"error in state {stack[-1]} on symbol {a}: stack {stack}")
+            log("".join(input[i:]))
             return
         elif action >= 0:
             stack.append(action)
             symbol_stack.append(Leaf(a))
-            print(f"shift to {action}\n")
+            log(f"shift to {action}\n")
             i += 1
         elif action == -1:
-            print("accept\n\n")
-            print(symbol_stack[-1])
+            log("accept\n\n")
+            log(symbol_stack[-1])
             return
         else:
             r = reduction_rules[-(action+1)]
@@ -696,7 +701,7 @@ def LR_parsing_algorithm(parsing_table, reduction_rules, input):
                 stack.pop()
             stack.append(parsing_table[stack[-1]].get(r[0]))
             symbol_stack.append(n)
-            print("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
+            log("reduce by "+r[0] + " -> "+" ".join(r[1])+"\n")
 
 
 rules, items, prods, nonterminals, terminals, pres, nullable = construct_SLR_items_terminals_and_nonterminals()
@@ -710,10 +715,10 @@ lr_kernel = propagate_lookaheads(lr_kernel, spontaneous, propagator_table)
 
 parse_table = generate_parse_table(lr_kernel, table, terminals, nonterminals, first, nullable, pres)
 for i, rule in enumerate(rules):
-        print(f"({i}) {rule[0]}" + " -> "+" ".join(rule[1]))
-#print(collection)
-print(parse_table)
-print(cmd_line_args)
+        log(f"({i}) {rule[0]}" + " -> "+" ".join(rule[1]))
+#log(collection)
+log(parse_table)
+log(cmd_line_args)
 
 def token_type_parser(infile, default_chars):
     value = default_chars*127
@@ -738,8 +743,8 @@ def token_type_parser(infile, default_chars):
             for token_type in token_types:
                 a = token_type.split('=')
                 if types.get(a[0]) != None:
-                    print(f"error: Double declaration of {a[0]} at {i}")
-                    print(types.get(a[0]))
+                    log(f"error: Double declaration of {a[0]} at {i}")
+                    log(types.get(a[0]))
                     quit()
                 l = len(a)
                 if l == 1:
@@ -751,10 +756,10 @@ def token_type_parser(infile, default_chars):
                         value = i
                         types[a[0].strip()] = value
                     else:
-                        print(f"error: value to low in {token_type}")
+                        log(f"error: value to low in {token_type}")
                         quit()
                 else:
-                    print("error: Something fishy is going on, why several '='?")
+                    log("error: Something fishy is going on, why several '='?")
                     quit()
     return types, value
 
@@ -764,14 +769,14 @@ def node_type_parser(infile):
     with open(infile, 'r') as f:
         for line in f:
             line_types = line.split(',')
-            print(line_types)
+            log(line_types)
             for line_type in line_types:
                 if line_type == '\n':
                     continue
                 else:
                     node_types[line_type] = value
                     value += 1
-    print(node_types)
+    log(node_types)
     return node_types
 
 if cmd_line_args.write:
@@ -786,9 +791,9 @@ if cmd_line_args.write:
                 new_key = token_types.get(key[1:-1])
 
                 if new_key == None:
-                    print(f"Was unable to find mapping of termninal {key} to token type")
+                    log(f"Was unable to find mapping of termninal {key} to token type")
                     for key, value in token_types.items():
-                        print(str(key)+":"+str(value))
+                        log(str(key)+":"+str(value))
                     quit()
                 new_row[new_key] = value
         converted_table.append(new_row)
@@ -805,7 +810,7 @@ if cmd_line_args.write:
                 goto_table[map].append((i, value))
 
     f = open(cmd_line_args.write[0], 'w')
-    print(cmd_line_args.write[0])
+    log(cmd_line_args.write[0])
     f.write('R\n')
     for i, rule in enumerate(rules):
         f.write(f"{i}: {rule[0]} -> "+" ".join(rule[1])+"\n")
@@ -836,7 +841,7 @@ if cmd_line_args.table:
     f.write("\n\n\n\n\n")
     f.write(str(collection))
     f.close()
-
-while True:
-    i = input().strip()
-    LR_parsing_algorithm(parse_table, rules, i)
+if (not cmd_line_args.write):
+    while True:
+        i = input().strip()
+        LR_parsing_algorithm(parse_table, rules, i)
