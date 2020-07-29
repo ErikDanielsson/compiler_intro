@@ -79,24 +79,113 @@ translation scheme of Section 6.6.5:
 
 Semantic rule for B -> B1 && B2:
 B1.true = fall
-B1.false = if B.true != fall then B.true else newlabel()
+B1.false = if B.false != fall then B.false else newlabel()
 B2.true = B.true
 B2.false = B.false
+B.code = if (B.true != fall) then B1.code || B2.code
+        else B1.code || B2.code || label(B.false)
 
 a) if (a==b && c==d || e==f) x = 1;
 
+    ifFalse a == b goto L2
+    if c == d goto L1
+L2:
+    ifFalse e == f goto L0
+L1:
+    x = 1
+L0:
+    ...
+
 b) if (a==b || c==d || e==f) x = 1;
+    if a == b goto L1
+    if c == d goto L1
+    ifFalse e == f goto L0
+L1:
+    x = 1
+L0:
+    ...
 
 c) if (a==b && c==d && e==f) x = 1;
+
+    ifFalse a == b goto L0
+    ifFalse c == d goto L0
+    ifFalse e == f goto L0:
+L1:
+    x = 1
+L0
 
 
 Exercise 6.6.5: Give a translation scheme based on the syntax-directed
 definition in Figs. 6.36 and 6.37.
+nope
 
 Exercise 6.6.6: Adapt the semantic rules in Figs. 6.36 and 6.37 to allow
 control to fall through, using rules like the ones in Figs. 6.39 and 6.40.
+
+    P -> S                      S.next = newlabel()
+                                P.code = S.code || label(S.next)
+
+    S -> assign                 S.code = assign.code
+
+    S -> if ( B ) S1             B.true = fall
+                                B.false = S.next
+                                S.code = B.code || S1.code
+
+    S -> if ( B ) S1 else S2    B.true = fall
+                                B.false = newlabel()
+                                S.code = B.code || S.code || goto(S.next)
+                                || label(B.false) || S2.code
+
+    S -> while ( B ) S          begin = newlabel()
+                                B.true = fall
+                                B.false = S.next
+                                S.code = label(begin) || B.code  || S.code
+
+    S -> S1 S2                  S1.next = newlabel()
+                                S2.next = S.next
+                                S.code = S1.code || label(S1.next) || S2.code
+
+    B -> B1 || B2       B1.true = if B.true != fall then B.true else newlabel()
+                        B1.false = fall
+                        B2.true = B1.false
+                        B3.false = B.false
+                        B.code = if B.true != fall then B1.code||B2.code
+                                else B1.code||B2.code||label(B1.true)
+
+    B -> B1 || B2       B1.true = fall
+                        B1.false = if B.false != fall then B.false else newlabel()
+                        B2.true = B.true
+                        B2.false = B.false
+                        B.code = if (B.true != fall) then B1.code || B2.code
+                        else B1.code || B2.code || label(B.false)
+
+    B -> ! B1           B1.true = B.false
+                        B1.false = B.true
+                        B.code = B1.code
+
+    B -> E1 rel E2      test = E1.addr rel.op E2.addr
+                        s = if B.true != fall && B.false != fall
+                                gen('if' test 'goto' B.true)
+                                || gen('goto' B.false)
+                            elif B.true != fall
+                                gen('if' test 'goto' B.true)
+                            elif B.false != fall
+                                gen('ifFalse' test 'goto' B.false)
+                            else
+                                ''
+                        B.code = E1.code||E2.code||s
+
+    B -> true           B.code if B.true != fall gen('goto' B.true) else ''
+    B -> false          B.code if B.false != fall gen('goto' B.false) else ''
 
 ! Exercise 6.6.7: The semantic rules for statements in Exercise 6.6.6 generate
 unnecessary labels. Modify the rules for statements in Fig. 6.36 to create labels
 as needed, using a special label deferred to mean that a label has not yet been
 created. Your rules must generate code similar to that in Example 6.21.
+
+!! Exercise 6.6.8: Section 6.6.5 talks about using fall-through code to minimize
+the number of jumps in the generated intermediate code. However, it does not
+take advantage of the option to replace a condition by its complement, e.g., re­
+place if a < b goto L1 ; goto L 2 by if b >= a goto L2; goto L1. Develop
+a SDD that does take advantage of this option when needed.
+    Replace ifFalse cond with if inv_cond
