@@ -1,0 +1,224 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "keyword_table.h"
+#include "lexer.h"
+#define MAX_ID_SIZE 256
+
+unsigned int hash(const char* key, int table_size)
+{
+    // FVN (Fowler / Noll / Vo) hash function:
+    const char *p = key;
+    unsigned int key_len = strlen(key);
+    unsigned int h = 0x811c9dc5;
+    int i;
+
+    for ( i = 0; i < key_len; i++ ) {
+        h = ( h ^ p[i] ) * 0x01000193;
+    }
+    return h % table_size;
+}
+
+struct KeywordTab* create_KeywordTab(int table_size)
+{
+    struct KeywordTab* symboltable = malloc(sizeof(struct KeywordTab) * 1);
+    symboltable->table_size  = table_size;
+    symboltable->entries = malloc(sizeof(struct keyword_entry*) * table_size);
+
+    for (int i = 0; i < table_size; i++) {
+        symboltable->entries[i] = NULL;
+    }
+
+    return symboltable;
+}
+
+struct keyword_entry* KeywordTab_pair(const char* key, enum TokenType type)
+{
+    struct keyword_entry* entry = malloc(sizeof(struct keyword_entry) * 1);
+    entry->key = malloc(sizeof(char)*strlen(key)+1);
+    strcpy(entry->key, key);
+    entry->type = type;
+    entry->next = NULL;
+    return entry;
+}
+
+void KeywordTab_set(struct KeywordTab* symboltable, const char* key, enum TokenType type)
+{
+    unsigned int slot = hash(key, symboltable->table_size);
+    struct keyword_entry* entry = symboltable->entries[slot];
+    struct keyword_entry* prev;
+    if (entry == NULL) {
+        symboltable->entries[slot] = KeywordTab_pair(key, type);
+        return;
+    }
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0) {
+            entry->type = type;
+            return;
+        }
+        prev = entry;
+        entry = prev->next;
+    }
+    prev->next = KeywordTab_pair(key, type);
+}
+
+enum TokenType KeywordTab_get(struct KeywordTab* symboltable, const char* key)
+{
+    unsigned int slot = hash(key, symboltable->table_size);
+    struct keyword_entry* entry = symboltable->entries[slot];
+
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0) {
+            return entry->type;
+        }
+        entry = entry->next;
+    }
+    return -1;
+}
+
+const char* KeywordTab_get_key_ptr(struct KeywordTab* symboltable, const char* key)
+{
+    unsigned int slot = hash(key, symboltable->table_size);
+    struct keyword_entry* entry = symboltable->entries[slot];
+
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0) {
+            return entry->key;
+        }
+        entry = entry->next;
+    }
+    return NULL;
+}
+
+const char* KeywordTab_first_key_by_type(struct KeywordTab* symboltable, enum TokenType type)
+{
+    for (int i = 0; i < symboltable->table_size; i++) {
+        struct keyword_entry* entry = symboltable->entries[i];
+        while (entry != NULL) {
+            if (entry->type == type) {
+                return entry->key;
+            }
+            entry = entry->next;
+        }
+    }
+    return NULL;
+}
+
+char* closest_keyword_with_action(struct KeywordTab* symboltable, const char* string,
+                                    int* action_row, int n_states,
+                                    enum TokenType* should_be)
+{
+    int n = strlen(string);
+    int v0[n+1];
+    int v1[n+1];
+
+    char current_match[MAX_ID_SIZE];
+    char tmp1[MAX_ID_SIZE];
+    for (int i = 0; i < MAX_ID_SIZE-1; i++)
+        tmp1[i] = 0x20;
+    tmp1[MAX_ID_SIZE-1] = 0x00;
+    int shortest_diff = 2147483647;
+    char match = FALSE;
+    for (int q = 0; q < symboltable->table_size; q++) {
+        struct keyword_entry* c_entry = symboltable->entries[q];
+        for (;c_entry != NULL; c_entry = c_entry->next) {
+
+            if (action_row[c_entry->type] > n_states)
+                continue;
+            for (int i = 0; i < n+1; i++)
+                v0[i] = i;
+            char* tmp = c_entry->key;
+            int m = strlen(tmp);
+            strcpy(tmp1, tmp);
+            tmp1[m] = 0x20;
+            tmp = tmp1;
+            for (int i = 1; i < MAX_ID_SIZE+1; i++) {
+                v1[0] = i;
+                for (int j = 1; j < n+1; j++) {
+                    int del = v0[j]+1;
+                    int ins = v1[j-1]+1;
+                    int sub = v0[j-1]+(string[j-1] != tmp[i-1]);
+                    if (del > ins) {
+                        if (ins > sub)
+                            v1[j] = sub;
+                        else
+                            v1[j] = ins;
+                    } else {
+                        if (del > sub)
+                            v1[j] = sub;
+                        else
+                            v1[j] = del;
+                    }
+                }
+                memcpy(v0, v1, sizeof(v1));
+
+            }
+            int tmp2 = v0[n];
+            printf("%s: %d\n", tmp, tmp2);
+            if (shortest_diff > tmp2) {
+                shortest_diff = tmp2;
+                *should_be = c_entry->type;
+                strcpy(current_match, tmp);
+                match = TRUE;
+            }
+            for (int i = 0; i < m; i++)
+                tmp1[i] = 0x20;
+            c_entry = c_entry->next;
+        }
+    }
+    if (!match)
+        return NULL;
+    char* res = malloc(sizeof(current_match));
+    strcpy(res, current_match);
+    return res;
+}
+
+void KeywordTab_destroy(struct KeywordTab* symboltable)
+{
+    if (symboltable == NULL)
+        return;
+    if (symboltable->entries != NULL) {
+        size_t i = 0;
+        while (i < symboltable->table_size) {
+            struct keyword_entry* head = symboltable->entries[i];
+            while (head != NULL) {
+                struct keyword_entry* tmp = head;
+                if (tmp->key != NULL) {
+                    free(tmp->key);
+                    tmp->key = NULL;
+                }
+
+                head = head->next;
+                free(tmp);
+            }
+            i++;
+        }
+        free(symboltable->entries);
+        symboltable->entries = NULL;
+    }
+    free(symboltable);
+    symboltable = NULL;
+}
+
+void KeywordTab_dump(struct KeywordTab* symboltable)
+{
+    printf("\n");
+    printf("Symbol table:\n");
+    for (int i = 0; i < symboltable->table_size; i++) {
+        struct keyword_entry* entry = symboltable->entries[i];
+        if (entry == NULL) {
+            continue;
+        }
+        printf("%4d:\t", i);
+        printf("%s : %x", entry->key, entry->type);
+        while (1) {
+            if (entry->next == NULL) {
+                break;
+            }
+            entry = entry->next;
+            printf(",\n\t%s : %x", entry->key, entry->type);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
