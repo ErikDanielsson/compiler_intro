@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include "lexer.h"
 #include "keyword_table.h"
+#include "symbol_table.h"
 #include "parser.h"
 #include "table_generator.h"
 
@@ -42,6 +43,13 @@ struct Line return_line;
 int return_line_num;
 int return_col_num;
 char func_decl_found = FALSE;
+
+struct SymTab* symbol_tables[NESTINGDEPTH];
+
+void init_parser()
+{
+    symbol_tables[0] = create_SymTab(100);
+}
 
 struct CompStmt* lr_parser(char verbose)
 /*

@@ -1,33 +1,36 @@
 #pragma once
-#include "lexer.h"
-#include "consts.h"
 
-unsigned int hash(const char* key, int table_size);
+enum SymbolType {
+    VARIABLE,
+    STRUCTURE,
+    FUNCTION,
+    TYPE,
+};
 
-struct entry {
+struct SymTab_entry {
     char* key;
-    enum TokenType type;
-    struct entry* next;
+    enum SymbolType type;
+    void* symbol;
+    struct SymTab_entry* next;
 };
 
 struct SymTab {
     int table_size;
-    struct entry** entries;
+    struct SymTab_entry** entries;
+    struct SymTab* parent;
 };
 
 struct SymTab* create_SymTab();
 
-struct entry* SymTab_pair(const char* key, enum TokenType type);
+struct SymTab_entry* SymTab_pair(char* key,
+                                enum SymbolType type,
+                                void* symbol);
 
-void SymTab_set(struct SymTab* symboltable, const char* key, enum TokenType type);
+void SymTab_set(struct SymTab* symboltable, char* key,
+                    enum SymbolType type, void* symbol);
 
-enum TokenType SymTab_get(struct SymTab* symboltable, const char* key);
-
-const char* SymTab_get_key_ptr(struct SymTab* symboltable, const char* key);
-
-const char* SymTab_first_key_by_value(struct SymTab* symboltable, enum TokenType value);
-
-char* closest_key(struct SymTab* symboltable, const char* string);
+enum SymbolType SymTab_get(struct SymTab* symboltable, char* key,
+                            void** symbol_out);
 
 void SymTab_destroy(struct SymTab* symboltable);
 

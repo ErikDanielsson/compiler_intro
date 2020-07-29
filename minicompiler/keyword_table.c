@@ -3,36 +3,23 @@
 #include <string.h>
 #include "keyword_table.h"
 #include "lexer.h"
+#include "hashing.h"
 #define MAX_ID_SIZE 256
-
-unsigned int hash(const char* key, int table_size)
-{
-    // FVN (Fowler / Noll / Vo) hash function:
-    const char *p = key;
-    unsigned int key_len = strlen(key);
-    unsigned int h = 0x811c9dc5;
-    int i;
-
-    for ( i = 0; i < key_len; i++ ) {
-        h = ( h ^ p[i] ) * 0x01000193;
-    }
-    return h % table_size;
-}
 
 struct KeywordTab* create_KeywordTab(int table_size)
 {
-    struct KeywordTab* symboltable = malloc(sizeof(struct KeywordTab) * 1);
-    symboltable->table_size  = table_size;
-    symboltable->entries = malloc(sizeof(struct keyword_entry*) * table_size);
+    struct KeywordTab* keywords = malloc(sizeof(struct KeywordTab) * 1);
+    keywords->table_size  = table_size;
+    keywords->entries = malloc(sizeof(struct keyword_entry*) * table_size);
 
     for (int i = 0; i < table_size; i++) {
-        symboltable->entries[i] = NULL;
+        keywords->entries[i] = NULL;
     }
 
-    return symboltable;
+    return keywords;
 }
 
-struct keyword_entry* KeywordTab_pair(const char* key, enum TokenType type)
+struct keyword_entry* KeywordTab_pair(char* key, enum TokenType type)
 {
     struct keyword_entry* entry = malloc(sizeof(struct keyword_entry) * 1);
     entry->key = malloc(sizeof(char)*strlen(key)+1);
@@ -42,13 +29,13 @@ struct keyword_entry* KeywordTab_pair(const char* key, enum TokenType type)
     return entry;
 }
 
-void KeywordTab_set(struct KeywordTab* symboltable, const char* key, enum TokenType type)
+void KeywordTab_set(struct KeywordTab* keywords, char* key, enum TokenType type)
 {
-    unsigned int slot = hash(key, symboltable->table_size);
-    struct keyword_entry* entry = symboltable->entries[slot];
+    unsigned int slot = hash(key, keywords->table_size);
+    struct keyword_entry* entry = keywords->entries[slot];
     struct keyword_entry* prev;
     if (entry == NULL) {
-        symboltable->entries[slot] = KeywordTab_pair(key, type);
+        keywords->entries[slot] = KeywordTab_pair(key, type);
         return;
     }
     while (entry != NULL) {
@@ -62,10 +49,10 @@ void KeywordTab_set(struct KeywordTab* symboltable, const char* key, enum TokenT
     prev->next = KeywordTab_pair(key, type);
 }
 
-enum TokenType KeywordTab_get(struct KeywordTab* symboltable, const char* key)
+enum TokenType KeywordTab_get(struct KeywordTab* keywords, char* key)
 {
-    unsigned int slot = hash(key, symboltable->table_size);
-    struct keyword_entry* entry = symboltable->entries[slot];
+    unsigned int slot = hash(key, keywords->table_size);
+    struct keyword_entry* entry = keywords->entries[slot];
 
     while (entry != NULL) {
         if (strcmp(entry->key, key) == 0) {
@@ -76,10 +63,10 @@ enum TokenType KeywordTab_get(struct KeywordTab* symboltable, const char* key)
     return -1;
 }
 
-const char* KeywordTab_get_key_ptr(struct KeywordTab* symboltable, const char* key)
+char* KeywordTab_get_key_ptr(struct KeywordTab* keywords, char* key)
 {
-    unsigned int slot = hash(key, symboltable->table_size);
-    struct keyword_entry* entry = symboltable->entries[slot];
+    unsigned int slot = hash(key, keywords->table_size);
+    struct keyword_entry* entry = keywords->entries[slot];
 
     while (entry != NULL) {
         if (strcmp(entry->key, key) == 0) {
@@ -90,10 +77,10 @@ const char* KeywordTab_get_key_ptr(struct KeywordTab* symboltable, const char* k
     return NULL;
 }
 
-const char* KeywordTab_first_key_by_type(struct KeywordTab* symboltable, enum TokenType type)
+char* KeywordTab_first_key_by_type(struct KeywordTab* keywords, enum TokenType type)
 {
-    for (int i = 0; i < symboltable->table_size; i++) {
-        struct keyword_entry* entry = symboltable->entries[i];
+    for (int i = 0; i < keywords->table_size; i++) {
+        struct keyword_entry* entry = keywords->entries[i];
         while (entry != NULL) {
             if (entry->type == type) {
                 return entry->key;
@@ -104,7 +91,7 @@ const char* KeywordTab_first_key_by_type(struct KeywordTab* symboltable, enum To
     return NULL;
 }
 
-char* closest_keyword_with_action(struct KeywordTab* symboltable, const char* string,
+char* closest_keyword_with_action(struct KeywordTab* keywords, char* string,
                                     int* action_row, int n_states,
                                     enum TokenType* should_be)
 {
@@ -119,8 +106,8 @@ char* closest_keyword_with_action(struct KeywordTab* symboltable, const char* st
     tmp1[MAX_ID_SIZE-1] = 0x00;
     int shortest_diff = 2147483647;
     char match = FALSE;
-    for (int q = 0; q < symboltable->table_size; q++) {
-        struct keyword_entry* c_entry = symboltable->entries[q];
+    for (int q = 0; q < keywords->table_size; q++) {
+        struct keyword_entry* c_entry = keywords->entries[q];
         for (;c_entry != NULL; c_entry = c_entry->next) {
 
             if (action_row[c_entry->type] > n_states)
@@ -173,14 +160,14 @@ char* closest_keyword_with_action(struct KeywordTab* symboltable, const char* st
     return res;
 }
 
-void KeywordTab_destroy(struct KeywordTab* symboltable)
+void KeywordTab_destroy(struct KeywordTab* keywords)
 {
-    if (symboltable == NULL)
+    if (keywords == NULL)
         return;
-    if (symboltable->entries != NULL) {
+    if (keywords->entries != NULL) {
         size_t i = 0;
-        while (i < symboltable->table_size) {
-            struct keyword_entry* head = symboltable->entries[i];
+        while (i < keywords->table_size) {
+            struct keyword_entry* head = keywords->entries[i];
             while (head != NULL) {
                 struct keyword_entry* tmp = head;
                 if (tmp->key != NULL) {
@@ -193,19 +180,19 @@ void KeywordTab_destroy(struct KeywordTab* symboltable)
             }
             i++;
         }
-        free(symboltable->entries);
-        symboltable->entries = NULL;
+        free(keywords->entries);
+        keywords->entries = NULL;
     }
-    free(symboltable);
-    symboltable = NULL;
+    free(keywords);
+    keywords = NULL;
 }
 
-void KeywordTab_dump(struct KeywordTab* symboltable)
+void KeywordTab_dump(struct KeywordTab* keywords)
 {
     printf("\n");
-    printf("Symbol table:\n");
-    for (int i = 0; i < symboltable->table_size; i++) {
-        struct keyword_entry* entry = symboltable->entries[i];
+    printf("Keywords:\n");
+    for (int i = 0; i < keywords->table_size; i++) {
+        struct keyword_entry* entry = keywords->entries[i];
         if (entry == NULL) {
             continue;
         }
