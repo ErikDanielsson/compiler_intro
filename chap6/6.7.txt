@@ -1,0 +1,117 @@
+6.7.5
+Exercises for Section 6.7
+Exercise 6.7.1: Using the translation of Fig. 6.43, translate each of the fol­
+lowing expressions. Show the true and false lists for each subexpression. You
+may assume the address of the first instruction generated is 100.
+a) a==b && (c==d || e==f)
+
+    101: if a == b goto 103
+    102: goto _
+    103: if c == d goto _
+    104: goto 105
+    105: if e == f goto _
+    106: goto _
+
+    B0.truelist = [103,105,]
+    B0.falselist = [106,102,]
+    B1.truelist = [101,]
+    B1.falselist = [102,]
+    B2.truelist = [103,105,]
+    B2.falselist = [106,]
+    B3.truelist = [103,105,]
+    B3.falselist = [106,]
+    B4.truelist = [103,]
+    B4.falselist = [104,]
+    B5.truelist = [105,]
+    B5.falselist = [106,]
+
+b) (a==b || c==d) || e==f
+    101: if a == b goto _
+    102: goto 103
+    103: if c == d goto _
+    104: goto 105
+    105: if e == f goto _
+    106: goto _
+
+    B0.truelist = [101, 103,105,]
+    B0.falselist = [106,]
+    B1.truelist = [101, 103,]
+    B1.falselist = [104,]
+    B2.truelist = [101, 103,]
+    B2.falselist = [104,]
+    B3.truelist = [101,]
+    B3.falselist = [102,]
+    B4.truelist = [103,]
+    B4.falselist = [104,]
+    B5.truelist = [105,]
+    B5.falselist = [106,]
+
+
+c) (a==b && c==d) && e==f
+    101: if a == b goto 103
+    102: goto _
+    103: if c == d goto 105
+    104: goto _
+    105: if e == f goto _
+    106: goto _
+
+
+    B0.truelist = [105,]
+    B0.falselist = [102,104,106,]
+    B1.truelist = [103,]
+    B1.falselist = [102,104,]
+    B2.truelist = [103,]
+    B2.falselist = [102,104,]
+    B3.truelist = [101,]
+    B3.falselist = [102,]
+    B4.truelist = [103,]
+    B4.falselist = [104,]
+    B5.truelist = [105,]
+    B5.falselist = [106,]
+
+
+Exercise 6.7.2: In Fig. 6.47(a) is the outline of a program, and Fig. 6.47(b)
+sketches the structure of the generated three-address code, using the
+backpatch­ing translation of Fig. 6.46. Here, i1 through i8 are the labels of the
+generated instructions that begin each of the "Code" sections. When we implement
+this translation, we maintain, for each boolean expression E, two lists of
+places in the code for E, which we denote by E. true and E.false. The places on
+list E. true are those places where we eventually put the label of the statement
+to which control must flow whenever E is true; E./alse similarly lists the
+places where we put the label that control flows to when E is found to be false.
+Also, we maintain for each statement S, a list of places where we must put the
+label to which control flows when S is finished. Give the value (one of i1
+through i8) that eventually replaces each place on each of the following lists:
+(a) E3.false
+(b) S2.next (c) E4.false (d) S1. next (e) E2.true
+
+
+
+while (El) {           i1: Code for E1
+    if (E2)            i2: Code for E2
+        while (E3)      i3: Code for E3
+            S1;         i4: Code for S1
+    else {              i5: Code for E4
+        if (E4)         i6: Code for S2
+            S2;         i7: Code for S3
+    }                   i8: ...
+}
+
+       (a)                 (b)
+
+Figure 6.47: Control-flow structure of program for Exercise 6.7.2
+
+Exercise 6.7.3: When performing the translation of Fig. 6.47 using the scheme
+of Fig. 6.46, we create lists S. next for each statement, starting with the assign­
+ment-statements S1 , S2 , and S3 , and proceeding to progressively larger if­
+statements, if-else-statements, while-statements, and statement blocks. There
+are five constructed statements of this type in Fig. 6.47:
+S4: while (E3) S1.
+S5: if (E4) S2.
+S6: The block consisting of S5 and S3.
+S7: The statement if S4 else S6.
+S8: The entire program.
+For each of these constructed statements, there is a rule that allows us
+to construCt Si . next in terms of other Sj . next lists, and the lists Ek . true and
+Ek .false for the expressions in the program. Give the rules for
+(a) S4 . next (b) S5 . next (c) S6 . next (d) S7 . next (e) S8 · next
