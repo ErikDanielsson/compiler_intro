@@ -1,0 +1,38 @@
+! Exercise 6.8.1: In order to translate a switch-statement into a sequence of
+case-statements as in Fig. 6.51, the translator needs to create the list of
+value label pairs, as it processes the source code for the switch. We can do so,
+using an additional translation that accumulates just the pairs. Sketch a syntax­
+direction definition that produces the list of pairs, while also emitting code
+for the statements Si that are the actions for each case.
+
+S -> switch (E) M { L }     list_code = for elem in L.list[:-1]
+                                emit(case E.addr elem.V.value elem.label)
+                            backpatch(L.nextlist, S.next)
+
+L -> C L1                   L.list = L1.list
+                            L.list.append(C.elem)
+                            L.default = L1.default
+                            L.nextlist = L1.nextlist
+                            L.nextlist.append(C.instr)
+
+L -> D                      L.list = []
+                            L.nextlist = [D.next]
+                            L.default = D.elem
+
+C -> 'case' V ':' S         label = newlabel()
+                            emit(label)
+                            C.elem.V = v
+                            C.elem.label = label
+                            emit(S.code)
+                            C.next = nextinstr
+                            emit(goto _)
+
+D -> 'default' ':' S        label = newlabel()
+                            emit(label)
+                            D.elem.V = v
+                            D.elem.label = label
+                            D.next = nextinstr
+                            emit(goto _)
+
+M -> epsilon                d = newlabel
+                            M.code = "goto d"
