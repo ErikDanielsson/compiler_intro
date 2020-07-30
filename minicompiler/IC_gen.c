@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parser.h"
+#include "type_checker.h"
+#include "symbol_table.h"
 #include "IC_gen.h"
 
 /*
@@ -9,11 +11,12 @@
 
 int label_num = 0;
 #define MAX_LABEL_LENGTH 10
+char temp[MAX_LABEL_LENGTH+1];
 char* get_temp()
 {
-    char temp[MAX_LABEL_LENGTH+1];
     sprintf(temp, "t%10d", label_num);
     label_num++;
+    return temp;
 }
 
 const char* ic_filename = "IR_file.tmp";
@@ -41,6 +44,41 @@ void emitlabel(char* label)
 {
     fprintf(IC_file_desc, "%s:", label);
 }
+
+void widening_error(char* type1, char* type2)
+{
+    fprintf(stderr, "\033[1;31merror\033[0m:Unable cast '%s' to '%s' or vice versa\n", type1, type2);
+    exit(-1);
+}
+
+int max(char* type1, char* type2)
+{
+    int a = get_widening_type(type1);
+    int b = get_widening_type(type2);
+    return (a - b) * (a != b);
+}
+
+char* widen(char* addr_a, char* type1, char* type2)
+{
+    if (strcmp(type1, type2) == )
+        return addr_a;
+    if (SymTab_type_declared(basic_types, type1) &&
+        SymTab_type_declared(basic_types, type1)) {
+            char* caster;
+            caster = type1 ? max(type1, type2) > 0 : type2;
+            char* temp = get_temp();
+            char instr[strlen(caster)+strlen(temp)+strlen(addr_a)+2+3];
+            sprintf(instr, "%s = (%s)%s", temp, caster, addr_a)
+            emit(instr);
+            return temp;
+
+    } else {
+        widening_error(type1, type2);
+        return NULL;
+    }
+
+}
+
 
 void visit_CompStmt(struct CompStmt* node)
 {
@@ -88,19 +126,15 @@ void visit_Stmt(struct Stmt* node)
     }
 }
 
-/*
- * The following two functions don't generate any code
- * since declarations are not included in the IC, and are instead
- * presevered in the symbol table.
- */
+
 void visit_VarDecl(struct VarDecl* node)
 {
-    return;
+
 }
 
 void visit_StructDecl(struct StructDecl* node)
 {
-    return;
+
 }
 
 void visit_FuncDecl(struct FuncDecl* node)
@@ -108,12 +142,12 @@ void visit_FuncDecl(struct FuncDecl* node)
 
 }
 
-void visit_VarAcc(struct VarAcc* node)
+char* visit_VarAcc(struct VarAcc* node)
 {
 
 }
 
-void visit_Expr(struct Expr* node)
+char* visit_Expr(struct Expr* node)
 {
     switch (node->type) {
         case BINOP:
@@ -142,7 +176,7 @@ void visit_AStmt(struct AStmt* node)
 
 }
 
-void visit_FuncCall(struct FuncCall* node)
+char* visit_FuncCall(struct FuncCall* node)
 {
 
 }
