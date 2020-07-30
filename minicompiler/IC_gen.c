@@ -51,21 +51,20 @@ void widening_error(char* type1, char* type2)
     exit(-1);
 }
 
-int max(char* type1, char* type2)
+char* max(char* type1, char* type2)
 {
-    int a = get_widening_type(type1);
-    int b = get_widening_type(type2);
-    return (a - b) * (a != b);
+    int a = get_widening_type(basic_types, type1);
+    int b = get_widening_type(basic_types, type2);
+    return (a > b) ? type1 : type2;
 }
 
 char* widen(char* addr_a, char* type1, char* type2)
 {
-    if (strcmp(type1, type2) == )
+    if (strcmp(type1, type2) == 0)
         return addr_a;
     if (SymTab_type_declared(basic_types, type1) &&
         SymTab_type_declared(basic_types, type1)) {
-            char* caster;
-            caster = type1 ? max(type1, type2) > 0 : type2;
+            char* caster = max(type1, type2);
             char* temp = get_temp();
             char instr[strlen(caster)+strlen(temp)+strlen(addr_a)+2+3];
             sprintf(instr, "%s = (%s)%s", temp, caster, addr_a)
@@ -151,13 +150,15 @@ char* visit_Expr(struct Expr* node)
 {
     switch (node->type) {
         case BINOP:
-            visit_Expr(node->left);
+            char* type1 = visit_Expr(node->left);
             printf("\n");
-            visit_Expr(node->right);
-            return;
+            char* type2 = visit_Expr(node->right);
+            char* m = widen(type1, type2);
+            node->addr = m;
+            return max(type1, type2);
         case UOP:
             printf("\n");
-            visit_Expr(node->expr);
+            type = visit_Expr(node->expr);
             return;
         case CONST:
             printf("\n");

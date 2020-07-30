@@ -106,6 +106,7 @@ struct Expr {
      * to store a pointer.
      */
     enum ExprType type;
+    char* addr;
     union {
         struct {
             struct Expr* left;

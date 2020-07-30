@@ -1,6 +1,6 @@
 #pragma once
 #include "parser.h"
-extern struct SymTab* type_table;
+extern struct SymTab* basic_types;
 void init_type_checker();
 void enter_struct_decl(struct StructDecl* node);
 void push_Symtab();

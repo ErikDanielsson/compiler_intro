@@ -12,7 +12,7 @@ struct SymTab_entry {
     union {
         int widening_priority;
         void* symbol;
-    }
+    };
 
     struct SymTab_entry* next;
 };
