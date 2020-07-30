@@ -77,33 +77,40 @@ generated instructions that begin each of the "Code" sections. When we implement
 this translation, we maintain, for each boolean expression E, two lists of
 places in the code for E, which we denote by E. true and E.false. The places on
 list E. true are those places where we eventually put the label of the statement
-to which control must flow whenever E is true; E./alse similarly lists the
+to which control must flow whenever E is true; E.false similarly lists the
 places where we put the label that control flows to when E is found to be false.
 Also, we maintain for each statement S, a list of places where we must put the
 label to which control flows when S is finished. Give the value (one of i1
 through i8) that eventually replaces each place on each of the following lists:
-(a) E3.false
-(b) S2.next (c) E4.false (d) S1. next (e) E2.true
+(a) E3.false (b) S2.next (c) E4.false (d) S1.next (e) E2.true
 
 
 
-while (El) {           i1: Code for E1
-    if (E2)            i2: Code for E2
+while (E1) {            i1: Code for E1
+    if (E2)             i2: Code for E2
         while (E3)      i3: Code for E3
             S1;         i4: Code for S1
     else {              i5: Code for E4
         if (E4)         i6: Code for S2
             S2;         i7: Code for S3
-    }                   i8: ...
+        S3;             i8: ...
+    }
 }
 
        (a)                 (b)
 
 Figure 6.47: Control-flow structure of program for Exercise 6.7.2
 
+a) i1
+b) i7
+c) i7
+d) i3
+e) i3
+
+
 Exercise 6.7.3: When performing the translation of Fig. 6.47 using the scheme
-of Fig. 6.46, we create lists S. next for each statement, starting with the assign­
-ment-statements S1 , S2 , and S3 , and proceeding to progressively larger if­
+of Fig. 6.46, we create lists S.next for each statement, starting with the
+assign­ment-statements S1, S2, and S3, and proceeding to progressively larger if­
 statements, if-else-statements, while-statements, and statement blocks. There
 are five constructed statements of this type in Fig. 6.47:
 S4: while (E3) S1.
@@ -112,6 +119,11 @@ S6: The block consisting of S5 and S3.
 S7: The statement if S4 else S6.
 S8: The entire program.
 For each of these constructed statements, there is a rule that allows us
-to construCt Si . next in terms of other Sj . next lists, and the lists Ek . true and
-Ek .false for the expressions in the program. Give the rules for
-(a) S4 . next (b) S5 . next (c) S6 . next (d) S7 . next (e) S8 · next
+to construct Si.next in terms of other Sj.next lists, and the lists Ek.true and
+Ek.false for the expressions in the program. Give the rules for
+(a) S4.next (b) S5.next (c) S6.next (d) S7.next (e) S8.next
+a) S4.next = E3.false
+b) S5.next = merge(E4.false, S2.next)
+c) S6.next = S3.next
+d) S7.next = merge(S4.next, S6.next)
+e) S8.next = E1.false
