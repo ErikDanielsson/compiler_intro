@@ -18,10 +18,8 @@ variable_declaration -> 'ID' 'ID' | 'ID' 'ID' '=' expr
 
 struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}'
 
-declaration_list -> declaration_list anon_struct_declaration
 declaration_list -> declaration_list variable_declaration ';'
-declaration_list -> anon_struct_declaration | variable_declaration ';'
-anon_struct_declaration -> 'STRUCT' '{' declaration_list '}'
+declaration_list -> variable_declaration ';'
 
 function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'
 function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'
