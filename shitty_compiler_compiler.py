@@ -31,9 +31,9 @@ cmd_line_parser.add_argument('-t', '--table', nargs=1)
 cmd_line_parser.add_argument('-s', '--silent', action="store_true")
 cmd_line_args = cmd_line_parser.parse_args()
 
-def log(msg):
+def log(msg, end='\n'):
     if not cmd_line_args.silent:
-        print(msg)
+        print(msg, end=end)
 
 class item:
     def __init__(self, head, body, index, prod_num):
