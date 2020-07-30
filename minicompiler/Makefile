@@ -1,12 +1,14 @@
-CC = gcc-10
+CC = clang
 CFLAGS = -Wall
 DEPS =
-OBJ= parser.o lexer.o keyword_table.o table_generator.o hashing.o
+OBJ=  lexer.o keyword_table.o table_generator.o parser.o symbol_table.o type_checker.o hashing.o IC_gen.o main.o
 
 all:
-	python ../shitty_compiler_compiler.py grammar -w parsing_table.txt token_types.txt node_types.txt -c -s
+	make table
 	make a.out
 
+table:
+	python ../shitty_compiler_compiler.py grammar -w parsing_table.txt token_types.txt node_types.txt -c -s
 
 disassemble: $(wildcard *.out)
 	objdump -d --disassembler-options=intel-mnemonic $< \
@@ -29,3 +31,4 @@ clean:
 	rm -f disassembled.asm
 	rm -f *.out
 	rm -f *.o
+	rm -f *.tmp
