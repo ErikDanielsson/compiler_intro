@@ -9,7 +9,11 @@ enum SymbolType {
 struct SymTab_entry {
     char* key;
     enum SymbolType type;
-    void* symbol;
+    union {
+        int widening_priority;
+        void* symbol;
+    }
+
     struct SymTab_entry* next;
 };
 
@@ -23,7 +27,14 @@ struct SymTab {
 
 struct SymTab* create_SymTab(int table_size, struct SymTab* parent);
 
-void SymTab_append_child(struct SymTab* parent, struct SymTab* child),
+struct SymTab_entry* SymTab_type_pair(char* key,
+                                int widening_priority);
+
+void SymTab_set_type(struct SymTab* symbol_table, char* key, int widening_priority),
+
+int get_widening_type(struct SymTab* symbol_table, char* key);
+
+void SymTab_append_child(struct SymTab* parent, struct SymTab* child);
 
 struct SymTab_entry* SymTab_pair(char* key,
                                 enum SymbolType type,

@@ -20,11 +20,11 @@ struct SymTab* create_SymTab(int table_size, struct SymTab* parent)
 
 void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
 {
-    struct SymTab** tmp;
-    memcpy(tmp, parent_childs, parent->n_childs);
+    struct SymTab* tmp[parent->n_childs];
+    memcpy(tmp, parent->childs, parent->n_childs);
     int n_childs = ++parent->n_childs;
     parent->childs = malloc(sizeof(struct SymTab*)*n_childs);
-    memcpy(tmp, parent_childs, n_childs-1);
+    memcpy(tmp, parent->childs, n_childs-1);
     parent->childs[n_childs-1] = child;
 }
 
@@ -37,7 +37,52 @@ struct SymTab_entry* SymTab_pair(char* key,
     strcpy(entry->key, key);
     entry->type = type;
     entry->next = NULL;
+    entry->symbol = symbol;
     return entry;
+}
+
+struct SymTab_entry* SymTab_type_pair(char* key,
+                                int widening_priority)
+{
+    struct SymTab_entry* entry = malloc(sizeof(struct SymTab_entry));
+    entry->key = malloc(sizeof(char)*strlen(key)+1);
+    strcpy(entry->key, key);
+    entry->widening_priority = widening_priority;
+    entry->next = NULL;
+    entry->type = STRUCTURE;
+    return entry;
+}
+
+void SymTab_set_type(struct SymTab* symbol_table, char* key, int widening_priority)
+{
+    unsigned int slot = hash(key, symbol_table->table_size);
+    struct SymTab_entry* entry = symbol_table->entries[slot];
+    struct SymTab_entry* prev;
+    if (entry == NULL) {
+        symbol_table->entries[slot] = SymTab_type_pair(key, type, symbol);
+        return 0;
+    }
+    while (entry != NULL) {
+        prev = entry;
+        entry = prev->next;
+    }
+    prev->next = SymTab_type_pair(key, type, symbol);
+    return 0;
+}
+
+int get_widening_type(struct SymTab* symbol_table, char* key)
+{
+    unsigned int hashv = hash(key, symbol_table->table_size);
+    struct SymTab_entry* entry = symbol_table->entries[hashv];
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0) {
+            *symbol_out = entry->symbol;
+            return entry->widening_priority;
+
+        }
+        entry = entry->next;
+    }
+    return -1;
 }
 
 int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
