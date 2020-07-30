@@ -8,6 +8,8 @@ enum NodeType {
     STATEMENT,
     VARIABLE_DECLARATION,
     STRUCT_DECLARATION,
+    DECLARATION_LIST,
+    ANON_STRUCT_DECLARATION,
     FUNCTION_DECLARATION,
     EMPTY_INDICES,
     PARAMS,
@@ -24,8 +26,6 @@ enum NodeType {
     ELSE_STATEMENT,
     WHILE_LOOP,
     FOR_LOOP,
-    B_EXPR,
-    R_EXPR,
     SCOPE,
     RETURN_STATEMENT,
     TOKEN
@@ -52,17 +52,16 @@ struct VarDecl {
 
 struct StructDecl {
     struct Token* type_name;
-    struct Token* name;
     char* bool_arr;
     int n_decl;
-    void** decls;
+    void** fields;
     char decl_row[LINELENGTH];
 };
 
 struct DeclList {
     char* bool_arr;
     int n_decl;
-    void** decls;
+    void** fields;
 };
 
 struct FuncDecl {
@@ -207,12 +206,11 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top);
 static inline void reduce_to_vardecl(void*** top);
 static inline void reduce_to_vardecl_w_expr(void*** top);
 static inline void reduce_to_structdecl_type(void*** top);
-static inline void reduce_to_structdecl_name(void*** top);
-static inline void reduce_to_structdecl_type_n_name(void*** top);
 static inline void reduce_to_decllist_decllist_vardecl(void*** top);
-static inline void reduce_to_decllist_decllist_structdecl(void*** top);
+static inline void reduce_to_decllist_decllist_anon_structdecl(void*** top);
 static inline void reduce_to_decllist_vardecl(void*** top);
-static inline void reduce_to_decllist_structdecl(void*** top);
+static inline void reduce_to_decllist_anon_structdecl(void*** top);
+static inline void reduce_to_anon_structdecl(void*** top);
 static inline void reduce_to_func_decl_w_ind_n_params(void*** top);
 static inline void reduce_to_func_decl_w_ind(void*** top);
 static inline void reduce_to_func_decl_w_params(void*** top);

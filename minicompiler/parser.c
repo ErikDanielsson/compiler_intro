@@ -9,6 +9,7 @@
 #include "symbol_table.h"
 #include "parser.h"
 #include "table_generator.h"
+#include "type_checker.h"
 
 /*
  * The following file implements an LR parser and constructs an abstract
@@ -23,7 +24,7 @@
 #define FALSE 0
 #define VERBOSE 1
 #define DEBUG 0
-#define TREEBUILDER 1
+#define TREEBUILDER 0
 #define LABELS 0
 
 char grammar_error = FALSE;
@@ -43,13 +44,6 @@ struct Line return_line;
 int return_line_num;
 int return_col_num;
 char func_decl_found = FALSE;
-
-struct SymTab* symbol_tables[NESTINGDEPTH];
-
-void init_parser()
-{
-    symbol_tables[0] = create_SymTab(100);
-}
 
 struct CompStmt* lr_parser(char verbose)
 /*
@@ -72,7 +66,7 @@ struct CompStmt* lr_parser(char verbose)
     *record_ptr = NULL;
 
     int action;
-    parsing_loop:
+    //parsing_loop:
     while (TRUE) {
         action = action_table[*s_ptr][type];
 
@@ -82,7 +76,7 @@ struct CompStmt* lr_parser(char verbose)
         print_token_str(a);
         printf(", %x\n", type);
         #else
-        printf("Stack depth: %ld\n", s_ptr-stack);
+        //printf("Stack depth: %ld\n", s_ptr-stack);
         #endif
 
         if (action >= n_states) {
@@ -98,7 +92,7 @@ struct CompStmt* lr_parser(char verbose)
                 printf("%d, ", *(stack+i));
             printf("\n");
             #endif
-            int* row = action_table[*s_ptr];
+            //int* row = action_table[*s_ptr];
             int len;
             if (type < 128) {
                 len = 1;
@@ -337,12 +331,11 @@ void (*record_creator[])(void***) = {
     &reduce_to_vardecl,
     &reduce_to_vardecl_w_expr,
     &reduce_to_structdecl_type,
-    &reduce_to_structdecl_name,
-    &reduce_to_structdecl_type_n_name,
-    &reduce_to_decllist_decllist_structdecl,
+    &reduce_to_decllist_decllist_anon_structdecl,
     &reduce_to_decllist_decllist_vardecl,
-    &reduce_to_decllist_structdecl,
+    &reduce_to_decllist_anon_structdecl,
     &reduce_to_decllist_vardecl,
+    &reduce_to_anon_structdecl,
     &reduce_to_func_decl_w_ind_n_params,
     &reduce_to_func_decl_w_ind,
     &reduce_to_func_decl_w_params,
@@ -409,7 +402,7 @@ void create_node_record(void*** top, int rule_num)
  * linked list if left on their own, they are converted to arrays.
  */
 {
-    printf("rule num %d\n", rule_num);
+    //printf("rule num %d\n", rule_num);
     (*record_creator[rule_num-1])(top);
 
 
@@ -467,21 +460,24 @@ static inline void reduce_to_compound_statement(void*** top)
 
 static inline void reduce_to_stmt_vardecl(void*** top)
 {
-    struct Stmt* node = malloc(sizeof(struct Stmt));
-    free_token(**top);
-    (*top)--;
-    node->statement_type = VARIABLE_DECLARATION;
-    node->stmt = **top;
-    **top = node;
     #if DEBUG || TREEBUILDER
     printf("statement -> variable_declaration ';'\n");
     #endif
+    struct Stmt* node = malloc(sizeof(struct Stmt));
+
+    free_token(**top);
+    (*top)--;
+
+    node->statement_type = VARIABLE_DECLARATION;
+    node->stmt = **top;
+    **top = node;
     #if TREEBUILDER
     print_Stmt(**top, 0, 1, 1);
     printf("\n");
     printf("----------------------------------------------------------\n");
     printf("\n");
     #endif
+
 }
 
 static inline void reduce_to_stmt_structdecl(void*** top)
@@ -489,6 +485,7 @@ static inline void reduce_to_stmt_structdecl(void*** top)
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->statement_type = STRUCT_DECLARATION;
     node->stmt = **top;
+
     **top = node;
     #if DEBUG || TREEBUILDER
     printf("statement -> struct_declaration ';'\n");
@@ -652,6 +649,7 @@ static inline void reduce_to_vardecl_w_ind(void*** top)
     node->name = **top;
     node->expr = NULL;
     (*top)--;
+
     struct Inds* ind = **top;
     int n_indices = ind->n_indices;
     node->n_indices = n_indices;
@@ -660,8 +658,10 @@ static inline void reduce_to_vardecl_w_ind(void*** top)
     free(ind->indices);
     free(ind);
     (*top)--;
+
     node->type = **top;
     **top = node;
+
     #if DEBUG || TREEBUILDER
     printf("variable_declaration -> 'ID' indices 'ID'\n");
     #endif
@@ -696,6 +696,7 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
 
     node->type = **top;
     **top = node;
+
     #if DEBUG || TREEBUILDER
     printf("variable_declaration -> 'ID' indices 'ID' '=' expr\n");
     #endif
@@ -718,8 +719,8 @@ static inline void reduce_to_vardecl(void*** top)
     (*top)--;
 
     node->type = **top;
-
     **top = node;
+
     #if DEBUG || TREEBUILDER
     printf("variable_declaration -> 'ID' 'ID'\n");
     #endif
@@ -739,13 +740,16 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
 
     node->expr = **top;
     (*top)--;
+
     free_token(**top);
     (*top)--;
+
     node->name = **top;
     (*top)--;
 
     node->type = **top;
     **top = node;
+
     #if DEBUG || TREEBUILDER
     printf("variable_declaration -> 'ID' 'ID' '=' expr\n");
     #endif
@@ -760,84 +764,31 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
 static inline void reduce_to_structdecl_type(void*** top)
 {
     struct StructDecl* node = malloc(sizeof(struct StructDecl));
-    node->name = NULL;
     free_token(**top);
     (*top)--;
     struct DeclList* tmp = **top;
     node->bool_arr = tmp->bool_arr;
     node->n_decl = tmp->n_decl;
-    node->decls = tmp->decls;
+    node->fields = tmp->fields;
     free(tmp);
     (*top)--;
+
     free_token(**top);
     (*top)--;
+
     node->type_name = **top;
     (*top)--;
+
     free_token(**top);
+
+    /*
+     *  Enter type into type symbol table if not already defined
+     */
+    enter_struct_decl(node);
+
     **top = node;
     #if DEBUG || TREEBUILDER
     printf(" struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}'");
-    #endif
-    #if TREEBUILDER
-    print_StructDecl(**top, 0, 1, 1);
-    printf("\n");
-    printf("----------------------------------------------------------\n");
-    printf("\n");
-    #endif
-}
-
-static inline void reduce_to_structdecl_name(void*** top)
-{
-    struct StructDecl* node = malloc(sizeof(struct StructDecl));
-    node->name = **top;
-    (*top)--;
-    free_token(**top);
-    (*top)--;
-    struct DeclList* tmp = **top;
-    node->bool_arr = tmp->bool_arr;
-    node->n_decl = tmp->n_decl;
-    node->decls = tmp->decls;
-    free(tmp);
-    (*top)--;
-    free_token(**top);
-    (*top)--;
-    node->type_name = NULL;
-    free_token(**top);
-    **top = node;
-    #if DEBUG || TREEBUILDER
-    printf(" struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}' 'ID' ';' ");
-    #endif
-    #if TREEBUILDER
-    print_StructDecl(**top, 0, 1, 1);
-    printf("\n");
-    printf("----------------------------------------------------------\n");
-    printf("\n");
-    #endif
-}
-
-static inline void reduce_to_structdecl_type_n_name(void*** top)
-{
-    free_token(**top);
-    (*top)--;
-    struct StructDecl* node = malloc(sizeof(struct StructDecl));
-    node->name = **top;
-    (*top)--;
-    free_token(**top);
-    (*top)--;
-    struct DeclList* tmp = **top;
-    node->bool_arr = tmp->bool_arr;
-    node->n_decl = tmp->n_decl;
-    node->decls = tmp->decls;
-    free(tmp);
-    (*top)--;
-    free_token(**top);
-    (*top)--;
-    node->type_name = **top;
-    (*top)--;
-    free_token(**top);
-    **top = node;
-    #if DEBUG || TREEBUILDER
-    printf(" struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}' 'ID' ';' ");
     #endif
     #if TREEBUILDER
     print_StructDecl(**top, 0, 1, 1);
@@ -861,15 +812,15 @@ static inline void reduce_to_decllist_decllist_vardecl(void*** top)
     node->n_decl++;
     int n_decl = node->n_decl;
     char* prev_b_arr = node->bool_arr;
-    void** prev_decls = node->decls;
+    void** prev_decls = node->fields;
     node->bool_arr = malloc(sizeof(char)*n_decl);
-    node->decls = malloc(sizeof(void*)*n_decl);
+    node->fields = malloc(sizeof(void*)*n_decl);
     memcpy(node->bool_arr, prev_b_arr, sizeof(char) * (n_decl-1));
-    memcpy(node->decls, prev_decls, sizeof(void*) * (n_decl-1));
+    memcpy(node->fields, prev_decls, sizeof(void*) * (n_decl-1));
     free(prev_b_arr);
     free(prev_decls);
     node->bool_arr[n_decl-1] = 0;
-    node->decls[n_decl-1] = tmp;
+    node->fields[n_decl-1] = tmp;
 
     **top = node;
     #if DEBUG || TREEBUILDER
@@ -878,7 +829,7 @@ static inline void reduce_to_decllist_decllist_vardecl(void*** top)
 
 }
 
-static inline void reduce_to_decllist_decllist_structdecl(void*** top)
+static inline void reduce_to_decllist_decllist_anon_structdecl(void*** top)
 {
 
     struct StructDecl* tmp = **top;
@@ -891,18 +842,18 @@ static inline void reduce_to_decllist_decllist_structdecl(void*** top)
     node->n_decl++;
     int n_decl = node->n_decl;
     char* prev_b_arr = node->bool_arr;
-    void** prev_decls = node->decls;
+    void** prev_decls = node->fields;
     node->bool_arr = malloc(sizeof(char)*n_decl);
-    node->decls = malloc(sizeof(void*)*n_decl);
+    node->fields = malloc(sizeof(void*)*n_decl);
     memcpy(node->bool_arr, prev_b_arr, sizeof(char) * (n_decl-1));
-    memcpy(node->decls, prev_decls, sizeof(void*) * (n_decl-1));
+    memcpy(node->fields, prev_decls, sizeof(void*) * (n_decl-1));
     free(prev_b_arr);
     free(prev_decls);
     node->bool_arr[n_decl-1] = 1;
-    node->decls[n_decl-1] = tmp;
+    node->fields[n_decl-1] = tmp;
     **top = node;
     #if DEBUG || TREEBUILDER
-    printf("declaration_list -> declaration_list struct_declaration");
+    printf("declaration_list -> declaration_list anon_struct_declaration");
     #endif
 }
 
@@ -915,26 +866,56 @@ static inline void reduce_to_decllist_vardecl(void*** top)
     free_token(**top);
     (*top)--;
 
-    node->decls = malloc(sizeof(void*));
-    node->decls[0] = **top;
+    node->fields = malloc(sizeof(void*));
+    node->fields[0] = **top;
     **top = node;
     #if DEBUG || TREEBUILDER
     printf("declaration_list -> variable_declarartion ';'");
     #endif
 }
 
-static inline void reduce_to_decllist_structdecl(void*** top)
+static inline void reduce_to_decllist_anon_structdecl(void*** top)
 {
     struct DeclList* node = malloc(sizeof(struct DeclList));
     node->bool_arr = malloc(sizeof(char));
     node->bool_arr[0] = 1;
     node->n_decl = 1;
 
-    node->decls = malloc(sizeof(void*));
-    node->decls[0] = **top;
+    node->fields = malloc(sizeof(void*));
+    node->fields[0] = **top;
     **top = node;
     #if DEBUG || TREEBUILDER
-    printf("declaration_list -> struct_declaration");
+    printf("declaration_list -> anon_struct_declaration");
+    #endif
+}
+
+static inline void reduce_to_anon_structdecl(void*** top)
+{
+    struct StructDecl* node = malloc(sizeof(struct StructDecl));
+    free_token(**top);
+    (*top)--;
+
+    struct DeclList* tmp = **top;
+    node->bool_arr = tmp->bool_arr;
+    node->n_decl = tmp->n_decl;
+    node->fields = tmp->fields;
+    free(tmp);
+    (*top)--;
+
+    free_token(**top);
+    (*top)--;
+
+    free_token(**top);
+    **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("anon_struct_declaration -> 'STRUCT' '{' declaration_list '}'");
+    #endif
+    #if TREEBUILDER
+    print_StructDecl(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
     #endif
 }
 
@@ -1068,8 +1049,8 @@ static inline void reduce_to_func_decl_w_params(void*** top)
     (*top)--;
 
     free_token(**top);
-
     **top = node;
+
     #if DEBUG || TREEBUILDER
 
     printf("function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')' '{' compound_statement '}'\n");
@@ -1109,7 +1090,6 @@ static inline void reduce_to_func_decl(void*** top)
     (*top)--;
 
     free_token(**top);
-
     **top = node;
 
     #if DEBUG || TREEBUILDER
@@ -2063,18 +2043,16 @@ void print_VarDecl(struct VarDecl* node, int nest_level, char labels, char leaf)
 void print_StructDecl(struct StructDecl* node, int nest_level, char labels, char leaf)
 {
     write_indent(nest_level);
-    printf("struct");
-
-    if (node->type_name != NULL)
-        printf(" %s", node->type_name->lexeme);
-    if (node->name != NULL)
-        printf(" %s", node->name->lexeme);
+    printf("Struct");
+    if (!labels)
+        if (node->type_name != NULL)
+            printf(" '%s'", node->type_name->lexeme);
     printf("\n");
     for (int i = 0; i < node->n_decl; i++) {
         if (node->bool_arr[i])
-            print_StructDecl(node->decls[i], nest_level+1, labels, leaf);
+            print_StructDecl(node->fields[i], nest_level+1, labels, leaf);
         else
-            print_VarDecl(node->decls[i], nest_level+1, labels, leaf);
+            print_VarDecl(node->fields[i], nest_level+1, labels, leaf);
     }
 }
 
@@ -2483,26 +2461,4 @@ void free_FLoop(struct FLoop* node)
     free_AStmt(node->update_statement);
     free_CompStmt(node->body);
     free(node);
-}
-
-
-
-int main(int argc, const char** argv)
-{
-
-    const char* table_file = "parsing_table.txt";
-    filename = argv[1];
-    file_desc = open(filename, O_RDONLY);
-    init_lexer();
-    generate_parse_table(table_file);
-    printf("parsing...\n");
-    struct CompStmt* tree = lr_parser(1);
-    if (return_found)
-        return_error();
-    close(file_desc);
-    KeywordTab_dump(keywords);
-    if (tree != NULL)
-        free_CompStmt(tree);
-    destroy_parse_table();
-    KeywordTab_destroy(keywords);
 }
