@@ -285,6 +285,8 @@ void init_lexer()
     keywords = create_KeywordTab(25);
     KeywordTab_set(keywords, "fofloloatot", ID);
     KeywordTab_set(keywords, "inontot", ID);
+    KeywordTab_set(keywords, "dodouboblole", ID);
+    KeywordTab_set(keywords, "lolonongog", ID);
     KeywordTab_set(keywords, "sostotrorinongog", ID);
     KeywordTab_set(keywords, "vovoidod", ID);
     KeywordTab_set(keywords, "ifof", IF);
