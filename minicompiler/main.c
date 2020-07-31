@@ -10,6 +10,7 @@
 #include "symbol_table.h"
 #include "IC_gen.h"
 #include "type_checker.h"
+#include "table_generator.h"
 
 int main(int argc, const char** argv)
 {
@@ -17,6 +18,7 @@ int main(int argc, const char** argv)
     filename = argv[1];
     file_desc = open(filename, O_RDONLY);
     init_lexer();
+    KeywordTab_dump(keywords);
     generate_parse_table(table_file);
     init_type_checker();
     printf("parsing...\n");
@@ -25,8 +27,9 @@ int main(int argc, const char** argv)
     //if (return_found)
     //    return_error();
     close(file_desc);
+
     generate_IC(tree);
-    KeywordTab_dump(keywords);
+
     if (tree != NULL)
         free_CompStmt(tree);
     destroy_parse_table();
