@@ -30,7 +30,7 @@ struct SymTab* create_SymTab(int table_size, struct SymTab* parent);
 struct SymTab_entry* SymTab_type_pair(char* key,
                                 int widening_priority);
 
-void SymTab_set_type(struct SymTab* symbol_table, char* key, int widening_priority),
+void SymTab_set_type(struct SymTab* symbol_table, char* key, int widening_priority);
 
 int get_widening_type(struct SymTab* symbol_table, char* key);
 
@@ -43,8 +43,8 @@ struct SymTab_entry* SymTab_pair(char* key,
 int SymTab_check_and_set(struct SymTab* symboltable, char* key,
                     enum SymbolType type, void* symbol);
 
-enum SymbolType SymTab_get(struct SymTab* symboltable, char* key,
-                            void** symbol_out);
+void* SymTab_getr(struct SymTab* symbol_table, char* key,
+                                                enum SymbolType type);
 
 int SymTab_type_declared(struct SymTab* symbol_table, char* type_names);
 
