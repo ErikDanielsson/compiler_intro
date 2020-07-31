@@ -1413,11 +1413,10 @@ static inline void reduce_to_expr_unary(void*** top)
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = UOP;
 
-    node->unary_op = **top;
+    node->expr = **top;
     (*top)--;
 
-    node->expr = **top;
-
+    node->unary_op = **top;
     **top = node;
 
     #if DEBUG || TREEBUILDER
