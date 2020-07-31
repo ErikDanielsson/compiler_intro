@@ -13,11 +13,12 @@
 
 int label_num = 0;
 #define MAX_LABEL_LENGTH 10
-char temp[MAX_LABEL_LENGTH+1];
-char* get_temp()
+char* newtemp()
 {
+    char* temp = malloc(MAX_LABEL_LENGTH+2);
     sprintf(temp, "t%10d", label_num);
     label_num++;
+    return temp;
 }
 
 const char* ic_filename = "IR_file.tmp";
@@ -67,14 +68,12 @@ char* widen(char* addr_a, char* type1, char* type2)
         SymTab_type_declared(type_table, type1)) {
 
             char* caster = max(type1, type2);
-            printf("%s and %s widend to %s\n", type1, type2, caster);
             //strcpy(temp2, addr_a);
             //char* temp = get_temp();
             //char instr[strlen(caster)+strlen(temp)+strlen(addr_a)+2+3];
             //sprintf(instr, "%s = (%s)%s", temp, caster, temp2);
             //emit(instr);
-            return temp;
-
+            return NULL;
     } else {
         widening_error(type1, type2);
         return NULL;
@@ -177,22 +176,59 @@ char* visit_Expr(struct Expr* node)
 {
     switch (node->type) {
         case BINOP: {
-            char* type1 = visit_Expr(node->left);
-            char* type2 = visit_Expr(node->right);
-            char* m = widen(temp, type1, type2);
-            node->addr = m;
-            return max(type1, type2);
+            enum TokenType binop_type = node->binary_op->typ;
+            if (binop_type == RELOP)
+                return visit_relop(node);
+            else if (binop_type == AND)
+                return visit_and(node);
+            else if (binop_type == OR)
+                return visit_or(node);
+            else if (binop_type == '!')
+                return visit_not(node);
+            else {
+                char* type1 = visit_Expr(node->left);
+                char* type2 = visit_Expr(node->right);
+                char* type = max(type1, type2);
+                char* a1 = widen(node->left->addr, type1, type);
+                char* a2 = widen(node->right->addr, type2, type);
+                node->addr = newtemp();
+                char instr[(MAX_LABEL_LENGTH+1)*3+5+1];
+                if (binop_type < 128)
+                    sprintf(instr, "%s = %s %c %s", node->addr, a1,
+                            node->binary_op->c_val, a2);
+                else
+                    sprintf(instr, "%s = %s %s %s", node->addr, a1,
+                            node->binary_op->lexeme, a2);
+                emit(instr);
+                return type;
+            }
         }
         case UOP: {
-            return visit_Expr(node->expr);
+            printf("expr\n");
+            print_Expr(node->expr ,0,0,0);
+            char* type = visit_Expr(node->expr);
+            printf("end\n");
+            node->addr = newtemp();
+            char instr[(MAX_LABEL_LENGTH+1)*2+7+1];
+            sprintf(instr, "%s = neg %s", node->addr, node->expr->addr);
+            emit(instr);
+            return type;
         }
         case CONST: {
             switch (node->val->type) {
+
                 case ICONST:
+                    node->addr = malloc(12);
+                    sprintf(node->addr, "%11ld", node->val->i_val);
+                    printf("in i const: %s", node->addr);
                     return "inontot";
                 case FCONST:
+                    node->addr = malloc(11);
+                    sprintf(node->addr, "%11lf", node->val->f_val);
                     return "fofloloatot";
                 case SCONST:
+
+                    node->addr = node->val->lexeme;
                     return "sostotrorinongog";
                 default:
                     fprintf(stderr,
@@ -204,12 +240,13 @@ char* visit_Expr(struct Expr* node)
 
         }
         case FUNCCALL:
+            node->addr = newtemp();
             return visit_FuncCall(node->function_call);
         case VARACC:
+            node->addr = node->variable_access->variable->lexeme;
             return visit_VarAcc(node->variable_access);
     }
 }
-
 char* visit_VarAcc(struct VarAcc* node)
 {
     char* type_name = check_var_declared(node);
@@ -225,9 +262,17 @@ char* visit_FuncCall(struct FuncCall* node)
         mismatching_params_error(node, decl);
     for (int i = 0; i < node->n_args; i++) {
         char* arg_type = visit_Expr(node->args[i]);
-        widen(temp, decl->params[i]->type->lexeme, arg_type);
+        widen(node->args[i]->addr, decl->params[i]->type->lexeme, arg_type);
     }
-    // Code code
+
+    for (int i = 0; i < node->n_args; i++) {
+        char instr[MAX_LABEL_LENGTH+1+6+1];
+        sprintf(instr, "param %s", node->args[i]->addr);
+        emit(instr);
+    }
+    char instr[5+strlen(node->func->lexeme)];
+    sprintf(instr, "call %s", node->func->lexeme);
+    emit(instr);
     return decl->type->lexeme;
 }
 
@@ -235,7 +280,21 @@ void visit_AStmt(struct AStmt* node)
 {
     char* type1 = visit_VarAcc(node->variable_access);
     char* type2 = visit_Expr(node->expr);
-    memcpy(temp, widen(temp, type1, type2), 11);
+    char* tt = widen(node->expr->addr, type1, type2);
+    char* var_name = node->variable_access->variable->lexeme;
+    int var_name_len =strlen(var_name);
+    if (node->assignment_type->type != '=')
+    {
+        char instr[(MAX_LABEL_LENGTH+1)*2+var_name_len+3];
+        sprintf(instr, "%s = %s %c %s", node->expr->addr,
+                var_name,
+                node->assignment_type->lexeme[0],
+                node->expr->addr);
+        emit(instr);
+    }
+    char instr[(MAX_LABEL_LENGTH+1)*2+3];
+    sprintf(instr, "%-11s = %s", var_name,node->expr->addr);
+    emit(instr);
 }
 
 
@@ -283,6 +342,6 @@ void visit_ReturnStmt(struct Expr* node)
     if (!in_function)
         return_not_in_func_error();
     char* type = visit_Expr(node);
-    widen(temp, type, function_type);
+    widen(node->addr, type, function_type);
 
 }
