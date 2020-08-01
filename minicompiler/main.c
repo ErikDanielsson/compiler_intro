@@ -29,7 +29,6 @@ int main(int argc, const char** argv)
     close(file_desc);
 
     generate_IC(tree);
-
     if (tree != NULL)
         free_CompStmt(tree);
     destroy_parse_table();

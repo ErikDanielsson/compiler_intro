@@ -1,24 +1,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "lexer.h"
 #include "parser.h"
 #include "type_checker.h"
 #include "symbol_table.h"
 #include "IC_gen.h"
+#include "lexer.h"
+#include "hashing.h"
 
 /*
  *  Intermediate code generation
  */
 
-int label_num = 0;
+int temp_num = 0;
 #define MAX_LABEL_LENGTH 10
 char* newtemp()
 {
     char* temp = malloc(MAX_LABEL_LENGTH+2);
-    sprintf(temp, "t%10d", label_num);
-    label_num++;
+    sprintf(temp, "t%d", temp_num);
+    temp_num++;
     return temp;
+}
+
+int label_num = 0;
+char* newlabel()
+{
+    char* label = malloc(MAX_LABEL_LENGTH+2);
+    sprintf(label, "L%d", label_num);
+    label_num++;
+    return label;
 }
 
 const char* ic_filename = "IR_file.tmp";
@@ -32,14 +44,22 @@ FILE* IC_file_desc;
  */
 void generate_IC(struct CompStmt* node)
 {
+
     IC_file_desc = fopen(ic_filename, "w");
+    fprintf(IC_file_desc, "\n\nCode begin\n\n");
     visit_CompStmt(node);
+    fprintf(IC_file_desc, "\n\nCode end\n\n");
     fclose(IC_file_desc);
 }
 
-void emit(char* instr)
+void emit(char* instr, ...)
 {
-    fprintf(IC_file_desc, "\t%s\n", instr);
+    va_list args;
+    fprintf(IC_file_desc, "\t");
+    va_start(args, instr);
+    vfprintf(IC_file_desc, instr, args);
+    va_end(args);
+    fprintf(IC_file_desc, "\n");
 }
 
 void emitlabel(char* label)
@@ -68,12 +88,9 @@ char* widen(char* addr_a, char* type1, char* type2)
         SymTab_type_declared(type_table, type1)) {
 
             char* caster = max(type1, type2);
-            //strcpy(temp2, addr_a);
-            //char* temp = get_temp();
-            //char instr[strlen(caster)+strlen(temp)+strlen(addr_a)+2+3];
-            //sprintf(instr, "%s = (%s)%s", temp, caster, temp2);
-            //emit(instr);
-            return NULL;
+            char* temp = newtemp();
+            emit("%s = (%s)%s", temp, caster, addr_a);
+            return temp;
     } else {
         widening_error(type1, type2);
         return NULL;
@@ -81,6 +98,35 @@ char* widen(char* addr_a, char* type1, char* type2)
 
 }
 
+char* relop_inv(char* relop)
+{
+    /*
+     * Determines inverse by predetermined hash_values
+     */
+    switch(max_hash(relop)) {
+        case 0x390caefb:
+            // Inv of '<'
+            return "=>";
+        case 0x3b0cb221:
+            // Inv of '>'
+            return "=<";
+        case 0x8ff4db3c:
+            // Inv of '=<'
+            return ">";
+        case 0x91f4de62:
+            // Inv of '=>'
+            return "<";
+        case 0x90f4dccf:
+            // Inv of '=='
+            return "!=";
+        case 0x90c34003:
+            // Inv of '!='
+            return "==";
+        default:
+            fprintf(stderr, "Internal error:Hash of %s does not match hash of any relop\n", relop);
+            exit(-1);
+    }
+}
 
 void visit_CompStmt(struct CompStmt* node)
 {
@@ -107,13 +153,27 @@ void visit_Stmt(struct Stmt* node)
             visit_FuncCall(node->stmt);
             return;
         case IF_ELIF_ELSE_STATEMENT:
+            if (node->next == NULL)
+                node->next = newlabel();
+            ((struct IEEStmt*)(node->stmt))->next = node->next;
+
             visit_IEEStmt(node->stmt);
+            emitlabel(node->next);
+
             return;
         case WHILE_LOOP:
+            if (node->next == NULL)
+                node->next = newlabel();
+            ((struct CondStmt*)(node->stmt))->next = node->next;
             visit_WLoop(node->stmt);
+            emitlabel(node->next);
             return;
         case FOR_LOOP:
+            if (node->next == NULL)
+                node->next = newlabel();
+            ((struct FLoop*)(node->stmt))->next = node->next;
             visit_FLoop(node->stmt);
+            emitlabel(node->next);
             return;
         case SCOPE:
             visit_CompStmt(node->stmt);
@@ -126,6 +186,7 @@ void visit_Stmt(struct Stmt* node)
                     node->statement_type);
             return;
     }
+
 }
 
 
@@ -134,12 +195,10 @@ void visit_VarDecl(struct VarDecl* node)
     char* type_name = node->type->lexeme;
     check_type_defined(type_name);
     if (node->expr != NULL) {
-        char* expr_type_name = visit_Expr(node->expr);
+        char* expr_type_name = visit_Expr_rval(node->expr);
         char* curr_addr = widen(node->expr->addr, type_name, expr_type_name);
         check_and_set_var(node);
-        char instr[strlen(node->name->lexeme)+strlen(curr_addr)+3];
-        sprintf(instr, "%s = %s", node->name->lexeme, curr_addr);
-        emit(instr);
+        emit("%s = %s", node->name->lexeme, curr_addr);
     } else {
         check_and_set_var(node);
     }
@@ -172,59 +231,43 @@ void visit_FuncDecl(struct FuncDecl* node)
     in_function = FALSE;
 }
 
-char* visit_Expr(struct Expr* node)
+char* visit_Expr_rval(struct Expr* node)
 {
     switch (node->type) {
-        case BINOP: {
-            enum TokenType binop_type = node->binary_op->typ;
-            if (binop_type == RELOP)
-                return visit_relop(node);
-            else if (binop_type == AND)
-                return visit_and(node);
-            else if (binop_type == OR)
-                return visit_or(node);
-            else if (binop_type == '!')
-                return visit_not(node);
-            else {
-                char* type1 = visit_Expr(node->left);
-                char* type2 = visit_Expr(node->right);
-                char* type = max(type1, type2);
-                char* a1 = widen(node->left->addr, type1, type);
-                char* a2 = widen(node->right->addr, type2, type);
-                node->addr = newtemp();
-                char instr[(MAX_LABEL_LENGTH+1)*3+5+1];
-                if (binop_type < 128)
-                    sprintf(instr, "%s = %s %c %s", node->addr, a1,
-                            node->binary_op->c_val, a2);
-                else
-                    sprintf(instr, "%s = %s %s %s", node->addr, a1,
-                            node->binary_op->lexeme, a2);
-                emit(instr);
-                return type;
-            }
-        }
-        case UOP: {
-            printf("expr\n");
-            print_Expr(node->expr ,0,0,0);
-            char* type = visit_Expr(node->expr);
-            printf("end\n");
+        case EXPR_RELOP:
+
+        case EXPR_AND:
+        case EXPR_OR:
+        case EXPR_NOT:
+
+        case EXPR_BINOP: {
+            char* type1 = visit_Expr_rval(node->left);
+            char* type2 = visit_Expr_rval(node->right);
+            char* type = max(type1, type2);
+            char* a1 = widen(node->left->addr, type1, type);
+            char* a2 = widen(node->right->addr, type2, type);
             node->addr = newtemp();
-            char instr[(MAX_LABEL_LENGTH+1)*2+7+1];
-            sprintf(instr, "%s = neg %s", node->addr, node->expr->addr);
-            emit(instr);
+            emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
+            return type;
+
+        }
+        case EXPR_UOP: {
+            print_Expr(node->expr ,0,0,0);
+            char* type = visit_Expr_rval(node->expr);
+            node->addr = newtemp();
+            emit("%s = neg %s", node->addr, node->expr->addr);
             return type;
         }
-        case CONST: {
+        case EXPR_CONST: {
             switch (node->val->type) {
 
                 case ICONST:
                     node->addr = malloc(12);
-                    sprintf(node->addr, "%11ld", node->val->i_val);
-                    printf("in i const: %s", node->addr);
+                    sprintf(node->addr, "%ld", node->val->i_val);
                     return "inontot";
                 case FCONST:
                     node->addr = malloc(11);
-                    sprintf(node->addr, "%11lf", node->val->f_val);
+                    sprintf(node->addr, "%lf", node->val->f_val);
                     return "fofloloatot";
                 case SCONST:
 
@@ -232,21 +275,184 @@ char* visit_Expr(struct Expr* node)
                     return "sostotrorinongog";
                 default:
                     fprintf(stderr,
-                            "internal error:Did not expect TokenType: %d, expr CONST switch",
+                            "internal error:Did not expect TokenType: %d, expr EXPR_CONST switch",
                             node->val->type);
                     exit(-1);
             }
-
-
         }
-        case FUNCCALL:
+        case EXPR_FUNCCALL:
+            // "node->addr != 0"
             node->addr = newtemp();
             return visit_FuncCall(node->function_call);
-        case VARACC:
+        case EXPR_VARACC:
+            // "node->addr != 0"
             node->addr = node->variable_access->variable->lexeme;
             return visit_VarAcc(node->variable_access);
     }
 }
+
+void visit_Expr_jump(struct Expr* node)
+{
+    switch (node->type) {
+        case EXPR_RELOP:{
+            char* type1 = visit_Expr_rval(node->left);
+            char* type2 = visit_Expr_rval(node->right);
+            char* type = max(type1, type2);
+            char* a1 = widen(node->left->addr, type1, type);
+            char* a2 = widen(node->right->addr, type2, type);
+            if (strcmp(node->true, "fall") == 0) {
+                if (strcmp(node->false, "fall") != 0)
+                    emit("if %s %s %s goto %s", a1,
+                            relop_inv(node->binary_op->lexeme), a2,
+                            node->false);
+            } else if (strcmp(node->false, "fall") == 0) {
+                emit("if %s %s %s goto %s", a1,
+                        node->binary_op->lexeme, a2,
+                        node->true);
+            } else {
+                emit("if %s %s %s goto %s", a1,
+                        node->binary_op->lexeme, a2,
+                        node->true);
+                emit("goto %s", node->false);
+            }
+            return;
+        }
+        case EXPR_AND:
+            node->left->true = "fall";
+            node->right->true = node->true;
+            node->right->false = node->false;
+            if (strcmp(node->left->false, "fall") == 0) {
+                node->left->false = newlabel();
+                visit_Expr_jump(node->left);
+                visit_Expr_jump(node->right);
+                emitlabel(node->left->false);
+            } else {
+                visit_Expr_jump(node->left);
+                visit_Expr_jump(node->right);
+            }
+            return;
+        case EXPR_OR:
+            node->left->false = "fall";
+            node->right->true = node->true;
+            node->right->false = node->false;
+            if (strcmp(node->left->true, "fall") == 0) {
+                node->left->true = newlabel();
+                visit_Expr_jump(node->left);
+                visit_Expr_jump(node->right);
+                emitlabel(node->left->true);
+            } else {
+                visit_Expr_jump(node->left);
+                visit_Expr_jump(node->right);
+            }
+            return;
+        case EXPR_NOT:
+            node->expr->true = node->false;
+            node->expr->false = node->true;
+            visit_Expr_jump(node->expr);
+            return;
+        case EXPR_BINOP: {
+            char* type1 = visit_Expr_rval(node->left);
+            char* type2 = visit_Expr_rval(node->right);
+            char* type = max(type1, type2);
+            char* a1 = widen(node->left->addr, type1, type);
+            char* a2 = widen(node->right->addr, type2, type);
+            node->addr = newtemp();
+            emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
+            if (strcmp(node->true, "fall") != 0) {
+                if (strcmp(node->false, "fall") != 0)
+                    emit("if %s == 0 goto %s", node->addr, node->false);
+            } else if (strcmp(node->false, "fall") != 0) {
+                emit("if %s != 0 goto %s", node->addr, node->true);
+            } else {
+                emit("if %s != 0 goto %s", node->addr, node->true);
+                emit("goto %s", node->false);
+            }
+            return;
+        }
+        case EXPR_UOP: {
+            visit_Expr_rval(node->expr);
+            /*
+             * Since the truth value of a number doesn't depend on it's
+             * sign, we can omit the instruction for sign change.
+             */
+            if (strcmp(node->true, "fall") == 0) {
+                if (strcmp(node->false, "fall") != 0)
+                    emit("if %s == 0 goto %s", node->expr->addr, node->false);
+            } else if (strcmp(node->false, "fall") == 0) {
+                emit("if %s != 0 goto %s", node->expr->addr, node->true);
+            } else {
+                emit("if %s != 0 goto %s", node->expr->addr, node->true);
+                emit("goto %s", node->false);
+            }
+            return;
+        }
+        case EXPR_CONST: {
+            switch (node->val->type) {
+                /*
+                 * Since the truth value of constant is known at compile time
+                 * we can simply output an unconditional jump.
+                 */
+                case ICONST:
+                    if (node->val->i_val) {
+                        if (strcmp(node->true, "fall") != 0)
+                            emit("goto %s", node->true);
+                    } else {
+                        if (strcmp(node->false, "fall") != 0)
+                            emit("goto %s", node->false);
+                    }
+                    return;
+                case FCONST:
+                    if (node->val->f_val) {
+                        if (strcmp(node->true, "fall") != 0)
+                            emit("goto %s", node->true);
+                    } else {
+                        if (strcmp(node->false, "fall") != 0)
+                            emit("goto %s", node->false);
+                    }
+                    return;
+                case SCONST:
+                    if (node->val->lexeme[0] == 0x00) {
+                        if (strcmp(node->true, "fall") != 0)
+                            emit("goto %s", node->true);
+                    } else {
+                        if (strcmp(node->false, "fall") != 0)
+                            emit("goto %s", node->false);
+                    }
+                    return;
+                default:
+                    fprintf(stderr,
+                            "internal error:Did not expect TokenType: %d, expr_jump EXPR_CONST switch",
+                            node->val->type);
+                    exit(-1);
+            }
+        }
+        case EXPR_FUNCCALL:
+            visit_FuncCall(node->function_call);
+            if (strcmp(node->true, "fall") == 0) {
+                if (strcmp(node->false, "fall") == 0)
+                    emit("if %s == 0 goto %s", node->function_call->addr, node->false);
+            } else if (strcmp(node->false, "fall") != 0) {
+                emit("if %s != 0 goto %s", node->function_call->addr, node->true);
+            } else {
+                emit("if %s != 0 goto %s", node->function_call->addr, node->true);
+                emit("goto %s", node->false);
+            }
+            return;
+        case EXPR_VARACC:
+            visit_VarAcc(node->variable_access);
+            if (strcmp(node->true, "fall") == 0) {
+                if (strcmp(node->false, "fall") != 0)
+                    emit("if %s == 0 goto %s", node->variable_access->variable->lexeme, node->false);
+            } else if (strcmp(node->false, "fall") == 0) {
+                emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
+            } else {
+                emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
+                emit("goto %s", node->false);
+            }
+            return;
+    }
+}
+
 char* visit_VarAcc(struct VarAcc* node)
 {
     char* type_name = check_var_declared(node);
@@ -261,79 +467,140 @@ char* visit_FuncCall(struct FuncCall* node)
     if (n_args != decl->n_params)
         mismatching_params_error(node, decl);
     for (int i = 0; i < node->n_args; i++) {
-        char* arg_type = visit_Expr(node->args[i]);
+        char* arg_type = visit_Expr_rval(node->args[i]);
         widen(node->args[i]->addr, decl->params[i]->type->lexeme, arg_type);
     }
-
     for (int i = 0; i < node->n_args; i++) {
-        char instr[MAX_LABEL_LENGTH+1+6+1];
-        sprintf(instr, "param %s", node->args[i]->addr);
-        emit(instr);
+        emit("param %s", node->args[i]->addr);
     }
-    char instr[5+strlen(node->func->lexeme)];
-    sprintf(instr, "call %s", node->func->lexeme);
-    emit(instr);
+    char* temp = newtemp();
+    emit("%s = call %s",temp,  node->func->lexeme);
+    node->addr = temp;
     return decl->type->lexeme;
 }
 
 void visit_AStmt(struct AStmt* node)
 {
-    char* type1 = visit_VarAcc(node->variable_access);
-    char* type2 = visit_Expr(node->expr);
-    char* tt = widen(node->expr->addr, type1, type2);
     char* var_name = node->variable_access->variable->lexeme;
-    int var_name_len =strlen(var_name);
-    if (node->assignment_type->type != '=')
-    {
-        char instr[(MAX_LABEL_LENGTH+1)*2+var_name_len+3];
-        sprintf(instr, "%s = %s %c %s", node->expr->addr,
-                var_name,
-                node->assignment_type->lexeme[0],
-                node->expr->addr);
-        emit(instr);
+    char* type1 = visit_VarAcc(node->variable_access);
+    if (node->assignment_type->type == SUFFIXOP) {
+        switch (node->assignment_type->lexeme[0]) {
+            case '+':
+                emit("inc %s", var_name);
+                break;
+            case '-':
+                emit("dec %s", var_name);
+                break;
+            case '*':
+                emit("shl %s", var_name);
+                break;
+            case '/':
+                emit("shr %s", var_name);
+                break;
+            default:
+                fprintf(stderr, "Internal error:Did not expect '%c' as suffixop\n",
+                        node->assignment_type->lexeme[0]);
+        }
+
+    } else {
+        char* type2 = visit_Expr_rval(node->expr);
+        char* addr = widen(node->expr->addr, type2, type1);
+        if (strcmp(max(type1, type2), type1) != 0)
+            type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
+                        type2, node->variable_access->variable->lexeme, type1);
+        if (node->assignment_type->type != '=') {
+            char* temp = newtemp();
+            emit("%s = %s %c %s", temp, var_name,
+                node->assignment_type->lexeme[0], addr);
+            emit("%s = %s", var_name, temp);
+        } else {
+            emit("%s = %s", var_name, addr);
+        }
+
     }
-    char instr[(MAX_LABEL_LENGTH+1)*2+3];
-    sprintf(instr, "%-11s = %s", var_name,node->expr->addr);
-    emit(instr);
 }
 
 
 
 void visit_IEEStmt(struct IEEStmt* node)
 {
-    visit_CondStmt(node->if_stmt);
-    for (int i = 0; i < node->n_elifs; i++)
-        visit_CondStmt(node->elif_list[i]);
     if (node->_else != NULL) {
+        char* next = node->next;
+        if_with_else(node->if_stmt, next);
+        for (int i = 0; i < node->n_elifs; i++)
+            if_with_else(node->elif_list[i], next);
         push_Env();
+        node->_else->next = next;
         visit_CompStmt(node->_else);
+        pop_Env();
+    } else if (node->n_elifs == 0) {
+        node->if_stmt->boolean->true = "fall";
+        node->if_stmt->boolean->false = node->if_stmt->body->next = node->next;
+        visit_Expr_jump(node->if_stmt->boolean);
+        push_Env();
+        visit_CompStmt(node->if_stmt->body);
+        pop_Env();
+    } else {
+        char* next = node->next;
+        if_with_else(node->if_stmt, next);
+        int n_elifs_minus_1 = node->n_elifs-1;
+        for (int i = 0; i < n_elifs_minus_1; i++)
+            if_with_else(node->elif_list[i], next);
+        struct CondStmt* last_elif = node->elif_list[n_elifs_minus_1];
+        last_elif->boolean->true = "fall";
+        last_elif->boolean->false = node->if_stmt->body->next = node->next;
+        visit_Expr_jump(last_elif->boolean);
+        push_Env();
+        visit_CompStmt(last_elif->body);
         pop_Env();
     }
 }
 
-void visit_CondStmt(struct CondStmt* node)
+void if_with_else(struct CondStmt* node, char* next)
 {
-
+    node->boolean->true = "fall";
+    char* falsel = newlabel();
+    node->boolean->false = falsel;
+    node->body->next = next;
+    visit_Expr_jump(node->boolean);
     push_Env();
-    visit_Expr(node->boolean);
     visit_CompStmt(node->body);
     pop_Env();
+    emitlabel(falsel);
 }
 
 void visit_WLoop(struct CondStmt* node)
 {
-    visit_CondStmt(node);
+    char* begin = newlabel();
+
+    emitlabel(begin);
+    node->boolean->true = "fall";
+    node->boolean->false = node->next;
+    visit_Expr_jump(node->boolean);
+    node->body->next = begin;
+    push_Env();
+    visit_CompStmt(node->body);
+    pop_Env();
+    emit("goto %s", begin);
 }
 
 void visit_FLoop(struct FLoop* node)
 {
+    push_Env();
     if (node->type == VARIABLE_DECLARATION)
         visit_VarDecl(node->init_stmt);
     else
         visit_AStmt(node->init_stmt);
-    visit_Expr(node->boolean);
+    char* begin = newlabel();
+    emitlabel(begin);
+    node->boolean->true = "fall";
+    node->boolean->false = node->next;
+    visit_Expr_jump(node->boolean);
     visit_AStmt(node->update_statement);
+
     visit_CompStmt(node->body);
+    pop_Env();
+    emit("goto %s", begin);
 }
 
 
@@ -341,7 +608,7 @@ void visit_ReturnStmt(struct Expr* node)
 {
     if (!in_function)
         return_not_in_func_error();
-    char* type = visit_Expr(node);
+    char* type = visit_Expr_rval(node);
     widen(node->addr, type, function_type);
 
 }
