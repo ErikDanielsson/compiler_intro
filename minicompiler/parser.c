@@ -355,9 +355,9 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
-    &reduce_to_expr_binop,
-    &reduce_to_expr_binop,
-    &reduce_to_expr_binop,
+    &reduce_to_expr_relop,
+    &reduce_to_expr_and,
+    &reduce_to_expr_or,
     &reduce_to_expr_paren,
     &reduce_to_expr_const,
     &reduce_to_expr_const,
@@ -366,7 +366,7 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_funccall,
     &reduce_to_expr_unary,
     &reduce_to_expr_unary,
-    &reduce_to_expr_unary,
+    &reduce_to_expr_not,
     &reduce_to_assign,
     &reduce_to_assign,
     &reduce_to_assign_suffixop,
@@ -461,6 +461,7 @@ static inline void reduce_to_stmt_vardecl(void*** top)
     printf("statement -> variable_declaration ';'\n");
     #endif
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
 
     free_token(**top);
     (*top)--;
@@ -480,6 +481,8 @@ static inline void reduce_to_stmt_vardecl(void*** top)
 static inline void reduce_to_stmt_structdecl(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     node->statement_type = STRUCT_DECLARATION;
     node->stmt = **top;
 
@@ -498,6 +501,8 @@ static inline void reduce_to_stmt_structdecl(void*** top)
 static inline void reduce_to_stmt_funcdecl_(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     node->statement_type = FUNCTION_DECLARATION;
     node->stmt = **top;
     **top = node;
@@ -516,6 +521,8 @@ static inline void reduce_to_stmt_funcdecl_(void*** top)
 static inline void reduce_to_stmt_assignment_statement(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     free_token(**top);
     (*top)--;
     node->statement_type = ASSIGNMENT_STATEMENT;
@@ -535,6 +542,8 @@ static inline void reduce_to_stmt_assignment_statement(void*** top)
 static inline void reduce_to_stmt_funccall(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     free_token(**top);
     (*top)--;
     node->statement_type = FUNCTION_CALL;
@@ -554,6 +563,8 @@ static inline void reduce_to_stmt_funccall(void*** top)
 static inline void reduce_to_stmt_ieestmt(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     node->statement_type = IF_ELIF_ELSE_STATEMENT;
     node->stmt = **top;
     **top = node;
@@ -571,6 +582,8 @@ static inline void reduce_to_stmt_ieestmt(void*** top)
 static inline void reduce_to_stmt_wloop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     node->statement_type = WHILE_LOOP;
     node->stmt = **top;
     **top = node;
@@ -588,6 +601,8 @@ static inline void reduce_to_stmt_wloop(void*** top)
 static inline void reduce_to_stmt_floop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     node->statement_type = FOR_LOOP;
     node->stmt = **top;
     **top = node;
@@ -605,6 +620,8 @@ static inline void reduce_to_stmt_floop(void*** top)
 static inline void reduce_to_stmt_scope(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     node->statement_type = SCOPE;
     node->stmt = **top;
     **top = node;
@@ -622,6 +639,8 @@ static inline void reduce_to_stmt_scope(void*** top)
 static inline void reduce_to_stmt_return(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
+    node->next = NULL;
+
     free(**top);
     (*top)--;
     // Hmmm....
@@ -1306,7 +1325,85 @@ static inline void reduce_to_varacc_w_ind_list(void*** top)
 static inline void reduce_to_expr_binop(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
-    node->type = BINOP;
+    node->type = EXPR_BINOP;
+
+    node->right = **top;
+    (*top)--;
+
+    node->binary_op = **top;
+    (*top)--;
+
+    node->left = **top;
+
+    **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("expr -> expr 'binop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
+}
+
+static inline void reduce_to_expr_relop(void*** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = EXPR_RELOP;
+
+    node->right = **top;
+    (*top)--;
+
+    node->binary_op = **top;
+    (*top)--;
+
+    node->left = **top;
+
+    **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("expr -> expr 'binop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
+}
+
+static inline void reduce_to_expr_and(void*** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = EXPR_AND;
+
+    node->right = **top;
+    (*top)--;
+
+    node->binary_op = **top;
+    (*top)--;
+
+    node->left = **top;
+
+    **top = node;
+    #if DEBUG || TREEBUILDER
+    printf("expr -> expr 'binop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+
+}
+
+static inline void reduce_to_expr_or(void*** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = EXPR_OR;
 
     node->right = **top;
     (*top)--;
@@ -1357,11 +1454,11 @@ static inline void reduce_to_expr_paren(void*** top)
 static inline void reduce_to_expr_const(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
-    node->type = CONST;
+    node->type = EXPR_CONST;
     node->val = **top;
     **top = node;
     #if DEBUG || TREEBUILDER
-    printf("expr -> 'CONST'\n");
+    printf("expr -> 'EXPR_CONST'\n");
     #endif
     #if TREEBUILDER
     print_Expr(**top, 0, 1, 1);
@@ -1375,7 +1472,7 @@ static inline void reduce_to_expr_const(void*** top)
 static inline void reduce_to_expr_varacc(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
-    node->type = VARACC;
+    node->type = EXPR_VARACC;
     node->variable_access = **top;
     **top = node;
     #if DEBUG || TREEBUILDER
@@ -1392,7 +1489,7 @@ static inline void reduce_to_expr_varacc(void*** top)
 static inline void reduce_to_expr_funccall(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
-    node->type = FUNCCALL;
+    node->type = EXPR_FUNCCALL;
     node->function_call = **top;
     **top = node;
 
@@ -1411,7 +1508,29 @@ static inline void reduce_to_expr_funccall(void*** top)
 static inline void reduce_to_expr_unary(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
-    node->type = UOP;
+    node->type = EXPR_UOP;
+
+    node->expr = **top;
+    (*top)--;
+
+    node->unary_op = **top;
+    **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("expr -> 'uop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+}
+
+static inline void reduce_to_expr_not(void*** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = EXPR_NOT;
 
     node->expr = **top;
     (*top)--;
@@ -2041,30 +2160,34 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
 {
     if (leaf) {
         switch (node->type) {
-            case BINOP:
+            case EXPR_BINOP:
+            case EXPR_RELOP:
+            case EXPR_AND:
+            case EXPR_OR:
+            case EXPR_NOT:
                 print_Expr(node->left, nest_level+1, labels, leaf);
                 write_indent(nest_level);
                 print_token_str(node->binary_op);
                 printf("\n");
                 print_Expr(node->right, nest_level+1, labels, leaf);
                 return;
-            case UOP:
+            case EXPR_UOP:
                 write_indent(nest_level);
                 print_token_str(node->unary_op);
                 printf("\n");
                 print_Expr(node->expr, nest_level+1, labels, leaf);
                 return;
-            case CONST:
+            case EXPR_CONST:
                 write_indent(nest_level);
                 print_token_str(node->val);
                 printf("\n");
                 return;
-            case FUNCCALL:
+            case EXPR_FUNCCALL:
                 write_indent(nest_level);
                 print_token_str(node->function_call->func);
                 printf("\n");
                 return;
-            case VARACC:
+            case EXPR_VARACC:
                 write_indent(nest_level);
                 print_token_str(node->variable_access->variable);
                 printf("\n");
@@ -2072,27 +2195,31 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
         }
     } else {
         switch (node->type) {
-            case BINOP:
+            case EXPR_BINOP:
+            case EXPR_RELOP:
+            case EXPR_AND:
+            case EXPR_OR:
                 print_Expr(node->left, nest_level+1, labels, leaf);
                 write_indent(nest_level);
                 print_token_str(node->binary_op);
                 printf("\n");
                 print_Expr(node->right, nest_level+1, labels, leaf);
-            case UOP:
+            case EXPR_UOP:
+            case EXPR_NOT:
                 write_indent(nest_level);
                 print_token_str(node->unary_op);
                 printf("\n");
                 print_Expr(node->expr, nest_level+1, labels, leaf);
                 return;
-            case CONST:
+            case EXPR_CONST:
                 write_indent(nest_level);
                 print_token_str(node->val);
                 printf("\n");
                 return;
-            case FUNCCALL:
+            case EXPR_FUNCCALL:
                 print_FuncCall(node->function_call, nest_level, labels, leaf);
                 return;
-            case VARACC:
+            case EXPR_VARACC:
                 print_VarAcc(node->variable_access, nest_level, labels, leaf);
                 return;
         }
@@ -2301,22 +2428,26 @@ void free_Expr(struct Expr* node)
 {
     //printf("FREE EXPR\n");
         switch (node->type) {
-        case BINOP:
+        case EXPR_BINOP:
+        case EXPR_RELOP:
+        case EXPR_AND:
+        case EXPR_OR:
             free_Expr(node->left);
             free_token(node->binary_op);
             free_Expr(node->right);
             break;
-        case UOP:
+        case EXPR_UOP:
+        case EXPR_NOT:
             free_token(node->unary_op);
             free_Expr(node->expr);
             break;
-        case CONST:
+        case EXPR_CONST:
             free_token(node->val);
             break;
-        case FUNCCALL:
+        case EXPR_FUNCCALL:
             free_FuncCall(node->function_call);
             break;
-        case VARACC:
+        case EXPR_VARACC:
             free_VarAcc(node->variable_access);
             break;
     }
@@ -2374,7 +2505,6 @@ void free_FLoop(struct FLoop* node)
     else
         free_AStmt(node->init_stmt);
     free_Expr(node->boolean);
-    printf("free update\n");
     free_AStmt(node->update_statement);
     free_CompStmt(node->body);
     free(node);

@@ -34,11 +34,13 @@ enum NodeType {
 struct CompStmt {
     int n_statements;
     struct Stmt** statement_list;
+    char* next;
 };
 
 struct Stmt {
     enum NodeType statement_type;
     void* stmt;
+    char* next;
 };
 
 struct VarDecl {
@@ -93,11 +95,15 @@ struct VarAcc {
 };
 
 enum ExprType {
-    BINOP,
-    UOP,
-    CONST,
-    FUNCCALL,
-    VARACC
+    EXPR_BINOP,
+    EXPR_UOP,
+    EXPR_AND,
+    EXPR_OR,
+    EXPR_NOT,
+    EXPR_RELOP,
+    EXPR_CONST,
+    EXPR_FUNCCALL,
+    EXPR_VARACC
 };
 
 struct Expr {
@@ -106,7 +112,14 @@ struct Expr {
      * to store a pointer.
      */
     enum ExprType type;
-    char* addr;
+    union {
+        char* addr;
+        struct {
+            char* true;
+            char* false;
+        };
+    };
+
     union {
         struct {
             struct Expr* left;
@@ -133,6 +146,7 @@ struct FuncCall {
     struct Token* func;
     int n_args;
     struct Expr** args;
+    char* addr;
 };
 
 struct Args {
@@ -145,6 +159,7 @@ struct IEEStmt {
     int n_elifs;
     struct CondStmt** elif_list;
     struct CompStmt* _else;
+    char* next;
 };
 
 /*
@@ -154,6 +169,7 @@ struct IEEStmt {
 struct CondStmt {
     struct Expr* boolean;
     struct CompStmt* body;
+    char* next;
 };
 
 struct EList {
@@ -172,6 +188,7 @@ struct FLoop {
     struct Expr* boolean;
     struct AStmt* update_statement;
     struct CompStmt* body;
+    char* next;
 };
 
 
@@ -229,11 +246,15 @@ static inline void reduce_to_varacc_w_ind(void*** top);
 static inline void reduce_to_varacc_list(void*** top);
 static inline void reduce_to_varacc_w_ind_list(void*** top);
 static inline void reduce_to_expr_binop(void*** top);
+static inline void reduce_to_expr_relop(void*** top);
+static inline void reduce_to_expr_and(void*** top);
+static inline void reduce_to_expr_or(void*** top);
 static inline void reduce_to_expr_paren(void*** top);
 static inline void reduce_to_expr_const(void*** top);
 static inline void reduce_to_expr_varacc(void*** top);
 static inline void reduce_to_expr_funccall(void*** top);
 static inline void reduce_to_expr_unary(void*** top);
+static inline void reduce_to_expr_not(void*** top);
 static inline void reduce_to_assign(void*** top);
 static inline void reduce_to_assign_suffixop(void*** top);
 static inline void reduce_to_funccall_w_args(void*** top);
