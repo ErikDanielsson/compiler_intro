@@ -1,20 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "type_checker.h"
 #include "symbol_table.h"
 
 #define TABLESIZE 128
-
+#define VERBOSE 0
 /*
  *  The type checker enters type names during parsing, and checks whether they
  *  are used correctly during treewalk of IC generation
  */
 
 
-void type_error(char* string, char* string2,int fatal )
+void type_error(int fatal, char* string, ...)
 {
-    fprintf(stderr, string, string2);
+    va_list args;
+    fprintf(stderr, "\033[1;31merror\033[0m:");
+    va_start(args, string);
+    vfprintf(stderr, string, args);
+    va_end(args);
+    fprintf(stderr, "\n");
     if (fatal)
         exit(-1);
 }
@@ -34,7 +40,7 @@ void undeclared_var_error(struct VarAcc* node)
 
 void undeclared_func_error(struct FuncCall* node)
 {
-    fprintf(stderr, "\033[1;31merror\033[0m: Use of undeclared func '%s' at %d:%d\n",
+    fprintf(stderr, "\033[1;31merror\033[0m:Use of undeclared func '%s' at %d:%d\n",
             node->func->lexeme,node->func->line, node->func->column);
     exit(-1);
 }
@@ -104,12 +110,16 @@ void pop_Env()
     /*
      * Set parent pointer to NULL to avoid dangling pointer errors
      */
+    #if VERBOSE
     SymTab_dump(*top_symtab, "leaving");
+    #endif
     (*top_symtab)->parent = NULL;
     top_symtab--;
     SymTab_append_child(*top_symtab, *(top_symtab+1));
     offset--;
+    #if VERBOSE
     SymTab_dump(*top_symtab, "entering");
+    #endif
 }
 
 struct SymTab* pop_Env_struct()
@@ -126,7 +136,7 @@ struct SymTab* pop_Env_struct()
 void enter_type_def(char* type_name, struct SymTab* struct_env)
 {
     if (SymTab_type_declared(type_table, type_name) || SymTab_check_and_set(symbol_table_stack[0], type_name, STRUCTURE, struct_env))
-        type_error("Redefinition of type '%s'\n", type_name, TRUE);
+        type_error(TRUE, "Redefinition of type '%s'\n", type_name);
 }
 
 void check_type_defined(char* type_name)
@@ -136,19 +146,19 @@ void check_type_defined(char* type_name)
      */
     if (!(SymTab_type_declared(type_table, type_name) ||
         SymTab_type_declared(symbol_table_stack[0], type_name)))
-        type_error("type '%s' is not declared", type_name, TRUE);
+        type_error(TRUE, "type '%s' is not declared", type_name);
 }
 
 void check_and_set_var(struct VarDecl* node)
 {
     if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node))
-        type_error("Redefinition of variable '%s'\n", node->name->lexeme, TRUE);
+        type_error(TRUE, "Redefinition of variable '%s'\n", node->name->lexeme);
 }
 
 void check_and_set_func(struct FuncDecl* node)
 {
     if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node))
-        type_error("Redefinition of function '%s'\n", node->name->lexeme, TRUE);
+        type_error(TRUE, "Redefinition of function '%s'\n", node->name->lexeme);
 }
 
 char* check_var_declared(struct VarAcc* varacc)
