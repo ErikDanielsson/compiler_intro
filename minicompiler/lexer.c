@@ -315,6 +315,8 @@ void init_lexer()
     KeywordTab_set(keywords, ">=", RELOP);
     KeywordTab_set(keywords, "&&", AND);
     KeywordTab_set(keywords, "||", OR);
+    KeywordTab_set(keywords, "!", '!');
+
 }
 
 static inline void set_lexeme_ptr()
@@ -540,6 +542,24 @@ struct Token* get_token()
                 }
             case '<':
             case '>':
+            get_char();
+                if (*forward == '=') {
+                    get_char();
+                    token->type = RELOP;
+                    token->lexeme = get_lexeme();
+                    token->line = line_num;
+                    token->column = column_num-2;
+                    set_lexeme_ptr();
+                    return token;
+                } else {
+                    lexeme = get_lexeme();
+                    token->lexeme = lexeme;
+                    token->type = RELOP;
+                    token->line = line_num;
+                    token->column = column_num-1;
+                    set_lexeme_ptr();
+                    return token;
+                }
             case '!':
                 get_char();
                 if (*forward == '=') {
@@ -553,7 +573,7 @@ struct Token* get_token()
                 } else {
                     lexeme = get_lexeme();
                     token->lexeme = lexeme;
-                    token->type = RELOP;
+                    token->type = '!';
                     token->line = line_num;
                     token->column = column_num-1;
                     set_lexeme_ptr();
