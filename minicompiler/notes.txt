@@ -16,12 +16,13 @@ parser.c:
     assembly lines.
 
 type checking:
-    By careful analysis of the stack states we should be able to determine
-    whether we've entered or left a new scope, since the language denotes all
-    scopes with '{' '}'. Hence symbol table creation, and therefore typechecking
-    should be possible to do parsing. This is because no inherited attributes
-    are used for simple type checking.
+
 
 IR generation:
-    Inherited attributes: While this is not natural for an LR parser, together
-    with either a dictionary or a stack, I believe it could be done.
+    While the current IR generator writes pseudo-assembly to an output stream --
+    I believe a more suitable approach would be to have it make an array or
+    linked list of "instruction structs". With this approach, it would be easier
+    to avoid duplication of labels -- since a label could be a pointer to
+    an int value. And if it happens that to labels are emitted on the same
+    instruction we could simply destroy the second label and let all gotos
+    pointing to the second, now destroyed, label point to the first.
