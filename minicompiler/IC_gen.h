@@ -1,5 +1,4 @@
 #pragma once
-char* get_temp();
 struct triple {
     int type;
     /*
@@ -10,6 +9,7 @@ struct triple {
     void* arg2;
 };
 struct triple_list {
+    int length;
     int* types;
     void** args1;
     void** args2;

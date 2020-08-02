@@ -13,6 +13,9 @@
  */
 
 
+/*
+ * Functions for handling errors that might be found during type checking.
+ */
 void type_error(int fatal, char* string, ...)
 {
     va_list args;
@@ -68,29 +71,18 @@ void return_not_in_func_error()
 
 
 
-
-
-
 struct SymTab* type_table;
 
-struct SymTab* symbol_table_stack[NESTINGDEPTH];
-struct SymTab** top_symtab = symbol_table_stack;
+/*
+ * Checking and setting symbols into symbols tables. During typechecking,
+ * the symbol tables are linked "child->parent" for easy access to parents
+ * symbols. However, when the type checking of a scope is finished the symbol
+ * table are relinked "parent->childs" to facilitate top down traversal
+ * for later stages of the compiler.
+ */
 
-
-void init_type_checker()
-{
-    type_table = create_SymTab(4, NULL);
-    SymTab_set_type(type_table, "inontot", 0);
-    SymTab_set_type(type_table, "lolonongog", 1);
-    SymTab_set_type(type_table, "fofloloatot", 2);
-    SymTab_set_type(type_table, "dodouboblole", 3);
-    SymTab_set_type(type_table, "sostotrorinongog", -1);
-    SymTab_set_type(type_table, "vovoidod", -1);
-
-    *top_symtab = create_SymTab(TABLESIZE, NULL);
-}
-
-
+ struct SymTab* symbol_table_stack[NESTINGDEPTH];
+ struct SymTab** top_symtab = symbol_table_stack;
 
 int offset_stack[NESTINGDEPTH];
 int* offset = offset_stack;
@@ -114,8 +106,9 @@ void pop_Env()
     SymTab_dump(*top_symtab, "leaving");
     #endif
     (*top_symtab)->parent = NULL;
+    SymTab_append_child(*(top_symtab-1), *top_symtab);
     top_symtab--;
-    SymTab_append_child(*top_symtab, *(top_symtab+1));
+
     offset--;
     #if VERBOSE
     SymTab_dump(*top_symtab, "entering");
@@ -132,6 +125,26 @@ struct SymTab* pop_Env_struct()
     offset--;
     return *(top_symtab+1);
 }
+
+
+void print_Env_tree_helper(struct SymTab* env, int indent)
+{
+    SymTab_dump(env, "Local env", indent);
+    for (int i = 0; i < env->n_childs; i++)
+        print_Env_tree_helper(env->childs[i], indent+1);
+}
+
+void print_Env_tree()
+{
+    printf("Symbol tables for scopes\n");
+    struct SymTab* env = symbol_table_stack[0];
+    SymTab_dump(env, "Global env", 0);
+    for (int i = 0; i < env->n_childs; i++)
+        print_Env_tree_helper(env->childs[i], 1);
+}
+
+
+
 
 void enter_type_def(char* type_name, struct SymTab* struct_env)
 {
@@ -152,13 +165,17 @@ void check_type_defined(char* type_name)
 void check_and_set_var(struct VarDecl* node)
 {
     if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node))
-        type_error(TRUE, "Redefinition of variable '%s'\n", node->name->lexeme);
+        type_error(TRUE, "Redefinition of variable '%s' at %d:%d\n", node->name->lexeme,
+                    node->name->line, node->name->column);
 }
 
 void check_and_set_func(struct FuncDecl* node)
 {
     if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node))
-        type_error(TRUE, "Redefinition of function '%s'\n", node->name->lexeme);
+        type_error(TRUE, "Redefinition of function '%s' at %d:%d\n",
+                    node->name->lexeme,
+                    node->name->line,
+                    node->name->column);
 }
 
 char* check_var_declared(struct VarAcc* varacc)
@@ -175,4 +192,17 @@ struct FuncDecl* check_func_declared(struct FuncCall* funccall)
     if (node == NULL)
         undeclared_func_error(funccall);
     return node;
+}
+
+void init_type_checker()
+{
+    type_table = create_SymTab(4, NULL);
+    SymTab_set_type(type_table, "inontot", 0);
+    SymTab_set_type(type_table, "lolonongog", 1);
+    SymTab_set_type(type_table, "fofloloatot", 2);
+    SymTab_set_type(type_table, "dodouboblole", 3);
+    SymTab_set_type(type_table, "sostotrorinongog", -1);
+    SymTab_set_type(type_table, "vovoidod", -1);
+
+    *top_symtab = create_SymTab(TABLESIZE, NULL);
 }

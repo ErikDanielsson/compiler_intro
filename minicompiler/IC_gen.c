@@ -182,7 +182,7 @@ void visit_Stmt(struct Stmt* node)
             visit_ReturnStmt(node->stmt);
             return;
         default:
-            fprintf(stderr, "internal error:Did not expect NodeType: %d, in visit_Stmt",
+            fprintf(stderr, "Internal error:Did not expect NodeType: %d, in visit_Stmt",
                     node->statement_type);
             return;
     }

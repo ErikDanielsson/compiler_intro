@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
-#define INDENT 2
+#define INDENT 4
 void fprintf_w_indent(FILE* stream, int indent, const char* fstring, ...)
 {
     for (int i = 0; i < indent; i++)

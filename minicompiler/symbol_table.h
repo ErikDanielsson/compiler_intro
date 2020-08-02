@@ -50,4 +50,4 @@ int SymTab_type_declared(struct SymTab* symbol_table, char* type_names);
 
 void SymTab_destroy(struct SymTab* symboltable);
 
-void SymTab_dump(struct SymTab* symboltable, char* title);
+void SymTab_dump(struct SymTab* symboltable, char* title, int indent);

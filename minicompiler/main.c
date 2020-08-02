@@ -23,12 +23,13 @@ int main(int argc, const char** argv)
     init_type_checker();
     printf("parsing...\n");
     struct CompStmt* tree = lr_parser(1);
-    SymTab_dump(type_table, "Types");
+    SymTab_dump(type_table, "Types", 0);
     //if (return_found)
     //    return_error();
     close(file_desc);
 
     generate_IC(tree);
+    print_Env_tree();
     if (tree != NULL)
         free_CompStmt(tree);
     destroy_parse_table();

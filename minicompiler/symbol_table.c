@@ -3,6 +3,7 @@
 #include <string.h>
 #include "symbol_table.h"
 #include "hashing.h"
+#include "io.h"
 
 struct SymTab* create_SymTab(int table_size, struct SymTab* parent)
 {
@@ -20,12 +21,25 @@ struct SymTab* create_SymTab(int table_size, struct SymTab* parent)
 
 void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
 {
-    struct SymTab* tmp[parent->n_childs];
-    memcpy(tmp, parent->childs, parent->n_childs);
-    int n_childs = ++parent->n_childs;
-    parent->childs = malloc(sizeof(struct SymTab*)*n_childs);
-    memcpy(tmp, parent->childs, n_childs-1);
-    parent->childs[n_childs-1] = child;
+    if (parent->n_childs) {
+        int n_childs = parent->n_childs;
+        struct SymTab* tmp[n_childs];
+        memcpy(tmp, parent->childs, sizeof(struct SymTab*)*n_childs);
+        parent->n_childs++;
+
+        free(parent->childs);
+        parent->childs = malloc(sizeof(struct SymTab*)*(n_childs+1));
+        memcpy(parent->childs, tmp, sizeof(struct SymTab*)*n_childs);
+        parent->childs[n_childs] = child;
+    } else {
+        parent->n_childs = 1;
+        parent->childs = malloc(sizeof(struct SymTab*)*1);
+        parent->childs[0] = child;
+
+    }
+
+
+
 }
 
 struct SymTab_entry* SymTab_pair(char* key,
@@ -94,9 +108,7 @@ int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
         return 0;
     }
     while (entry != NULL) {
-
         if (entry->type == type && strcmp(entry->key, key) == 0) {
-            printf("Equal\n");
             return 1;
         }
         prev = entry;
@@ -175,16 +187,16 @@ void SymTab_destroy(struct SymTab* symbol_table)
     symbol_table = NULL;
 }
 
-void SymTab_dump(struct SymTab* symbol_table, char* title)
+void SymTab_dump(struct SymTab* symbol_table, char* title, int indent)
 {
     printf("\n");
-    printf("%s:\n", title);
+    print_w_indent(indent, "%s:\n", title);
     for (int i = 0; i < symbol_table->table_size; i++) {
         struct SymTab_entry* entry = symbol_table->entries[i];
         if (entry == NULL) {
             continue;
         }
-        printf("%4d:\t", i);
+        print_w_indent(indent, "%4d:\t", i);
         printf("%s : %x", entry->key, entry->type);
         while (1) {
             if (entry->next == NULL) {
