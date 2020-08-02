@@ -7,7 +7,7 @@
 #include "lexer.h"
 #include "keyword_table.h"
 
-#define BUFFERSIZE 4096
+#define BUFFERSIZE 2
 #define TABLENGTH 8
 #define CONTEXT 5
 
@@ -174,10 +174,10 @@ int get_line()
 {
     next_line.num = line_num;
     int i;
-    if (*buffer_ptr == 0x04) {
+    if (*(buffer_ptr) == 0x04) {
         if (buffer_ptr == buffer+BUFFERSIZE) {
             int r = read(file_desc, buffer+BUFFERSIZE+1, BUFFERSIZE);
-            buffer[BUFFERSIZE+r] = 0x04;
+            buffer[BUFFERSIZE+1+r] = 0x04;
             buffer_ptr++;
         } else if (buffer_ptr == buffer+2*BUFFERSIZE+1) {
             int r = read(file_desc, buffer, BUFFERSIZE);
@@ -193,10 +193,10 @@ int get_line()
     next_line.line[0] = *buffer_ptr;
     for (i = 1; i < LINELENGTH-1 && *buffer_ptr != '\n';) {
         buffer_ptr++;
-        if (*buffer_ptr == 0x04) {
+        if (*(buffer_ptr) == 0x04) {
             if (buffer_ptr == buffer+BUFFERSIZE) {
                 int r = read(file_desc, buffer+BUFFERSIZE+1, BUFFERSIZE);
-                buffer[BUFFERSIZE+r] = 0x04;
+                buffer[BUFFERSIZE+1+r] = 0x04;
                 buffer_ptr++;
             } else if (buffer_ptr == buffer+2*BUFFERSIZE+1) {
                 int r = read(file_desc, buffer, BUFFERSIZE);
