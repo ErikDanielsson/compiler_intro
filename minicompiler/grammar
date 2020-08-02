@@ -42,6 +42,9 @@ expr -> expr '/' expr
 expr -> expr '%' expr
 expr -> expr '*' expr
 expr -> expr '^' expr
+expr -> expr '&' expr
+expr -> expr '|' expr
+expr -> expr 'SHIFT' expr
 expr -> expr 'RELOP' expr
 expr -> expr 'AND' expr
 expr -> expr 'OR' expr
@@ -53,11 +56,12 @@ expr -> variable_access
 expr -> function_call
 expr -> '+' expr
 expr -> '-' expr
+expr -> '~' expr
 expr -> '!' expr
-precedence: 'RELOP' : 3, 'OR' : 4, 'AND' : 5, '!' : 6
-precedence: '-' : 0, '+' : 0, '*' : 1, '/' : 1, '%' : 1, '^' : 2
 
-
+precedence: 'OR' : 0, 'AND' : 1, '!' : 2, 'RELOP' : 3
+precedence: '|' : 4, '^' : 5 : '&' : 6, 'SHIFT' : 7
+precedence: '-' : 8, '+' : 8, '*' : 9, '/' : 9, '%' : 9
 
 assignment_statement -> variable_access 'ASSIGN' expr
 assignment_statement -> variable_access '=' expr

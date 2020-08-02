@@ -316,6 +316,8 @@ void init_lexer()
     KeywordTab_set(keywords, "&&", AND);
     KeywordTab_set(keywords, "||", OR);
     KeywordTab_set(keywords, "!", '!');
+    KeywordTab_set(keywords, "<<", SHIFT);
+    KeywordTab_set(keywords, ">>", SHIFT);
 
 }
 
@@ -507,7 +509,12 @@ struct Token* get_token()
                     set_lexeme_ptr();
                     return token;
                 } else {
-                    token_error(1, "There is currently no & token in the lang", 1);
+                    token->c_val = *(forward-1);
+                    token->type = *(forward-1);
+                    token->line = line_num;
+                    token->column = column_num-1;
+                    set_lexeme_ptr();
+                    return token;
                 }
             case '|':
                 get_char();
@@ -520,7 +527,12 @@ struct Token* get_token()
                     set_lexeme_ptr();
                     return token;
                 } else {
-                    token_error(1, "There is currently no | token in the lang", 1);
+                    token->c_val = *(forward-1);
+                    token->type = *(forward-1);
+                    token->line = line_num;
+                    token->column = column_num-1;
+                    set_lexeme_ptr();
+                    return token;
                 }
             case '=':
                 get_char();
@@ -542,10 +554,20 @@ struct Token* get_token()
                 }
             case '<':
             case '>':
-            get_char();
-                if (*forward == '=') {
+                tmp0 = *forward;
+                get_char();
+                tmp1 = *forward;
+                if (tmp1 == '=') {
                     get_char();
                     token->type = RELOP;
+                    token->lexeme = get_lexeme();
+                    token->line = line_num;
+                    token->column = column_num-2;
+                    set_lexeme_ptr();
+                    return token;
+                } else if (tmp1 == tmp0) {
+                    get_char();
+                    token->type = SHIFT;
                     token->lexeme = get_lexeme();
                     token->line = line_num;
                     token->column = column_num-2;
