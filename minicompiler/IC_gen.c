@@ -566,6 +566,7 @@ void if_with_else(struct CondStmt* node, char* next)
     push_Env();
     visit_CompStmt(node->body);
     pop_Env();
+    emit("goto %s", next);
     emitlabel(falsel);
 }
 
