@@ -1,0 +1,34 @@
+Exercise 7.7.1: Suppose that the network of objects from Fig. 7.20 is managed
+by an incremental algorithm that uses the four lists Unreached, Unscanned,
+Scanned, and Free, as in Baker's algorithm. To be specific, the Unscanned list
+is managed as a queue, and when more than one object is to be placed on this list
+due to the scanning of one object, we do so in alphabetical order. Suppose also
+that we use write barriers to assure that no reachable object is made garbage.
+Starting with A and B on the Unscanned list, suppose the following events
+occur:
+i. A is scanned.
+ii. The pointer A -> D is rewritten to be A -> H.
+iii.B is scanned.
+iv. D is scanned.
+v. The pointer B -> C is rewritten to be B -> I.
+Simulate the entire incremental garbage collection, assuming no more pointers
+are rewritten. Which objects are garbage? Which objects are placed on the
+Free list?
+
+Exercise 7.7.2: Repeat Exercise 7.7. 1 on the assumption that
+a) Events (ii) and (v) are interchanged in order.
+b) Events (ii) and (v) occur before (i) , (iii) , and (iv).
+
+Exercise 7.7.3: Suppose the heap consists of exactly the nine cars on three
+trains shown in Fig. 7.30 (Le., ignore the ellipses) . Object 0 in car 1 1 has
+references from cars 12, 23, and 32. When we garbage collect car 1 1 , where
+might 0 wind up?
+
+Exercise 7.7.4: Repeat Exercise 7.7.3 for the cases that 0 has
+a) Only references from cars 22 and 31.
+b ) No references other than from car 11.
+
+Exercise 7.7.5: Suppose the heap consists of exactly the nine cars on three
+trains shown in Fig. 7.30 (i.e., ignore the ellipses) . We are currently in panic
+mode. Object 01 in car 11 has only one reference, from object 02 in car 12. That
+refer
