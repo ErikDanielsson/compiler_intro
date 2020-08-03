@@ -1,7 +1,7 @@
 CC = clang
-CFLAGS = -Wall
+CFLAGS = -Wall -O3
 DEPS =
-OBJ=  lexer.o keyword_table.o table_generator.o parser.o symbol_table.o type_checker.o hashing.o IC_gen.o main.o
+OBJ= io.o IC_gen.o lexer.o keyword_table.o table_generator.o parser.o symbol_table.o type_checker.o hashing.o  main.o
 
 all:
 	make table
@@ -32,3 +32,10 @@ clean:
 	rm -f *.out
 	rm -f *.o
 	rm -f *.tmp
+
+new_profile:
+	make clean
+	make a.out
+	./a.out test.pyr
+	gprof a.out gmon.out > analysis.txt
+	cat analysis.txt
