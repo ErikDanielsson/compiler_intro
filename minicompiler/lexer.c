@@ -7,7 +7,7 @@
 #include "lexer.h"
 #include "keyword_table.h"
 
-#define BUFFERSIZE 2
+#define BUFFERSIZE 4096
 #define TABLENGTH 8
 #define CONTEXT 5
 

@@ -37,9 +37,6 @@ void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
         parent->childs[0] = child;
 
     }
-
-
-
 }
 
 struct SymTab_entry* SymTab_pair(char* key,
