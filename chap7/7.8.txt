@@ -1,0 +1,12 @@
+! Exercise 7.8.1: In Section 7.8.3 we suggested that it was possible to garbage
+collect for C programs that do not fabricate expressions that point to a place
+within a chunk unless there is an address that points somewhere within that
+same chunk. Thus, we rule out code like
+p = 12345 ;
+x = *p ;
+because, while p might point to some chunk accidentally, there could be no other
+pointer to that chunk. On the other hand, with the code above, it is more likely
+that p points nowhere, and executing that code will result in a segmentation
+fault. However, in C it is possible to write code such that a variable like p is
+guaranteed to point to some chunk, and yet there is no pointer to that chunk.
+Write such a program.
