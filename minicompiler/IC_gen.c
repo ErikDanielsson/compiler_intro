@@ -394,12 +394,13 @@ void visit_Expr_jump(struct Expr* node)
             node->left->true = "fall";
             node->right->true = node->true;
             node->right->false = node->false;
-            if (strcmp(node->left->false, "fall") == 0) {
+            if (strcmp(node->false, "fall") == 0) {
                 node->left->false = newlabel();
                 visit_Expr_jump(node->left);
                 visit_Expr_jump(node->right);
                 emitlabel(node->left->false);
             } else {
+                node->left->false = node->false;
                 visit_Expr_jump(node->left);
                 visit_Expr_jump(node->right);
             }
@@ -408,12 +409,13 @@ void visit_Expr_jump(struct Expr* node)
             node->left->false = "fall";
             node->right->true = node->true;
             node->right->false = node->false;
-            if (strcmp(node->left->true, "fall") == 0) {
+            if (strcmp(node->true, "fall") == 0) {
                 node->left->true = newlabel();
                 visit_Expr_jump(node->left);
                 visit_Expr_jump(node->right);
                 emitlabel(node->left->true);
             } else {
+                node->left->true = node->true;
                 visit_Expr_jump(node->left);
                 visit_Expr_jump(node->right);
             }
