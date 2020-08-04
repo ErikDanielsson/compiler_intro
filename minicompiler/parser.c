@@ -10,6 +10,7 @@
 #include "parser.h"
 #include "table_generator.h"
 #include "type_checker.h"
+#include "consts.h"
 
 /*
  * The following file implements an LR parser and constructs an abstract
@@ -20,9 +21,6 @@
  */
 
 #define STACK_SIZE 8192
-#define TRUE 1
-#define FALSE 0
-#define VERBOSE 1
 #define DEBUG 0
 #define TREEBUILDER 0
 #define LABELS 0
@@ -138,10 +136,6 @@ struct CompStmt* lr_parser(char verbose)
             }
 
         } else if (action == -1) {
-            #if VERBOSE
-            printf("parse done\n");
-            print_CompStmt((struct CompStmt*)(*record_ptr), 0, 1, 0);
-            #endif
             free(a); // struct Token* a is necessarily eof, therefore no lexeme
             return (struct CompStmt*)(*record_ptr);
 
