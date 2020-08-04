@@ -101,7 +101,7 @@ char* widen(char* addr_a, char* type1, char* type2)
 char* relop_inv(char* relop)
 {
     /*
-     * Determines inverse by predetermined hash_values
+     * Determines inverse by predetermined hash values
      */
     switch(max_hash(relop)) {
         case 0x390caefb:
@@ -176,7 +176,9 @@ void visit_Stmt(struct Stmt* node)
             emitlabel(node->next);
             return;
         case SCOPE:
+            push_Env();
             visit_CompStmt(node->stmt);
+            pop_Env();
             return;
         case RETURN_STATEMENT:
             visit_ReturnStmt(node->stmt);
@@ -234,11 +236,85 @@ void visit_FuncDecl(struct FuncDecl* node)
 char* visit_Expr_rval(struct Expr* node)
 {
     switch (node->type) {
-        case EXPR_RELOP:
+        case EXPR_RELOP:{
+            char* type1 = visit_Expr_rval(node->left);
+            char* type2 = visit_Expr_rval(node->right);
+            char* type = max(type1, type2);
+            char* a1 = widen(node->left->addr, type1, type);
+            char* a2 = widen(node->right->addr, type2, type);
+            char* true = newlabel();
+            char* next = newlabel();
+            char* t = newtemp();
+            emit("if %s %s %s goto %s",
+                a1, node->binary_op->lexeme,
+                a2, true);
+            emit("%s = 0", t);
+            emit("goto %s", next);
+            emitlabel(true);
+            emit("%s = 1", t);
+            emitlabel(next);
+            node->addr = t;
+            return "inontot";
+        }
+        case EXPR_AND: {
+            char* true = newlabel();
+            char* false = newlabel();
+            char* next = newlabel();
 
-        case EXPR_AND:
-        case EXPR_OR:
-        case EXPR_NOT:
+            node->left->true = "fall";
+            node->left->false = false;
+            node->right->true = true;
+            node->right->false = "fall";
+
+            visit_Expr_jump(node->left);
+            visit_Expr_jump(node->right);
+            emitlabel(false);
+            char* t = newtemp();
+            emit("%s = 0", t);
+            emit("goto %s", next);
+            emitlabel(true);
+            emit("%s = 1", t);
+            emitlabel(next);
+            node->addr = t;
+            return "inontot";
+        }
+        case EXPR_OR: {
+            char* true = newlabel();
+            char* false = newlabel();
+            char* next = newlabel();
+            node->left->false = "fall";
+            node->left->true = true;
+            node->right->true = "fall";
+            node->right->false = false;
+
+            visit_Expr_jump(node->left);
+            visit_Expr_jump(node->right);
+            emitlabel(true);
+            char* t = newtemp();
+            emit("%s = 1", t);
+            emit("goto %s", next);
+            emitlabel(false);
+            emit("%s = 0", t);
+            emitlabel(next);
+            node->addr = t;
+            return "inontot";
+        }
+        case EXPR_NOT: {
+            char* true = newlabel();
+            char* next = newlabel();
+            printf("%s", next);
+            node->expr->true = "fall";
+            node->expr->false = true;
+            visit_Expr_jump(node->expr);
+            char* t = newtemp();
+            emit("%s = 0", t);
+            emit("goto %s", next);
+            emitlabel(true);
+            emit("%s = 1", t);
+            emitlabel(next);
+            node->addr = t;
+            return "inontot";
+        }
 
         case EXPR_BINOP: {
             char* type1 = visit_Expr_rval(node->left);
@@ -252,7 +328,6 @@ char* visit_Expr_rval(struct Expr* node)
 
         }
         case EXPR_UOP: {
-            print_Expr(node->expr ,0,0,0);
             char* type = visit_Expr_rval(node->expr);
             node->addr = newtemp();
             emit("%s = neg %s", node->addr, node->expr->addr);
@@ -281,11 +356,9 @@ char* visit_Expr_rval(struct Expr* node)
             }
         }
         case EXPR_FUNCCALL:
-            // "node->addr != 0"
             node->addr = newtemp();
             return visit_FuncCall(node->function_call);
         case EXPR_VARACC:
-            // "node->addr != 0"
             node->addr = node->variable_access->variable->lexeme;
             return visit_VarAcc(node->variable_access);
     }
