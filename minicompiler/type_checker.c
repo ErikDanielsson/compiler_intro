@@ -143,6 +143,10 @@ void print_Env_tree()
         print_Env_tree_helper(env->childs[i], 1);
 }
 
+void destroy_Env_tree()
+{
+    SymTab_destroyr(symbol_table_stack[0]);
+}
 
 
 

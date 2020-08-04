@@ -9,6 +9,7 @@ void push_Env();
 void pop_Env();
 struct SymTab* pop_Env_struct();
 void print_Env_tree();
+void destroy_Env_tree();
 
 void enter_type_def(char* type_name, struct SymTab* struct_env);
 void check_type_defined(char* type_name);
