@@ -184,6 +184,13 @@ void SymTab_destroy(struct SymTab* symbol_table)
     symbol_table = NULL;
 }
 
+void SymTab_destroyr(struct SymTab* symbol_table)
+{
+    for (int i = 0; i < symbol_table->n_childs; i++)
+        SymTab_destroyr(symbol_table->childs[i]);
+    SymTab_destroy(symbol_table);
+}
+
 void SymTab_dump(struct SymTab* symbol_table, char* title, int indent)
 {
     printf("\n");
