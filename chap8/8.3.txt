@@ -1,0 +1,76 @@
+Exercise 8.3. 1 : Generate code for the following three-address statements
+as­suming stack allocation where register SP points to the top of the stack.
+    call p
+    call q
+    return
+    call r
+    return
+    return
+
+    nope
+
+Exercise 8.3.2 : Generate code for the following three-address statements
+as­suming stack allocation where register SP points to the top of the stack.
+a) x = 1
+    ADD     R0, SP, 4
+    ST      *R0, 1
+
+b) x = a
+    ADD     R0, SP, 4
+    ST      *R0, a
+
+c) x = a + 1
+    ADD     R0, SP, 4
+    LD      R1, a
+    ADD     R1, R1, 1
+    ST      *R0, R1
+
+d) x = a + b
+    LD      R0, a
+    LD      R1, b
+    ADD     R1, R1, R0
+    ADD     R0, SP, 4
+    ST      *R0, R1
+
+e) The two statements
+    x = b * c
+    y = a + x
+
+    LD      R0, b
+    LD      R1, c
+    ADD     R1, R1, R0
+    ADD     R0, SP, 4
+    ST      *R0, R1
+    LD      R0, a
+    ADD     R1, R1, R0
+    ADD     R0, R0, 4
+    ST      *R0, R1
+
+Exercise 8.3.3 : Generate code for the following three-address statements again
+assuming stack allocation and assuming a and b are arrays whose ele­ments are
+4-byte values.
+a) The four-statement sequence
+    x = a[i]
+    y = b[j]
+    a[i] = y
+    b[j] = x
+
+    LD  R1, a
+    LD  R2, i(R1)
+    ADD R0, SP, 4
+    ST  *R0, R2
+    LD R3, b
+    LD R4, j(R1)
+    ADD R0, R0, 4
+    ST  *R0, R4
+    LD i(R1), R4
+    LD j(R3), R2
+
+b) The three-statement sequence
+    x = a[i]
+    b[i] = y
+    z = x * y
+c) The three-statement sequence
+    x = a[i]
+    y = b[x]
+    a[i] = y
