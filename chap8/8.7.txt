@@ -1,0 +1,45 @@
+Exercise 8.7.1: Construct an algorithm that will perform redundant-
+instruc­tion elimination in a sliding peephole on target machine code.
+    code_changed = True
+    while code_changed {
+        code_changed = False
+        for instruction_pair in basic_block {
+            if (instruction_pair[0] == load && label(instruction_pair[0]) == False) {
+                if (instruction[0].op1 == instruction[1].op2 &&
+                    instruction[1].op1 == instruction[0].op2)
+                    remove_instruction(instruction_pair[1])
+                    code_changed = True
+                    break;
+            }
+        }
+    }
+Exercise 8.7.2: Construct an algorithm that will do flow-of-control
+optimiza­tions in a sliding peephole on target machine code.
+code_changed = True
+used_label_list = []
+while code_changed {
+    code_changed = False
+    for jump_instruction in program {
+        used_label_list.append(jump_instruction.label)
+        if instruction[jump_instruction.label] is unconditional {
+            jump_instruction.label = instruction[jump_instruction.label].label
+            code_changed = True;
+        } else if jump_instruction == unconditional &&
+          instruction[jump_instruction.label] is conditional  {
+            replace jump_instruction with instruction[jump_instruction.label]
+            code_changed = True
+        }
+    }
+    for labels in program {
+        if label not in used_label_list:
+            remove(label)
+    }
+}
+Exercise 8.7.3: Construct an algorithm that will do simple algebraic
+simpli­fications and reductions in strength in a sliding peephole on target
+machine code.
+
+This is basically pattern matching, so it involves matching the input code
+to some arithmetic pattern. The algorithm while therefore be a simple loop, like
+the algorithms in which another loop look for matching patterns. The algorithm
+terminates when no changes to the code has been made during an iteration.s
