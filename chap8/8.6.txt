@@ -1,0 +1,210 @@
+Exercise 8.6.1: For each of the following C assignment statements
+a) x = a + b * c;
+    t0 = b * c
+    t1 = a + t0
+    x = t1
+
+b) x = a/(b + c) - d * (e + f);
+    t0 = b + c
+    t1 = a / t0
+    t2 = e + f
+    t3 = d * t2
+    t4 = t1 - t3
+    x = t4
+
+c) x = a[i] + 1;
+    t0 = i * 4
+    t1 = a[t0]
+    t2 = t1 + 1
+    x = t2
+
+d) a[i] = b[c[i]]
+    t0 = i * 4
+    t1 = c[t0]
+    t2 = t1 * 4
+    t3 = b[t2]
+    t4 = i * 4
+    a[t4] = t3
+
+e) a[i][j] =  b[i][k] + c[k][j];
+    t0 = i * b_rowlen
+    t1 = t0 * 4
+    t2 = k * 4
+    t3 = t1 + t2
+    t4 = b[t3]
+    t5 = k * c_rowlen
+    t6 = t5 * 4
+    t7 = j * 4
+    t8 = t6 + t7
+    t9 = b[t8]
+    t10 = t4 + t9
+    t11 = i * a_rowlen
+    t12 = t0 * 4
+    t13 = j * 4
+    t14 = t12 + t13
+    a[t14] = t10
+
+f) *p++ = *q++;
+    t0 = *q
+    *p = t0
+    t1 = *p
+    t2 = t1 + 1
+    *p = t2
+    t3 = *q
+    t4 = t3 + 1
+    *q = t4
+
+generate three-address code, assuming that all array elements are integers
+tak­ing four bytes each. In parts (d) and (e) , assume that a, b , and c are
+constants giving the location of the first (Oth) elements of the arrays with
+those names, as in all previous examples of array accesses in this chapter.
+! Exercise 8.6.2: Repeat Exercise 8.6.1 parts (d) and (e), assuming that the
+arrays a, b, and c are located via pointers, pa, pb, and pc, respectively, pointing
+to the locations of their respective first elements.
+    no
+
+Exercise 8.6.3: Convert your three-address code from Exercise 8.6.1 into
+ma­chine code for the machine model of this section. You may use as many
+registers as you need.
+a) x = a + b * c;
+    LD R0, b
+    LD R1, c
+    MUL R0, R0, R1
+    LD  R1, a
+    ADD R0, R0, R1
+    ST x, R0
+
+b) x = a/(b + c) - d * (e + f);
+    LD R0, b
+    LD R1, c
+    ADD R0, R0, R1
+    LD R1, a
+    DIV R0, R1, R0
+    LD R1, e
+    LD R2, f
+    ADD R1, R1, R2
+    LD R2, d
+    MUL R1, R2, R1
+    ADD R0, R0, R1
+    ST x, R0
+
+c) x = a[i] + 1;
+    LD R0, i
+    MUL R0, R0, #4
+    LD R1, a
+    LD R0, R1(R0)
+    ADD R0, R0, #1
+    ST x, R0
+
+d) a[i] = b[c[i]]
+    LD R0, i
+    MUL R0, R0, #4
+    LD R1, c
+    LD R0, R1(R0)
+    MUL R0, R0, #4
+    LD R1, b
+    LD R0, R1(R0)
+    LD R1, i
+    MUL R1, R1, #4
+    LD R2, a
+    ST R2(R1) = R0
+
+e) a[i][j] =  b[i][k] + c[k][j];
+    Skipped
+
+f) *p++ = *q++;
+    Skipped
+
+Exercise 8.6.4: Convert your three-address code from Exercise 8.6.1 into ma­
+chine code, using the simple code-generation algorithm of this section, assuming
+three registers are available. Show the register and address descriptors after
+each step.
+a) x = a + b * c;
+    LD R0, b
+    LD R1, c
+    MUL R0, R0, R1
+    LD  R1, a
+    ADD R0, R0, R1
+    ST x, R0
+
+b) x = a/(b + c) - d * (e + f);
+    LD R0, b
+    LD R1, c
+    ADD R0, R0, R1
+    LD R1, a
+    DIV R0, R1, R0
+    LD R1, e
+    LD R2, f
+    ADD R1, R1, R2
+    LD R2, d
+    MUL R1, R2, R1
+    ADD R0, R0, R1
+    ST x, R0
+
+c) x = a[i] + 1;
+    LD R0, i
+    MUL R0, R0, #4
+    LD R1, a
+    LD R0, R1(R0)
+    ADD R0, R0, #1
+    ST x, R0
+
+d) a[i] = b[c[i]]
+    LD R0, i
+    MUL R0, R0, #4
+    LD R1, c
+    LD R2, R1(R0)
+    MUL R2, R2, #4
+    LD R1, b
+    LD R2, R1(R2)
+    LD R2, a
+    ST R2(R0) = R2
+
+e) a[i][j] =  b[i][k] + c[k][j];
+    Skipped
+
+f) *p++ = *q++;
+    Skipped
+
+Exercise 8.6.5: Repeat Exercise 8.6.4, but assuming only two registers are
+available.
+a) x = a + b * c;
+    LD R0, b
+    LD R1, c
+    MUL R0, R0, R1
+    LD  R1, a
+    ADD R0, R0, R1
+    ST x, R0
+
+b) x = a/(b + c) - d * (e + f);
+    LD R0, b
+    LD R1, c
+    ADD R0, R0, R1
+    LD R1, a
+    DIV R0, R1, R0
+    ST x, R0
+    LD R0, e
+    LD R1, f
+    ADD R0, R0, R1
+    LD R1, d
+    MUL R0, R1, R0
+    LD R1, x
+    ADD R1, R1, R0
+    ST x, R1
+
+c) x = a[i] + 1;
+    LD R0, i
+    MUL R0, R0, #4
+    LD R1, a
+    LD R0, R1(R0)
+    ADD R0, R0, #1
+    ST x, R0
+
+d) a[i] = b[c[i]]
+    How is assigning to an array done?
+
+e) a[i][j] =  b[i][k] + c[k][j];
+    Skipped
+
+f) *p++ = *q++;
+    Skipped

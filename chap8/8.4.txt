@@ -1,0 +1,54 @@
+Exercise 8.4.1: Figure 8.10 is a simple matrix-multiplication program.
+a) Translate the program into three-address statements of the type we have
+been using in this section. Assume the matrix entries are numbers that
+require 8 bytes, and that matrices are stored in row-major order.
+    LD      R1, 0
+L1: SUB     R3, R1, 10
+    BGTZ    R3, L0
+    LD      R2, 0
+L2: SUB     R3, R2, 10
+    BGTZ    R3, L3
+    LD      R3, c(R1)
+    ST      R2(R3), 0.0
+    ADD     R1, R1, 1
+    BR      L2
+L3: ADD     R1, R1, 1
+    BR      L1
+L0: LD      R3, 0
+L5: SUB     R6, R3, 10
+    BGTZ    R6, L4
+    LD      R4, 0
+L6: SUB     R6, R4, 10
+    BGTZ    R3, L9
+    LD      R5, 0
+L7  SUB     R6, R5, 10
+    BGTZ    R3, L8
+    LD      R7, a(R3)
+    LD      R7, R7(R5)
+    LD      R8, b(R5)
+    LD      R8, R8(R4)
+    MUL     R7, R7, R8
+    LD      R8, c(R3)
+    ADD     *R8, *R8, R7
+    ADD     R5, R5, 1
+    BR      L7
+L8: ADD     R4, R4, 1
+    BR      L6
+L9: ADD     R3, R3, 1
+    BR      L5
+L4:
+
+    
+b) Construct the flow graph for your code from (a).
+    Not worft
+c) Identify the loops in your flow graph from (b).
+    hmmmm
+
+Exercise 8.4.2 : Figure 8. 1 1 is code to count the number of primes from 2 to
+n, using the sieve method on a suitably large array a. That is, a[i] is TRUE at
+the end only if there is no prime sqrt(i) or less that evenly divides i. We initialize
+all a[i] to TRUE and then set a[j] to FALSE if we find a divisor of j.
+a) Translate the program into three-address statements of the type we have
+been using in this section. Assume integers require 4 bytes.
+b) Construct the flow graph for your code from (a).
+c) Identify the loops in your flow graph from (b).
