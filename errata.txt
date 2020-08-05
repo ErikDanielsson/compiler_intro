@@ -1,2 +1,4 @@
 P. 408. Exercise 6.6.1: statment should be statement
 P. 409. Exercise 6.6.2: interation should be iteration
+P. 541. Exercises 8.5.(3-4): Shouldn't "construct the basic block" be "construct the DAG"?
+P. 541. Exercise 8.5.5: There are two "c)" exercises.
