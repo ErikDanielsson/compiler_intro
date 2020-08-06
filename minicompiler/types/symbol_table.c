@@ -4,6 +4,8 @@
 #include "symbol_table.h"
 #include "hashing.h"
 #include "io.h"
+#include "consts.h"
+#include "parser.h"
 
 struct SymTab* create_SymTab(int table_size, struct SymTab* parent)
 {
@@ -46,9 +48,8 @@ void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
  * which is guaranteed to be unique. Behold the symbol_counter.
  */
 unsigned int symbol_counter = 0;
-struct SymTab_entry* SymTab_pair(char* key,
-                                enum SymbolType type,
-                                void* symbol)
+struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
+                                void* symbol, long offset)
 {
 
     struct SymTab_entry* entry = malloc(sizeof(struct SymTab_entry) * 1);
@@ -57,19 +58,20 @@ struct SymTab_entry* SymTab_pair(char* key,
     entry->type = type;
     entry->next = NULL;
     entry->symbol = symbol;
+    entry->offset = offset;
     entry->counter_value = symbol_counter;
     symbol_counter++;
     return entry;
 }
 
 int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
-                    enum SymbolType type, void* symbol)
+                    enum SymbolType type, void* symbol, long offset)
 {
     unsigned int slot = hash(key, symbol_table->table_size);
     struct SymTab_entry* entry = symbol_table->entries[slot];
     struct SymTab_entry* prev;
     if (entry == NULL) {
-        symbol_table->entries[slot] = SymTab_pair(key, type, symbol);
+        symbol_table->entries[slot] = SymTab_pair(key, type, symbol, offset);
         return 0;
     }
     do {
@@ -79,7 +81,7 @@ int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
         prev = entry;
         entry = prev->next;
     } while (entry != NULL);
-    prev->next = SymTab_pair(key, type, symbol);
+    prev->next = SymTab_pair(key, type, symbol, offset);
     return 0;
 }
 
@@ -154,8 +156,15 @@ void SymTab_dump(struct SymTab* symbol_table, char* title, int indent)
             continue;
         }
         print_w_indent(indent, "%4d:\t", i);
-        printf("%s : %x", entry->key, entry->type);
-        while (1) {
+        if (entry->type == VARIABLE) {
+            struct VarDecl* symbol = entry->symbol;
+            printf("var %-15s : %-5s At offset %lx\n", symbol->type->lexeme, entry->key, entry->offset);
+        } else if (entry->type == FUNCTION) {
+            struct FuncDecl* symbol = entry->symbol;
+            printf("func %s : %s\n", symbol->type->lexeme, entry->key);
+        }
+
+        while (TRUE) {
             if (entry->next == NULL) {
                 break;
             }

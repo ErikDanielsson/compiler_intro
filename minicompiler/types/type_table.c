@@ -4,7 +4,7 @@
 #include "type_table.h"
 #include "hashing.h"
 
-struct TypeTab* create_TypeTab(int table_size, struct TypeTab* parent)
+struct TypeTab* create_TypeTab(int table_size)
 {
     struct TypeTab* type_table = malloc(sizeof(struct TypeTab));
     type_table->table_size = table_size;
@@ -15,42 +15,45 @@ struct TypeTab* create_TypeTab(int table_size, struct TypeTab* parent)
     return type_table;
 }
 
-struct TypeTab_entry* TypeTab_builtin_pair(char* key, int widening_priority)
+struct TypeTab_entry* TypeTab_builtin_pair(char* key, int widening_priority, int width)
 {
     struct TypeTab_entry* entry = malloc(sizeof(struct TypeTab_entry));
     entry->key = malloc(sizeof(char)*strlen(key)+1);
     strcpy(entry->key, key);
     entry->type = TYPE_BUILTIN;
     entry->widening_priority = widening_priority;
+    entry->width = width;
     entry->next = NULL;
     return entry;
 }
 
-struct TypeTab_entry* TypeTab_struct_pair(char* key, void* struct_symbol)
+struct TypeTab_entry* TypeTab_struct_pair(char* key, struct SymTab* struct_symbol)
 {
     struct TypeTab_entry* entry = malloc(sizeof(struct TypeTab_entry));
     entry->key = malloc(sizeof(char)*strlen(key)+1);
     strcpy(entry->key, key);
     entry->type = TYPE_STRUCT;
+    // STRUCTS ARE CURRENTLY NOT SUPPORTED
+    entry->width = NULL;
     entry->struct_symbol = struct_symbol;
     entry->next = NULL;
     return entry;
 }
 
-void TypeTab_set_builtin(struct TypeTab* type_table, char* key, int widening_priority)
+void TypeTab_set_builtin(struct TypeTab* type_table, char* key, int widening_priority, int width)
 {
     unsigned int slot = hash(key, type_table->table_size);
     struct TypeTab_entry* entry = type_table->entries[slot];
     struct TypeTab_entry* prev;
     if (entry == NULL) {
-        type_table->entries[slot] = TypeTab_builtin_pair(key, widening_priority);
+        type_table->entries[slot] = TypeTab_builtin_pair(key, widening_priority, width);
         return;
     }
     do {
         prev = entry;
         entry = prev->next;
     } while (entry != NULL);
-    prev->next = TypeTab_builtin_pair(key, widening_priority);
+    prev->next = TypeTab_builtin_pair(key, widening_priority, width);
 }
 
 int get_widening_type(struct TypeTab* type_table, char* key)
@@ -63,6 +66,25 @@ int get_widening_type(struct TypeTab* type_table, char* key)
         entry = entry->next;
     }
     return -1;
+}
+
+void type_table_error(char* key)
+{
+    fprintf(stderr, "Internal error:Type '%s' should have been entered in type_table\n");
+    exit(-1);
+}
+
+long get_type_width(struct TypeTab* type_table, char* key)
+{
+    unsigned int hashv = hash(key, type_table->table_size);
+    struct TypeTab_entry* entry = type_table->entries[hashv];
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0)
+            return (long)entry->width;
+        entry = entry->next;
+    }
+    type_table_error(key);
+    return 0;
 }
 
 int TypeTab_check_and_set(struct TypeTab* type_table, char* key, void* struct_symbol)

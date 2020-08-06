@@ -85,8 +85,8 @@ struct TypeTab* type_table;
  struct SymTab* symbol_table_stack[NESTINGDEPTH];
  struct SymTab** top_symtab = symbol_table_stack;
 
-int offset_stack[NESTINGDEPTH];
-int* offset = offset_stack;
+long offset_stack[NESTINGDEPTH];
+long* offset = offset_stack;
 
 void push_Env()
 {
@@ -165,14 +165,15 @@ void check_type_defined(char* type_name)
 
 void check_and_set_var(struct VarDecl* node)
 {
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node))
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset))
         type_error(TRUE, "Redefinition of variable '%s' at %d:%d\n", node->name->lexeme,
                     node->name->line, node->name->column);
+    *offset += get_type_width(type_table, node->type->lexeme);
 }
 
 void check_and_set_func(struct FuncDecl* node)
 {
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node))
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node, 0))
         type_error(TRUE, "Redefinition of function '%s' at %d:%d\n",
                     node->name->lexeme,
                     node->name->line,
@@ -182,9 +183,11 @@ void check_and_set_func(struct FuncDecl* node)
 char* check_var_declared(struct VarAcc* varacc)
 {
     struct SymTab_entry* entry = SymTab_getr(*top_symtab, varacc->variable->lexeme, VARIABLE);
-    struct VarDecl* node = entry->symbol;
-    if (node == NULL)
+    if (entry == NULL)
         undeclared_var_error(varacc);
+    struct VarDecl* node = entry->symbol;
+
+
     return node->type->lexeme;
 }
 
@@ -204,12 +207,12 @@ struct SymTab_entry* get_curr_name_entry(char* name)
 
 void init_type_checker()
 {
-    type_table = create_TypeTab(4, NULL);
-    TypeTab_set_builtin(type_table, "inontot", 0);
-    TypeTab_set_builtin(type_table, "lolonongog", 1);
-    TypeTab_set_builtin(type_table, "fofloloatot", 2);
-    TypeTab_set_builtin(type_table, "dodouboblole", 3);
-    TypeTab_set_builtin(type_table, "sostotrorinongog", -1);
+    type_table = create_TypeTab(10);
+    TypeTab_set_builtin(type_table, "inontot", 0, 4);
+    TypeTab_set_builtin(type_table, "lolonongog", 1, 8);
+    TypeTab_set_builtin(type_table, "fofloloatot", 2, 4);
+    TypeTab_set_builtin(type_table, "dodouboblole", 3, 8);
+    //TypeTab_set_builtin(type_table, "sostotrorinongog", -1, NULL);
     TypeTab_set_builtin(type_table, "vovoidod", -1);
     *top_symtab = create_SymTab(TABLESIZE, NULL);
 }
