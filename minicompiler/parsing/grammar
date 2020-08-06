@@ -44,7 +44,8 @@ expr -> expr '*' expr
 expr -> expr '^' expr
 expr -> expr '&' expr
 expr -> expr '|' expr
-expr -> expr 'SHIFT' expr
+expr -> expr 'SHL' expr
+expr -> expr 'SHR' expr
 expr -> expr 'RELOP' expr
 expr -> expr 'AND' expr
 expr -> expr 'OR' expr
@@ -59,9 +60,9 @@ expr -> '-' expr
 expr -> '~' expr
 expr -> '!' expr
 
-precedence: 'OR' : 0, 'AND' : 1, '!' : 2, 'RELOP' : 3
-precedence: '|' : 4, '^' : 5 : '&' : 6, 'SHIFT' : 7
-precedence: '-' : 8, '+' : 8, '*' : 9, '/' : 9, '%' : 9
+precedence: 'OR' : 0, 'AND' : 1, 'RELOP' : 2
+precedence: '|' : 3, '^' : 4, '&' : 5, 'SHL' : 6, 'SHR' : 6
+precedence: '-' : 7, '+' : 7, '!' : 8, '*' : 9, '/' : 9, '%' : 9
 
 assignment_statement -> variable_access 'ASSIGN' expr
 assignment_statement -> variable_access '=' expr

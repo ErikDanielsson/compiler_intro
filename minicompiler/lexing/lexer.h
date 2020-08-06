@@ -21,7 +21,8 @@ enum TokenType {
     RELOP,
     AND,
     OR,
-    SHIFT,
+    SHL,
+    SHR,
     SUFFIXOP
 };
 

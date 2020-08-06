@@ -4,8 +4,9 @@
 #include <stdarg.h>
 #include "type_checker.h"
 #include "symbol_table.h"
+#include "type_table.h"
 
-#define TABLESIZE 128
+#define TABLESIZE 127
 #define VERBOSE 0
 /*
  *  The type checker enters type names during parsing, and checks whether they
@@ -71,7 +72,7 @@ void return_not_in_func_error()
 
 
 
-struct SymTab* type_table;
+struct TypeTab* type_table;
 
 /*
  * Checking and setting symbols into symbols tables. During typechecking,
@@ -152,17 +153,13 @@ void destroy_Env_tree()
 
 void enter_type_def(char* type_name, struct SymTab* struct_env)
 {
-    if (SymTab_type_declared(type_table, type_name) || SymTab_check_and_set(symbol_table_stack[0], type_name, STRUCTURE, struct_env))
+    if (TypeTab_check_and_set(type_table, type_name, struct_env))
         type_error(TRUE, "Redefinition of type '%s'\n", type_name);
 }
 
 void check_type_defined(char* type_name)
 {
-    /*
-     * Check if type is builtin or defined in outermost scope.
-     */
-    if (!(SymTab_type_declared(type_table, type_name) ||
-        SymTab_type_declared(symbol_table_stack[0], type_name)))
+    if (!TypeTab_check_defined(type_table, type_name))
         type_error(TRUE, "type '%s' is not declared", type_name);
 }
 
@@ -184,7 +181,8 @@ void check_and_set_func(struct FuncDecl* node)
 
 char* check_var_declared(struct VarAcc* varacc)
 {
-    struct VarDecl* node = SymTab_getr(*top_symtab, varacc->variable->lexeme, VARIABLE);
+    struct SymTab_entry* entry = SymTab_getr(*top_symtab, varacc->variable->lexeme, VARIABLE);
+    struct VarDecl* node = entry->symbol;
     if (node == NULL)
         undeclared_var_error(varacc);
     return node->type->lexeme;
@@ -192,21 +190,26 @@ char* check_var_declared(struct VarAcc* varacc)
 
 struct FuncDecl* check_func_declared(struct FuncCall* funccall)
 {
-    struct FuncDecl* node = SymTab_getr(*top_symtab, funccall->func->lexeme, FUNCTION);
+    struct SymTab_entry* entry = SymTab_getr(*top_symtab, funccall->func->lexeme, FUNCTION);
+    struct FuncDecl* node = entry->symbol;
     if (node == NULL)
         undeclared_func_error(funccall);
     return node;
 }
 
+struct SymTab_entry* get_curr_name_entry(char* name)
+{
+    return SymTab_getr(*top_symtab, name, VARIABLE);
+}
+
 void init_type_checker()
 {
-    type_table = create_SymTab(4, NULL);
-    SymTab_set_type(type_table, "inontot", 0);
-    SymTab_set_type(type_table, "lolonongog", 1);
-    SymTab_set_type(type_table, "fofloloatot", 2);
-    SymTab_set_type(type_table, "dodouboblole", 3);
-    SymTab_set_type(type_table, "sostotrorinongog", -1);
-    SymTab_set_type(type_table, "vovoidod", -1);
-
+    type_table = create_TypeTab(4, NULL);
+    TypeTab_set_builtin(type_table, "inontot", 0);
+    TypeTab_set_builtin(type_table, "lolonongog", 1);
+    TypeTab_set_builtin(type_table, "fofloloatot", 2);
+    TypeTab_set_builtin(type_table, "dodouboblole", 3);
+    TypeTab_set_builtin(type_table, "sostotrorinongog", -1);
+    TypeTab_set_builtin(type_table, "vovoidod", -1);
     *top_symtab = create_SymTab(TABLESIZE, NULL);
 }

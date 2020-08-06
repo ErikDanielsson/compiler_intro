@@ -107,10 +107,6 @@ enum ExprType {
 };
 
 struct Expr {
-    /*
-     * This could be optimised for memory, since we don't need a pointer
-     * to store a pointer.
-     */
     enum ExprType type;
     union {
         char* addr;
@@ -208,9 +204,7 @@ void create_node_record(void*** stack, int n_pop);
 static inline void reduce_to_compound_compound_list(void*** top);
 static inline void reduce_to_compound_statement(void*** top);
 static inline void reduce_to_stmt_vardecl(void*** top);
-
 static inline void reduce_to_stmt_structdecl(void*** top);
-
 static inline void reduce_to_stmt_funcdecl_(void*** top);
 static inline void reduce_to_stmt_assignment_statement(void*** top);
 static inline void reduce_to_stmt_funccall(void*** top);
@@ -254,6 +248,7 @@ static inline void reduce_to_expr_const(void*** top);
 static inline void reduce_to_expr_varacc(void*** top);
 static inline void reduce_to_expr_funccall(void*** top);
 static inline void reduce_to_expr_unary(void*** top);
+static inline void reduce_to_expr_uplus(void*** top);
 static inline void reduce_to_expr_not(void*** top);
 static inline void reduce_to_assign(void*** top);
 static inline void reduce_to_assign_suffixop(void*** top);

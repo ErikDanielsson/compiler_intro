@@ -22,7 +22,7 @@
 
 #define STACK_SIZE 8192
 #define DEBUG 0
-#define TREEBUILDER 0
+#define TREEBUILDER 1
 #define LABELS 0
 
 char grammar_error = FALSE;
@@ -36,6 +36,9 @@ char recovery_mode = FALSE;
  * Note: while enforcing this in the grammar would be possible, this requieres
  * duplication of several productions resulting in a bigger parsing table and
  * thus a waste of resources.
+
+ * NOTE: This will be deprecated and replaced by actions during  treewalk of
+ * semantic analysis.
  */
 char return_found = FALSE;
 struct Line return_line;
@@ -140,6 +143,10 @@ struct CompStmt* lr_parser(char verbose)
             return (struct CompStmt*)(*record_ptr);
 
         } else {
+            /*
+             * Reduction rules are stored in the negative half of the
+             * numberline, hence:
+             */
             action = -(action+1);
             enum NodeType r = reduction_rules[action];
 
@@ -352,6 +359,7 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
     &reduce_to_expr_binop,
+    &reduce_to_expr_binop,
     &reduce_to_expr_relop,
     &reduce_to_expr_and,
     &reduce_to_expr_or,
@@ -361,7 +369,7 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_const,
     &reduce_to_expr_varacc,
     &reduce_to_expr_funccall,
-    &reduce_to_expr_unary,
+    &reduce_to_expr_uplus,
     &reduce_to_expr_unary,
     &reduce_to_expr_unary,
     &reduce_to_expr_not,
@@ -1525,6 +1533,28 @@ static inline void reduce_to_expr_unary(void*** top)
     #endif
 }
 
+static inline void reduce_to_expr_uplus(void*** top)
+{
+    /*
+     * Since unary plus has no effect, there is no point in storing it.
+     */
+    struct Expr* node = **top;
+    (*top)--;
+
+    free_token(**top);
+    **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("expr -> 'uop' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+}
+
 static inline void reduce_to_expr_not(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
@@ -1537,7 +1567,7 @@ static inline void reduce_to_expr_not(void*** top)
     **top = node;
 
     #if DEBUG || TREEBUILDER
-    printf("expr -> 'uop' expr\n");
+    printf("expr -> '!' expr\n");
     #endif
     #if TREEBUILDER
     print_Expr(**top, 0, 1, 1);
@@ -2162,13 +2192,13 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
             case EXPR_RELOP:
             case EXPR_AND:
             case EXPR_OR:
-            case EXPR_NOT:
                 print_Expr(node->left, nest_level+1, labels, leaf);
                 write_indent(nest_level);
                 print_token_str(node->binary_op);
                 printf("\n");
                 print_Expr(node->right, nest_level+1, labels, leaf);
                 return;
+            case EXPR_NOT:
             case EXPR_UOP:
                 write_indent(nest_level);
                 print_token_str(node->unary_op);

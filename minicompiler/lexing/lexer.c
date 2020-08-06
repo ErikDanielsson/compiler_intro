@@ -313,11 +313,13 @@ void init_lexer()
     KeywordTab_set(keywords, "!=", RELOP);
     KeywordTab_set(keywords, "<=", RELOP);
     KeywordTab_set(keywords, ">=", RELOP);
+    KeywordTab_set(keywords, "<", RELOP);
+    KeywordTab_set(keywords, ">", RELOP);
     KeywordTab_set(keywords, "&&", AND);
     KeywordTab_set(keywords, "||", OR);
     KeywordTab_set(keywords, "!", '!');
-    KeywordTab_set(keywords, "<<", SHIFT);
-    KeywordTab_set(keywords, ">>", SHIFT);
+    KeywordTab_set(keywords, "<<", SHL);
+    KeywordTab_set(keywords, ">>", SHR);
 
 }
 
@@ -567,15 +569,14 @@ struct Token* get_token()
                     return token;
                 } else if (tmp1 == tmp0) {
                     get_char();
-                    token->type = SHIFT;
                     token->lexeme = get_lexeme();
+                    token->type = KeywordTab_get(keywords, token->lexeme);
                     token->line = line_num;
                     token->column = column_num-2;
                     set_lexeme_ptr();
                     return token;
                 } else {
-                    lexeme = get_lexeme();
-                    token->lexeme = lexeme;
+                    token->lexeme = get_lexeme();
                     token->type = RELOP;
                     token->line = line_num;
                     token->column = column_num-1;

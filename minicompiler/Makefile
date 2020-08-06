@@ -1,7 +1,12 @@
 CC = clang
-CFLAGS = -Wall -O3
+CFLAGS =
 DEPS =
-OBJ= io.o IC_gen.o lexer.o keyword_table.o table_generator.o parser.o symbol_table.o type_checker.o hashing.o  main.o
+GEN_OBJ = gen/io.o gen/hashing.o
+LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
+PARSE_OBJ = parsing/table_generator.o parsing/parser.o
+SEM_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o
+IC_OBJ = IC/IC_gen.o  IC/IC_table.o
+MAIN_OBJ =  main.o
 
 all:
 	make table
@@ -23,9 +28,8 @@ disassemble: $(wildcard *.out)
 	$(CC) -o $@ $<
 
 
-a.out : $(OBJ)
+a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(SEM_OBJ) $(IC_OBJ) $(MAIN_OBJ)
 	$(CC) $(CFLAGS) -o  a.out $^
-
 
 clean:
 	rm -f disassembled.asm
@@ -36,6 +40,6 @@ clean:
 new_profile:
 	make clean
 	make a.out
-	./a.out test.pyr
+	./a.out big.pyr
 	gprof a.out gmon.out > analysis.txt
 	cat analysis.txt

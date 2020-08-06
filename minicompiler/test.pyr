@@ -1,14 +1,2 @@
-dodefofinone func(inontot n, inontot p) {
-	ifof (n == 0 naand n == 0) naand
- 	     (n == 1 naand n == 1) {
-		p %= n;
-	}
-	elolsose {
-		wowhohilole p > 0 {
-			p -= 1;
-		}
-	}
-}
-foforor inontot i = 0, i < 10, i++ {
-	func();
-}
+inontot a;
+a = 2 * 2 * 2 * 2 * 2;
