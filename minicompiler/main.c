@@ -16,7 +16,7 @@
 
 int main(int argc, const char** argv)
 {
-    const char* table_file = "parsing_table.txt";
+    const char* table_file = "parsing/parsing_table.txt";
     filename = argv[1];
     file_desc = open(filename, O_RDONLY);
     init_lexer();

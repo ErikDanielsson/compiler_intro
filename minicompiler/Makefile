@@ -1,6 +1,6 @@
 CC = clang
-CFLAGS =
-DEPS =
+CFLAGS = -Wall
+DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
 LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
 PARSE_OBJ = parsing/table_generator.o parsing/parser.o
@@ -22,10 +22,10 @@ disassemble: $(wildcard *.out)
 
 
 %.o : %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c -I $(DEPS) $(CFLAGS) -o $@ $<
 
 %.out : %.o
-	$(CC) -o $@ $<
+	$(CC) -o  $@ $<
 
 
 a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(SEM_OBJ) $(IC_OBJ) $(MAIN_OBJ)
