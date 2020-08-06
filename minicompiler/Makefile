@@ -14,7 +14,8 @@ all:
 	make a.out
 
 table:
-	python ../shitty_compiler_compiler.py grammar -w parsing_table.txt token_types.txt node_types.txt -c -s
+	cd parsing && python shitty_compiler_compiler.py grammar -w parsing_table.txt ../lexing/token_types.txt node_types.txt -c -s
+
 
 disassemble: $(wildcard *.out)
 	objdump -d --disassembler-options=intel-mnemonic $< \
