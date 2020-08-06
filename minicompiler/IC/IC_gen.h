@@ -118,6 +118,9 @@ struct AddrPair {
     void* addr;
 };
 
+void init_IC_generator();
+
+
 void generate_IC(struct CompStmt* node);
 void emit(char* instr, ...);
 void emitlabel(char* label);

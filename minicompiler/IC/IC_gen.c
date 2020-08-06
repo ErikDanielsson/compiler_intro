@@ -40,14 +40,6 @@ char* newlabel()
     return label;
 }
 
-
-
-/*
- * Generates a simple three address code, written to chosen output
- * Variable names are not presevered, since the same name can appear
- * in different scopes. Instead a hex value is emitted in the code,
- * and the correspnding name is entered into an array
- */
 void generate_IC(struct CompStmt* node)
 {
 
@@ -72,6 +64,7 @@ void init_IC_generator()
     intermediate_code = create_IC_table(IC_TABLE_SIZE);
     IC_table_create_entry(intermediate_code, "main");
     *top_entry = IC_table_get_entry(intermediate_code, "main");
+    printf("top entry %p\n", (*top_entry)->instruction_list);
     *curr_instr_ptr = (*top_entry)->instruction_list;
 }
 
@@ -92,10 +85,11 @@ void leave_function()
 
 void append_triple(void* triple, enum QuadType type)
 {
-    *curr_instr_ptr = (*curr_instr_ptr)->next;
     *curr_instr_ptr = malloc(sizeof(struct QuadList));
     (*curr_instr_ptr)->type = type;
     (*curr_instr_ptr)->instruction = triple;
+    *curr_instr_ptr = (*curr_instr_ptr)->next;
+    *curr_instr_ptr = NULL;
 }
 
 
@@ -406,11 +400,14 @@ void visit_Stmt(struct Stmt* node)
 
 void visit_VarDecl(struct VarDecl* node)
 {
-    char* type_name = node->type->lexeme;
-    check_type_defined(type_name);
+    char* var_type = node->type->lexeme;
+    check_type_defined(var_type);
     if (node->expr != NULL) {
-        char* expr_type_name = visit_Expr_rval(node->expr);
-        char* curr_addr = widen(node->expr->addr, type_name, expr_type_name);
+        char* expr_type = visit_Expr_rval(node->expr);
+        if (strcmp(max(var_type, expr_type), var_type) != 0)
+            type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
+                        expr_type, node->name->lexeme, var_type);
+        char* curr_addr = widen(node->expr->addr, var_type, expr_type);
         check_and_set_var(node);
         emit("%s = %s", node->name->lexeme, curr_addr);
     } else {
@@ -567,9 +564,11 @@ char* visit_Expr_rval(struct Expr* node)
                     exit(-1);
             }
         }
-        case EXPR_FUNCCALL:
-            node->addr = newtemp();
-            return visit_FuncCall(node->function_call);
+        case EXPR_FUNCCALL: {
+            char* type = visit_FuncCall(node->function_call);
+            node->addr = node->function_call->addr;
+            return type;
+        }
         case EXPR_VARACC:
             node->addr = node->variable_access->variable->lexeme;
             return visit_VarAcc(node->variable_access);
@@ -769,7 +768,7 @@ char* visit_FuncCall(struct FuncCall* node)
 void visit_AStmt(struct AStmt* node)
 {
     char* var_name = node->variable_access->variable->lexeme;
-    char* type1 = visit_VarAcc(node->variable_access);
+    char* var_type = visit_VarAcc(node->variable_access);
     if (node->assignment_type->type == SUFFIXOP) {
         char* temp = newtemp();
         switch (node->assignment_type->lexeme[0]) {
@@ -795,11 +794,11 @@ void visit_AStmt(struct AStmt* node)
         }
 
     } else {
-        char* type2 = visit_Expr_rval(node->expr);
-        char* addr = widen(node->expr->addr, type2, type1);
-        if (strcmp(max(type1, type2), type1) != 0)
+        char* expr_type = visit_Expr_rval(node->expr);
+        if (strcmp(max(var_type, expr_type), var_type) != 0)
             type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
-                        type2, node->variable_access->variable->lexeme, type1);
+                        expr_type, node->variable_access->variable->lexeme, var_type);
+        char* addr = widen(node->expr->addr, expr_type, var_type);
         if (node->assignment_type->type != '=') {
             /*
              * This is a bit of a hack
