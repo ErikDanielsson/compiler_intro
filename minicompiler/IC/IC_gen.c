@@ -34,12 +34,13 @@ char* newtemp()
 int label_num = 0;
 char* newlabel()
 {
-    int* label = malloc(sizeof(int));
-    *label = label_num;
+    char* label = malloc(sizeof(char)*MAX_LABEL_LENGTH+2);
+    sprintf(label, "L%d", label_num);
     label_num++;
     return label;
 }
 
+int uncond_found = 0;
 
 
 /*
@@ -51,11 +52,11 @@ char* newlabel()
 void generate_IC(struct CompStmt* node)
 {
 
-    IC_file_desc = fopen(ic_filename, "w");
+    IC_file_desc =stdout; //fopen(ic_filename, "w");
     fprintf(IC_file_desc, "\n\nCode begin\n\n");
     visit_CompStmt(node);
     fprintf(IC_file_desc, "\n\nCode end\n\n");
-    fclose(IC_file_desc);
+    //fclose(IC_file_desc);
 }
 #define IC_TABLE_SIZE 97
 struct IC_table* intermediate_code;
@@ -368,7 +369,6 @@ void visit_Stmt(struct Stmt* node)
             if (node->next == NULL)
                 node->next = newlabel();
             ((struct IEEStmt*)(node->stmt))->next = node->next;
-
             visit_IEEStmt(node->stmt);
             emitlabel(node->next);
 
@@ -681,29 +681,35 @@ void visit_Expr_jump(struct Expr* node)
                  */
                 case ICONST:
                     if (node->val->i_val) {
+                        uncond_found = 1;
                         if (strcmp(node->true, "fall") != 0)
                             emit("goto %s", node->true);
                     } else {
-                        if (strcmp(node->false, "fall") != 0)
-                            emit("goto %s", node->false);
+                        uncond_found = -1;
+                        //if (strcmp(node->false, "fall") != 0)
+                        //    emit("goto %s", node->false);
                     }
                     return;
                 case FCONST:
                     if (node->val->f_val) {
+                        uncond_found = 1;
                         if (strcmp(node->true, "fall") != 0)
                             emit("goto %s", node->true);
                     } else {
+                        uncond_found = -1;
                         if (strcmp(node->false, "fall") != 0)
                             emit("goto %s", node->false);
                     }
                     return;
                 case SCONST:
                     if (node->val->lexeme[0] == 0x00) {
-                        if (strcmp(node->true, "fall") != 0)
-                            emit("goto %s", node->true);
-                    } else {
+                        uncond_found = -1;
                         if (strcmp(node->false, "fall") != 0)
                             emit("goto %s", node->false);
+                    } else {
+                        uncond_found = 1;
+                        if (strcmp(node->true, "fall") != 0)
+                            emit("goto %s", node->true);
                     }
                     return;
                 default:
@@ -816,14 +822,18 @@ void visit_AStmt(struct AStmt* node)
 }
 
 
-
 void visit_IEEStmt(struct IEEStmt* node)
 {
     if (node->_else != NULL) {
         char* next = node->next;
         if_with_else(node->if_stmt, next);
-        for (int i = 0; i < node->n_elifs; i++)
+        if (uncond_found == 1)
+            return;
+        for (int i = 0; i < node->n_elifs; i++) {
             if_with_else(node->elif_list[i], next);
+            if (uncond_found == 1)
+                return;
+        }
         push_Env();
         node->_else->next = next;
         visit_CompStmt(node->_else);
@@ -853,16 +863,23 @@ void visit_IEEStmt(struct IEEStmt* node)
 
 void if_with_else(struct CondStmt* node, char* next)
 {
+    uncond_found = 0;
     node->boolean->true = "fall";
     char* falsel = newlabel();
     node->boolean->false = falsel;
     node->body->next = next;
     visit_Expr_jump(node->boolean);
-    push_Env();
-    visit_CompStmt(node->body);
-    pop_Env();
-    emit("goto %s", next);
-    emitlabel(falsel);
+    int saved_uncond = uncond_found;
+    if (saved_uncond != -1) {
+        push_Env();
+        visit_CompStmt(node->body);
+        pop_Env();
+    }
+    if (saved_uncond == 0) {
+        emit("goto %s", next);
+        emitlabel(falsel);
+    }
+
 }
 
 void visit_WLoop(struct CondStmt* node)
