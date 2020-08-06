@@ -1,10 +1,11 @@
 CC = clang
 CFLAGS = -Wall
+SUBDIR = gen lexing parsing types IC
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
 LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
 PARSE_OBJ = parsing/table_generator.o parsing/parser.o
-SEM_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o
+TYPE_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o
 IC_OBJ = IC/IC_gen.o  IC/IC_table.o
 MAIN_OBJ =  main.o
 
@@ -28,14 +29,15 @@ disassemble: $(wildcard *.out)
 	$(CC) -o  $@ $<
 
 
-a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(SEM_OBJ) $(IC_OBJ) $(MAIN_OBJ)
+a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(MAIN_OBJ)
 	$(CC) $(CFLAGS) -o  a.out $^
 
+DIRS := . $(shell find . -type d)
+GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp
+GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
+
 clean:
-	rm -f disassembled.asm
-	rm -f *.out
-	rm -f *.o
-	rm -f *.tmp
+	rm -f $(GARBAGE)
 
 new_profile:
 	make clean
