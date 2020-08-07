@@ -11,7 +11,7 @@
 #include "hashing.h"
 #include "symbol_table.h"
 #include "IC_table.h"
-#include "intermediate_code.c"
+#include "intermediate_code.h"
 
 /*
  *  Intermediate code generation
@@ -26,8 +26,9 @@ int temp_num = 0;
 #define MAX_LABEL_LENGTH 10
 char* newtemp()
 {
-    char* temp = malloc(MAX_LABEL_LENGTH+2);
-    sprintf(temp, "t%d", temp_num);
+    char* temp = malloc(MAX_LABEL_LENGTH+1);
+    sprintf(temp, "$%d", temp_num);
+    enter_temp_var(temp);
     temp_num++;
     return temp;
 }
@@ -321,6 +322,7 @@ char* visit_Expr_rval(struct Expr* node)
             char* a1 = widen(node->left->addr, type1, type);
             char* a2 = widen(node->right->addr, type2, type);
             node->addr = newtemp();
+            append_triple(gen_binop(a1, node->binary_op->type, a2, node->addr), QUAD_BINOP);
             emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
             return type;
 
@@ -328,6 +330,7 @@ char* visit_Expr_rval(struct Expr* node)
         case EXPR_UOP: {
             char* type = visit_Expr_rval(node->expr);
             node->addr = newtemp();
+            append_triple(gen_uop(node->addr, node->unary_op->type, node->expr->addr), QUAD_UOP);
             emit("%s = neg %s", node->addr, node->expr->addr);
             return type;
         }
@@ -562,18 +565,26 @@ void visit_AStmt(struct AStmt* node)
         char* temp = newtemp();
         switch (node->assignment_type->lexeme[0]) {
             case '+':
+                append_triple(gen_binop(var_name, '+', "1", temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
                 emit("%s = %s + 1", temp, var_name);
                 emit("%s = %s", var_name, temp);
                 break;
             case '-':
+                append_triple(gen_binop(var_name, '-', "1", temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
                 emit("%s = %s - 1", temp, var_name);
                 emit("%s = %s", var_name, temp);
                 break;
             case '*':
+                append_triple(gen_binop(var_name, SHL, "1", temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
                 emit("%s = %s << 1", temp, var_name);
                 emit("%s = %s", var_name, temp);
                 break;
             case '/':
+                append_triple(gen_binop(var_name, SHR, "1", temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
                 emit("%s = %s >> 1", temp, var_name);
                 emit("%s = %s", var_name, temp);
                 break;
@@ -593,17 +604,51 @@ void visit_AStmt(struct AStmt* node)
              * This is a bit of a hack
              */
             char* temp = newtemp();
+            enum TokenType op_type;
+            switch (node->assignment_type->lexeme[0]) {
+                case '+':
+                    op_type = '+';
+                    break;
+                case '-':
+                    op_type = '-';
+                    break;
+                case '*':
+                    op_type = '*';
+                    break;
+                case '/':
+                    op_type = '/';
+                    break;
+                case '%':
+                    op_type = '%';
+                    break;
+                case '^':
+                    op_type = '^';
+                    break;
+                case '&':
+                    op_type = '&';
+                    break;
+                case '|':
+                    op_type = '|';
+                    break;
+                case '>':
+                    op_type = SHR;
+                    break;
+                case '<':
+                    op_type = SHL;
+                    break;
+            }
+            append_triple(gen_binop(var_name, op_type, addr, temp), QUAD_BINOP);
+            append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
             emit("%s = %s %c %s", temp, var_name,
                 node->assignment_type->lexeme[0], addr);
             emit("%s = %s", var_name, temp);
         } else {
+            append_triple(gen_assignment(var_name, addr), QUAD_ASSIGN);
             emit("%s = %s", var_name, addr);
         }
 
     }
 }
-
-
 
 void visit_IEEStmt(struct IEEStmt* node)
 {
@@ -641,6 +686,7 @@ void visit_IEEStmt(struct IEEStmt* node)
 
 void if_with_else(struct CondStmt* node, char* next)
 {
+    new_bb();
     node->boolean->true = "fall";
     char* falsel = newlabel();
     node->boolean->false = falsel;

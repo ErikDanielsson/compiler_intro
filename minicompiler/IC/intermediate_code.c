@@ -3,8 +3,10 @@
 #include <string.h>
 #include "intermediate_code.h"
 #include "IC_table.h"
-#include "lexer.h"
+#include "symbol_table.h"
 #include "type_checker.h"
+#include "io.h"
+#include <ctype.h>
 long vertex_num = 0;
 long* new_vertex()
 {
@@ -30,7 +32,47 @@ void init_IC_generator()
     intermediate_code = create_IC_table(IC_TABLE_SIZE);
     IC_table_create_entry(intermediate_code, "main");
     *top_entry = IC_table_get_entry(intermediate_code, "main");
-    *curr_instr_ptr = (*top_entry)->instruction_list;
+    new_bb();
+}
+
+void new_bb()
+{
+
+    int n_blocks = (*top_entry)->n_blocks;
+    if (n_blocks) {
+        (*top_entry)->basic_block_list[0]->symbol_table = get_curr_symtab();
+        print_BasicBlock((*top_entry)->basic_block_list[n_blocks-1], 0);
+        struct BasicBlock* tmp_blocks[n_blocks];
+        char tmp_blockinfo[n_blocks];
+        memcpy(tmp_blocks, (*top_entry)->basic_block_list, sizeof(struct BasicBlock*)*n_blocks);
+        //memcpy(tmp_blockinfo, (*top_entry)->blockinfo, sizeof(char)*n_blocks);
+        (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*)*(n_blocks+1));
+        memcpy((*top_entry)->basic_block_list, tmp_blocks, sizeof(struct BasicBlock*)*n_blocks);
+        //memcpy((*top_entry)->blockinfo, tmp_blockinfo, sizeof(char)*n_blocks);
+        (*top_entry)->basic_block_list[n_blocks] = malloc(sizeof(struct BasicBlock));
+        (*top_entry)->basic_block_list[n_blocks]->bbnum = n_blocks;
+        (*top_entry)->basic_block_list[n_blocks]->instructions = malloc(sizeof(struct QuadList));
+        (*top_entry)->basic_block_list[n_blocks]->jump_type = -1;
+        (*top_entry)->basic_block_list[n_blocks]->jump = NULL;
+        (*top_entry)->basic_block_list[n_blocks]->true = NULL;
+        (*top_entry)->basic_block_list[n_blocks]->false = NULL;
+        *curr_instr_ptr = (*top_entry)->basic_block_list[n_blocks]->instructions;
+        (*curr_instr_ptr)->next = NULL;
+
+        (*top_entry)->n_blocks++;
+    } else {
+        (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*));
+        (*top_entry)->basic_block_list[0] = malloc(sizeof(struct BasicBlock));
+        (*top_entry)->basic_block_list[0]->bbnum = 0;
+        (*top_entry)->basic_block_list[0]->instructions = malloc(sizeof(struct QuadList));
+        (*top_entry)->basic_block_list[0]->jump_type = -1;
+        (*top_entry)->basic_block_list[0]->jump = NULL;
+        (*top_entry)->basic_block_list[0]->true = NULL;
+        (*top_entry)->basic_block_list[0]->false = NULL;
+        *curr_instr_ptr = (*top_entry)->basic_block_list[n_blocks]->instructions;
+        (*curr_instr_ptr)->next = NULL;
+        (*top_entry)->n_blocks = 1;
+    }
 }
 
 void enter_function(char* name)
@@ -39,7 +81,7 @@ void enter_function(char* name)
     top_entry++;
     *top_entry = IC_table_get_entry(intermediate_code, name);
     curr_instr_ptr++;
-    *curr_instr_ptr = (*top_entry)->instruction_list;
+    //s*curr_instr_ptr = (*top_entry)->instructions;
 }
 
 void leave_function()
@@ -50,20 +92,27 @@ void leave_function()
 
 void append_triple(void* triple, enum QuadType type)
 {
-    *curr_instr_ptr = malloc(sizeof(struct QuadList));
     (*curr_instr_ptr)->type = type;
     (*curr_instr_ptr)->instruction = triple;
+    (*curr_instr_ptr)->next = malloc(sizeof(struct QuadList));
     *curr_instr_ptr = (*curr_instr_ptr)->next;
-    *curr_instr_ptr = NULL;
+    (*curr_instr_ptr)->next = NULL;
 }
 
-struct AssignQuad* gen_assignment(enum OperandType lval_type,  char* lval,
-                    enum OperandType rval_type, char* rval)
+struct AssignQuad* gen_assignment(char* lval, char* rval)
 {
     struct AssignQuad* triple = malloc(sizeof(struct AssignQuad));
-    triple->lval = get_curr_name_entry(lval);
-    triple->rval_type = rval_type;
-    triple->rval = rval;
+    triple->lval = lval;
+    /*
+     * If the first char of the symbol is a digit, it must be a digit
+     */
+    if (isdigit(rval[0])) {
+        triple->rval_type = CONSTANT;
+        triple->rval = rval;
+    } else {
+        triple->rval = rval;
+        triple->rval_type = get_curr_name_entry(rval)->type;
+    }
     return triple;
 }
 
@@ -72,12 +121,15 @@ struct BinOpQuad* gen_binop(char* op1, enum TokenType op_type, char* op2, char* 
     struct BinOpQuad* triple = malloc(sizeof(struct BinOpQuad));
     triple->result = result;
     struct SymTab_entry* op_entry;
-    if ((op_entry = get_curr_name_entry(op1)) == NULL) {
-        triple->op1_type = OPERAND_TEMP;
+    /*
+     * If the first char of the symbol is a digit, it must be a digit
+     */
+    if (isdigit(op1[0])) {
+        triple->op1_type = CONSTANT;
         triple->op1 = op1;
     } else {
-        triple->op1_type = OPERAND_VAR;
-        triple->op1 = op_entry;
+        triple->op1 = op1;
+        triple->op1_type = get_curr_name_entry(op1)->type;
     }
     switch (op_type) {
         case '+':
@@ -116,12 +168,15 @@ struct BinOpQuad* gen_binop(char* op1, enum TokenType op_type, char* op2, char* 
                 op_type);
             exit(-1);
     }
-    if ((op_entry = get_curr_name_entry(op2)) == NULL) {
-        triple->op2_type = OPERAND_TEMP;
+    /*
+     * If the first char of the symbol is a digit, it must be a digit
+     */
+    if (isdigit(op2[0])) {
+        triple->op2_type = CONSTANT;
         triple->op2 = op2;
     } else {
-        triple->op2_type = OPERAND_VAR;
-        triple->op2 = op_entry;
+        triple->op2 = op2;
+        triple->op2_type = get_curr_name_entry(op1)->type;
     }
     return triple;
 }
@@ -143,13 +198,14 @@ struct UOpQuad* gen_uop(char* operand, enum TokenType operator, char* result)
                 operator);
             exit(-1);
     }
-    struct SymTab_entry* op_entry;
-    if ((op_entry = get_curr_name_entry(operand)) == NULL) {
-        triple->operand_type = OPERAND_TEMP;
-        triple->operand = operand;
+    triple->operand = operand;
+    /*
+     * If the first char of the symbol is a digit, it must be a digit
+     */
+    if (isdigit(operand[0])) {
+        triple->operand_type = CONSTANT;
     } else {
-        triple->operand_type = OPERAND_VAR;
-        triple->operand = op_entry;
+        triple->operand_type = get_curr_name_entry(operand)->type;
     }
     return triple;
 }
@@ -159,13 +215,15 @@ struct ConvQuad* gen_conv(char* conversion_type, char* op, char* result)
     struct ConvQuad* triple = malloc(sizeof(struct ConvQuad));
     triple->result = result;
     triple->conversion_type = conversion_type;
-    struct SymTab_entry* op_entry;
-    if ((op_entry = get_curr_name_entry(op)) == NULL) {
-        triple->op_type = OPERAND_TEMP;
+    /*
+     * If the first char of the symbol is a digit, it must be a digit
+     */
+    if (isdigit(op[0])) {
+        triple->op_type = CONSTANT;
         triple->op = op;
     } else {
-        triple->op_type = OPERAND_VAR;
-        triple->op = op_entry;
+        triple->op = op;
+        triple->op_type = get_curr_name_entry(op)->type;
     }
     return triple;
 }
@@ -174,13 +232,10 @@ struct CondQuad* gen_cond(char* op1, char* op_lexeme, char* op2, long* label)
 {
     struct CondQuad* triple = malloc(sizeof(struct CondQuad));
     struct SymTab_entry* op_entry;
-    if ((op_entry = get_curr_name_entry(op1)) == NULL) {
-        triple->op1_type = OPERAND_TEMP;
-        triple->op1 = op1;
-    } else {
-        triple->op1_type = OPERAND_VAR;
-        triple->op1 = op_entry;
-    }
+    op_entry = get_curr_name_entry(op1);
+    triple->op1_type = op_entry->type;
+    triple->op1 = op1;
+
     switch (op_lexeme[0]) {
         case '<':
             if (strlen(op_lexeme) == 2)
@@ -206,20 +261,51 @@ struct CondQuad* gen_cond(char* op1, char* op_lexeme, char* op2, long* label)
                 op_lexeme);
             exit(-1);
     }
-    if ((op_entry = get_curr_name_entry(op2)) == NULL) {
-        triple->op2_type = OPERAND_TEMP;
-        triple->op2 = op2;
-    } else {
-        triple->op2_type = OPERAND_VAR;
-        triple->op2 = op_entry;
-    }
-    triple->label = label;
+    op_entry = get_curr_name_entry(op2);
+    triple->op2_type = op_entry->type;
+    triple->op2 = op_entry;
     return triple;
 }
 
-struct UncondQuad* gen_uncond(long* label)
+void print_BasicBlock(struct BasicBlock* bb, int indent)
 {
-    struct UncondQuad* triple = malloc(sizeof(struct UncondQuad));
-    triple->label = label;
-    return triple;
+    print_w_indent(indent, "Block %ld\n", bb->bbnum);
+    struct QuadList* curr_instr = bb->instructions;
+    for (int i = 0;curr_instr->next != NULL; i++) {
+        print_w_indent(indent+1, "%d\t", i);
+        switch(curr_instr->type) {
+            case QUAD_ASSIGN: {
+                struct AssignQuad* assign = curr_instr->instruction;
+
+                printf("%s = %s\n", assign->lval, assign->rval);
+
+                break;
+            }
+            case QUAD_BINOP: {
+                struct BinOpQuad* binop = curr_instr->instruction;
+                char* op_arr[] = {"+", "-", "*", "/", "%", "^", "&", "|", ">>", "<<"};
+                printf("%s = %s %s %s\n", binop->result, binop->op1, op_arr[binop-> op_type], binop->op2);
+                break;
+            }
+            case QUAD_UOP: {
+                struct UOpQuad* uop = curr_instr->instruction;
+                char op_arr[] = {'-', '~'};
+                printf("%s = %c %s\n", uop->result, op_arr[uop->operator_type], uop->operand);
+                break;
+            }
+            case QUAD_CONV: {
+                struct ConvQuad* conv = curr_instr->instruction;
+                printf("%s = (%s)%s\n", conv->result, conv->conversion_type, conv->op);
+                break;
+            }
+            case QUAD_COND:
+                break;
+            case QUAD_UNCOND:
+                break;
+            case QUAD_RETURN:
+                break;
+        }
+        curr_instr = curr_instr->next;
+    }
+    printf("\n\n");
 }

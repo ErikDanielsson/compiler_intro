@@ -159,7 +159,9 @@ void SymTab_dump(struct SymTab* symbol_table, char* title, int indent)
         if (entry->type == VARIABLE) {
             struct VarDecl* symbol = entry->symbol;
             printf("var %-15s : %-5s At offset %lx\n", symbol->type->lexeme, entry->key, entry->offset);
-        } else if (entry->type == FUNCTION) {
+        } else if (entry->type == TEMPORARY) {
+            printf("temp t%s\n", entry->key);
+        } else {
             struct FuncDecl* symbol = entry->symbol;
             printf("func %s : %s\n", symbol->type->lexeme, entry->key);
         }
@@ -169,8 +171,15 @@ void SymTab_dump(struct SymTab* symbol_table, char* title, int indent)
                 break;
             }
             entry = entry->next;
-            printf(",\n\t%s : %x", entry->key, entry->type);
-        }
+            if (entry->type == VARIABLE) {
+                struct VarDecl* symbol = entry->symbol;
+                printf("\tvar %-15s : %-5s At offset %lx\n", symbol->type->lexeme, entry->key, entry->offset);
+            } else if (entry->type == TEMPORARY) {
+                printf("\ttemp t%s\n", entry->key);
+            } else {
+                struct FuncDecl* symbol = entry->symbol;
+                printf("\tfunc %s : %s\n", symbol->type->lexeme, entry->key);
+            }        }
         printf("\n");
     }
     printf("\n");

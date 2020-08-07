@@ -19,7 +19,9 @@ struct IC_entry* IC_table_pair(char* key)
     struct IC_entry* entry = malloc(sizeof(struct IC_entry));
     entry->key = malloc(sizeof(char)*(strlen(key)+1));
     strcpy(entry->key, key);
-    entry->instruction_list = NULL;
+    entry->basic_block_list = NULL;
+    entry->blockinfo = NULL;
+    entry->n_blocks = 0;
     entry->next = NULL;
     return entry;
 }

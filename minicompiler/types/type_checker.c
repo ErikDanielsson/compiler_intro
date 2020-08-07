@@ -79,7 +79,7 @@ struct TypeTab* type_table;
  * the symbol tables are linked "child->parent" for easy access to parents
  * symbols. However, when the type checking of a scope is finished the symbol
  * table are relinked "parent->childs" to facilitate top down traversal
- * for later stages of the compiler.
+ * for later stages of the compiler (or at least cleanup).
  */
 
  struct SymTab* symbol_table_stack[NESTINGDEPTH];
@@ -87,6 +87,11 @@ struct TypeTab* type_table;
 
 long offset_stack[NESTINGDEPTH];
 long* offset = offset_stack;
+
+struct SymTab* get_curr_symtab()
+{
+    return *top_symtab;
+}
 
 void push_Env()
 {
@@ -157,6 +162,12 @@ void enter_type_def(char* type_name, struct SymTab* struct_env)
         type_error(TRUE, "Redefinition of type '%s'\n", type_name);
 }
 
+
+void enter_temp_var(char* temp_name)
+{
+    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0);
+}
+
 void check_type_defined(char* type_name)
 {
     if (!TypeTab_check_defined(type_table, type_name))
@@ -202,7 +213,10 @@ struct FuncDecl* check_func_declared(struct FuncCall* funccall)
 
 struct SymTab_entry* get_curr_name_entry(char* name)
 {
-    return SymTab_getr(*top_symtab, name, VARIABLE);
+    struct SymTab_entry* entry = SymTab_getr(*top_symtab, name, VARIABLE);
+    if (entry != NULL)
+        return entry;
+    return SymTab_getr(*top_symtab, name, TEMPORARY);;
 }
 
 void init_type_checker()

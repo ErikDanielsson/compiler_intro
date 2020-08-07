@@ -1,6 +1,7 @@
 #pragma once
 
 enum SymbolType {
+    CONSTANT,
     VARIABLE,
     TEMPORARY,
     FUNCTION,
@@ -36,6 +37,8 @@ int SymTab_check_and_set(struct SymTab* symboltable, char* key,
 
 struct SymTab_entry* SymTab_getr(struct SymTab* symbol_table, char* key,
                                                 enum SymbolType type);
+
+struct SymTab_entry* SymTab_get_typer(struct SymTab* symbol_table, char* key);
 
 int SymTab_get_counter_val(struct SymTab* symbol_table, char* type_names);
 

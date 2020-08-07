@@ -1,3 +1,4 @@
+#pragma once
 struct IC_table {
     int size;
     struct IC_entry** entries;
@@ -5,9 +6,11 @@ struct IC_table {
 
 struct IC_entry {
     char* key;
-    struct QuadList* instruction_list;
+    struct BasicBlock** basic_block_list;
+    char* blockinfo;
+    int n_blocks;
     struct IC_entry* next;
-    long** t;
+
 };
 struct IC_table* create_IC_table(int table_size);
 void IC_table_create_entry(struct IC_table* code_table, char* key);
