@@ -1,5 +1,5 @@
 #pragma once
-
+#include "lexer.h"
 enum QuadType {
     QUAD_ASSIGN,
     QUAD_BINOP,
@@ -108,35 +108,14 @@ struct RetQuad {
     long* cleanup_label;
 };
 
-
-
-
-
-
-struct AddrPair {
-    enum OperandType type;
-    void* addr;
-};
-
 void init_IC_generator();
-
-
-void generate_IC(struct CompStmt* node);
-void emit(char* instr, ...);
-void emitlabel(char* label);
-
-void visit_CompStmt(struct CompStmt* node);
-void visit_Stmt(struct Stmt* node);
-void visit_VarDecl(struct VarDecl* node);
-void visit_StructDecl(struct StructDecl* node);
-void visit_FuncDecl(struct FuncDecl* node);
-char* visit_VarAcc(struct VarAcc* node);
-char* visit_Expr_rval(struct Expr* node);
-void visit_Expr_jump(struct Expr* node);
-void visit_AStmt(struct AStmt* node);
-char* visit_FuncCall(struct FuncCall* node);
-void visit_IEEStmt(struct IEEStmt* node);
-void if_with_else(struct CondStmt* node, char* next);
-void visit_WLoop(struct CondStmt* node);
-void visit_FLoop(struct FLoop* node);
-void visit_ReturnStmt(struct Expr* node);
+void enter_function(char* name);
+void leave_function();
+void append_triple(void* triple, enum QuadType type);
+struct AssignQuad* gen_assignment(enum OperandType lval_type,  char* lval,
+                    enum OperandType rval_type, char* rval);
+struct BinOpQuad* gen_binop(char* op1, enum TokenType op_type, char* op2, char* result);
+struct UOpQuad* gen_uop(char* operand, enum TokenType operator, char* result);
+struct ConvQuad* gen_conv(char* conversion_type, char* op, char* result);
+struct CondQuad* gen_cond(char* op1, char* op_lexeme, char* op2, long* label);
+struct UncondQuad* gen_uncond(long* label);
