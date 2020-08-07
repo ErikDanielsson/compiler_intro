@@ -1,12 +1,12 @@
 CC = clang
-CFLAGS = -Wall
+CFLAGS = -Wall -O4
 SUBDIR = gen lexing parsing types IC
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
 LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
 PARSE_OBJ = parsing/table_generator.o parsing/parser.o
 TYPE_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o
-IC_OBJ = IC/IC_gen.o  IC/IC_table.o
+IC_OBJ = IC/tree_climber.o  IC/IC_table.o IC/intermediate_code.o
 MAIN_OBJ =  main.o
 
 all:
@@ -46,3 +46,10 @@ new_profile:
 	./a.out big.pyr
 	gprof a.out gmon.out > analysis.txt
 	cat analysis.txt
+
+TEMPLATE = simple
+SUBDIR =
+%.c :
+	cp ~/dev/ed_templates/c/$(TEMPLATE).c $(SUBDIR)/$(basename $@).c
+	touch $(SUBDIR)/$(basename $@).h
+	ln -s $(SUBDIR)/$(basename $@).h includes

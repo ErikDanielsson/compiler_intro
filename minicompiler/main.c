@@ -8,10 +8,11 @@
 #include "keyword_table.h"
 #include "parser.h"
 #include "symbol_table.h"
-#include "IC_gen.h"
+#include "tree_climber.h"
 #include "type_checker.h"
 #include "table_generator.h"
 #include "consts.h"
+#include "intermediate_code.h"
 
 
 int main(int argc, const char** argv)
@@ -30,13 +31,13 @@ int main(int argc, const char** argv)
     #endif
     struct CompStmt* tree = lr_parser(1);
     #if VERBOSE
-    print_CompStmt((struct CompStmt*)(*record_ptr), 0, 1, 0);
-    SymTab_dump(type_table, "Types", 0);
+    //print_CompStmt((struct CompStmt*)(*record_ptr), 0, 1, 0);
+    //SymTab_dump(type_table, "Types", 0);
     #endif
     //if (return_found)
     //    return_error();
     close(file_desc);
-
+    init_IC_generator();
     generate_IC(tree);
     #if VERBOSE
     print_Env_tree();
