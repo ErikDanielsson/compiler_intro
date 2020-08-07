@@ -26,3 +26,7 @@ IR generation:
     an int value. And if it happens that to labels are emitted on the same
     instruction we could simply destroy the second label and let all gotos
     pointing to the second, now destroyed, label point to the first.
+
+    Revisit (later) how the operand type is carried through the analysis. The
+    current solution is a hack (does not work for other constants than number),
+    and needs a cleanup. For example, change op.addr to carry operand type.
