@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall -O4
+CFLAGS = -Wall -O3
 SUBDIR = gen lexing parsing types IC
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
@@ -53,3 +53,12 @@ SUBDIR =
 	cp ~/dev/ed_templates/c/$(TEMPLATE).c $(SUBDIR)/$(basename $@).c
 	touch $(SUBDIR)/$(basename $@).h
 	ln -s $(SUBDIR)/$(basename $@).h includes
+
+%.dot : %.c
+	clang -emit-llvm -S -I $(DEPS) $< -o $(basename $@).ll
+	opt -f --dot-cfg $(basename $@).ll
+%.png : .%.dot
+	dot -Tpng  $< -o $@
+
+cfg:
+	CFLAGS= -emit-llvm -S
