@@ -1,6 +1,6 @@
 CC = clang
 CFLAGS = -Wall
-SUBDIR = gen lexing parsing types IC
+DIRS := . $(shell find . -type d)
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
 LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
@@ -33,7 +33,7 @@ disassemble: $(wildcard *.out)
 a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(MAIN_OBJ)
 	$(CC) $(CFLAGS) -o  a.out $^
 
-DIRS := . $(shell find . -type d)
+
 GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp .*.dot *.ll
 GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
 
@@ -62,3 +62,8 @@ SUBDIR =
 
 cfg:
 	CFLAGS= -emit-llvm -S
+
+
+
+cl:
+	find . -name '*.*' -type f | xargs wc -l
