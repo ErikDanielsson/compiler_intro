@@ -157,14 +157,14 @@ void visit_Stmt(struct Stmt* node)
                 node->next = newlabel();
             ((struct CondStmt*)(node->stmt))->next = node->next;
             visit_WLoop(node->stmt);
-            //emitlabel(node->next);
+            *(node->next) = new_bb();
             return;
         case FOR_LOOP:
             if (node->next == NULL)
                 node->next = newlabel();
             ((struct FLoop*)(node->stmt))->next = node->next;
             visit_FLoop(node->stmt);
-            //emitlabel(node->next);
+            *(node->next) = new_bb();
             return;
         case SCOPE:
             push_Env();
@@ -757,14 +757,16 @@ struct BasicBlock** if_with_else(struct CondStmt* node, struct BasicBlock** next
 void visit_WLoop(struct CondStmt* node)
 {
     struct BasicBlock** begin = newlabel();
-
+    set_uncond_target(begin);
     *begin = new_bb();
-    node->boolean->true = "fall";
+    node->boolean->true = newlabel();
     node->boolean->false = node->next;
     visit_Expr_jump(node->boolean);
     node->body->next = begin;
     push_Env();
+    *(node->boolean->true) = new_bb();
     visit_CompStmt(node->body);
+    set_uncond_target(begin);
     pop_Env();
 }
 
@@ -775,17 +777,21 @@ void visit_FLoop(struct FLoop* node)
         visit_VarDecl(node->init_stmt);
     else
         visit_AStmt(node->init_stmt);
-    char* begin = newlabel();
-    //emitlabel(begin);
-    node->boolean->true = "fall";
+    struct BasicBlock** begin = newlabel();
+    set_uncond_target(begin);
+    *begin = new_bb();
+    node->boolean->true = newlabel();
     node->boolean->false = node->next;
     visit_Expr_jump(node->boolean);
-
+    *(node->boolean->true) = new_bb();
+    node->body->next = newlabel();
 
     visit_CompStmt(node->body);
-    pop_Env();
+    set_uncond_target(node->body->next);
+    *(node->body->next) = new_bb();
     visit_AStmt(node->update_statement);
-    //emit("goto %s", begin);
+    set_uncond_target(begin);
+    pop_Env();
 }
 
 

@@ -313,14 +313,13 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
             printf("%s\n", cond->op2);
         else
             printf("%s\n", ((struct SymTab_entry*)(cond->op2))->key);
-    } else if (gen_done) {
+    } else if (0) {
         gen_done = FALSE;
-        printf("\n");
-        print_BasicBlock(*(bb->jump), indent+2);
+        print_BasicBlock(*(bb->jump), indent);
         gen_done = TRUE;
     }
 
-    printf("\n\n");
+    printf("\n");
 }
 
 void with_childs(struct IC_entry* entry)
@@ -328,13 +327,22 @@ void with_childs(struct IC_entry* entry)
     gen_done = TRUE;
     struct BasicBlock* bb = entry->basic_block_list[0];
     print_BasicBlock(bb, 0);
-    for ( int i= 1; bb->jump_type == QUAD_COND; i++) {
+    bb = *(bb->jump);
+    print_BasicBlock(bb, 0);
+
+    for ( int i= 1; bb->jump_type == QUAD_COND;) {
+
         print_w_indent(i-1, "true: \n");
         print_BasicBlock(*(bb->true), i);
+        print_BasicBlock(*((*(bb->true))->jump), i+1);
+        print_BasicBlock(*((*((*(bb->true))->jump))->jump), i+2);
+        gen_done = FALSE;
         print_w_indent(i-1, "false: \n");
-        gen_done = !(i-1);
         print_BasicBlock(*(bb->false), i);
-        bb = *(bb->false);
+
+        bb = *(bb->true);
+        bb = *(bb->jump);
+
     }
     //print_BasicBlock(*((*(bb->false))->jump), 5);
 }
