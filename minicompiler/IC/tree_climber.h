@@ -1,4 +1,11 @@
 #pragma once
+#include "intermediate_code.h"
+#include "symbol_table.h"
+
+struct AddrTypePair {
+    struct SymTab_entry* addr;
+    enum SymbolType type;
+};
 
 void generate_IC(struct CompStmt* node);
 void emit(char* instr, ...);
@@ -15,7 +22,7 @@ void visit_Expr_jump(struct Expr* node);
 void visit_AStmt(struct AStmt* node);
 char* visit_FuncCall(struct FuncCall* node);
 void visit_IEEStmt(struct IEEStmt* node);
-void if_with_else(struct CondStmt* node, char* next);
+struct BasicBlock** if_with_else(struct CondStmt* node, struct BasicBlock** next, struct BasicBlock** prev_false);
 void visit_WLoop(struct CondStmt* node);
 void visit_FLoop(struct FLoop* node);
 void visit_ReturnStmt(struct Expr* node);

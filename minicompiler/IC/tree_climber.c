@@ -24,22 +24,19 @@ char* ic_filename = "IR_file.tmp";
 
 int temp_num = 0;
 #define MAX_LABEL_LENGTH 10
-char* newtemp()
+struct SymTab_entry* newtemp()
 {
     char* temp = malloc(MAX_LABEL_LENGTH+1);
     sprintf(temp, "$%d", temp_num);
     enter_temp_var(temp);
     temp_num++;
-    return temp;
+    return get_curr_name_entry(temp);
 }
 
 int label_num = 0;
-char* newlabel()
+struct BasicBlock** newlabel()
 {
-    char* label = malloc(sizeof(char)*MAX_LABEL_LENGTH+2);
-    sprintf(label, "L%d", label_num);
-    label_num++;
-    return label;
+    return malloc(sizeof(struct BasicBlock*));
 }
 
 void generate_IC(struct CompStmt* node)
@@ -80,18 +77,18 @@ char* max(char* type1, char* type2)
     return (a > b) ? type1 : type2;
 }
 
-char* widen(char* addr_a, char* type1, char* type2)
+void widen(struct AddrTypePair* a,  char* type1, char* type2)
 {
     if (strcmp(type1, type2) == 0)
-        return addr_a;
+        return;
     check_type_defined(type1);
     check_type_defined(type2);
 
     char* caster = max(type1, type2);
-    char* temp = newtemp();
-    append_triple(gen_conv(caster, addr_a, temp), QUAD_CONV);
-    emit("%s = (%s)%s", temp, caster, addr_a);
-    return temp;
+    struct SymTab_entry* temp_entry = newtemp();
+    append_triple(gen_conv(caster, a->addr, a->type, temp_entry), QUAD_CONV);
+    a->addr = temp_entry;
+    a->type = TEMPORARY;
 }
 
 char* relop_inv(char* relop)
@@ -152,24 +149,22 @@ void visit_Stmt(struct Stmt* node)
             if (node->next == NULL)
                 node->next = newlabel();
             ((struct IEEStmt*)(node->stmt))->next = node->next;
-
             visit_IEEStmt(node->stmt);
-            emitlabel(node->next);
-
+            *(node->next) = new_bb();
             return;
         case WHILE_LOOP:
             if (node->next == NULL)
                 node->next = newlabel();
             ((struct CondStmt*)(node->stmt))->next = node->next;
             visit_WLoop(node->stmt);
-            emitlabel(node->next);
+            //emitlabel(node->next);
             return;
         case FOR_LOOP:
             if (node->next == NULL)
                 node->next = newlabel();
             ((struct FLoop*)(node->stmt))->next = node->next;
             visit_FLoop(node->stmt);
-            emitlabel(node->next);
+            //emitlabel(node->next);
             return;
         case SCOPE:
             push_Env();
@@ -197,9 +192,12 @@ void visit_VarDecl(struct VarDecl* node)
         if (strcmp(max(var_type, expr_type), var_type) != 0)
             type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
                         expr_type, node->name->lexeme, var_type);
-        char* curr_addr = widen(node->expr->addr, var_type, expr_type);
+        struct AddrTypePair atp1;
+        atp1.addr = node->expr->addr;
+        atp1.type = node->expr->addr_type;
+        widen(&atp1, var_type, expr_type);
         check_and_set_var(node);
-        emit("%s = %s", node->name->lexeme, curr_addr);
+        append_triple(gen_assignment(get_curr_name_entry(node->name->lexeme), atp1.addr, atp1.type), QUAD_ASSIGN);
     } else {
         check_and_set_var(node);
     }
@@ -239,26 +237,34 @@ char* visit_Expr_rval(struct Expr* node)
             char* type1 = visit_Expr_rval(node->left);
             char* type2 = visit_Expr_rval(node->right);
             char* type = max(type1, type2);
-            char* a1 = widen(node->left->addr, type1, type);
-            char* a2 = widen(node->right->addr, type2, type);
+            struct AddrTypePair atp1;
+            atp1.addr = node->left->addr;
+            atp1.type = node->left->addr_type;
+            widen(&atp1, type1, type);
+            struct AddrTypePair atp2;
+            atp2.addr = node->right->addr;
+            atp2.type = node->right->addr_type;
+            widen(&atp2, type1, type);
             char* true = newlabel();
-            char* next = newlabel();
-            char* t = newtemp();
-            emit("if %s %s %s goto %s",
-                a1, node->binary_op->lexeme,
-                a2, true);
-            emit("%s = 0", t);
-            emit("goto %s", next);
-            emitlabel(true);
-            emit("%s = 1", t);
-            emitlabel(next);
+            struct BasicBlock** next = newlabel();
+            struct SymTab_entry* t = newtemp();
+            //emit("if %s %s %s goto %s",
+                //a1, node->binary_op->lexeme,
+                //a2, true);
+            //emit("%s = 0", t);
+            //emit("goto %s", next);
+            //emitlabel(true);
+            //emit("%s = 1", t);
+            //emitlabel(next);
             node->addr = t;
+            node->addr_type = TEMPORARY;
+
             return "inontot";
         }
         case EXPR_AND: {
             char* true = newlabel();
             char* false = newlabel();
-            char* next = newlabel();
+            struct BasicBlock** next = newlabel();
 
             node->left->true = "fall";
             node->left->false = false;
@@ -267,20 +273,21 @@ char* visit_Expr_rval(struct Expr* node)
 
             visit_Expr_jump(node->left);
             visit_Expr_jump(node->right);
-            emitlabel(false);
-            char* t = newtemp();
-            emit("%s = 0", t);
-            emit("goto %s", next);
-            emitlabel(true);
-            emit("%s = 1", t);
-            emitlabel(next);
+            //emitlabel(false);
+            struct SymTab_entry* t = newtemp();
+            //emit("%s = 0", t);
+            //emit("goto %s", next);
+            //emitlabel(true);
+            //emit("%s = 1", t);
+            //emitlabel(next);
             node->addr = t;
+            node->addr_type = TEMPORARY;
             return "inontot";
         }
         case EXPR_OR: {
             char* true = newlabel();
             char* false = newlabel();
-            char* next = newlabel();
+            struct BasicBlock** next = newlabel();
             node->left->false = "fall";
             node->left->true = true;
             node->right->true = "fall";
@@ -288,30 +295,33 @@ char* visit_Expr_rval(struct Expr* node)
 
             visit_Expr_jump(node->left);
             visit_Expr_jump(node->right);
-            emitlabel(true);
-            char* t = newtemp();
-            emit("%s = 1", t);
-            emit("goto %s", next);
-            emitlabel(false);
-            emit("%s = 0", t);
-            emitlabel(next);
+            //emitlabel(true);
+            struct SymTab_entry* t = newtemp();
+            //emit("%s = 1", t);
+            //emit("goto %s", next);
+            //emitlabel(false);
+            //emit("%s = 0", t);
+            //emitlabel(next);
             node->addr = t;
+            node->addr_type = TEMPORARY;
+
             return "inontot";
         }
         case EXPR_NOT: {
             char* true = newlabel();
-            char* next = newlabel();
+            struct BasicBlock** next = newlabel();
             printf("%s", next);
             node->expr->true = "fall";
             node->expr->false = true;
             visit_Expr_jump(node->expr);
-            char* t = newtemp();
-            emit("%s = 0", t);
-            emit("goto %s", next);
-            emitlabel(true);
-            emit("%s = 1", t);
-            emitlabel(next);
+            struct SymTab_entry* t = newtemp();
+            //emit("%s = 0", t);
+            //emit("goto %s", next);
+            //emitlabel(true);
+            //emit("%s = 1", t);
+            //emitlabel(next);
             node->addr = t;
+            node->addr_type = TEMPORARY;
             return "inontot";
         }
 
@@ -319,19 +329,28 @@ char* visit_Expr_rval(struct Expr* node)
             char* type1 = visit_Expr_rval(node->left);
             char* type2 = visit_Expr_rval(node->right);
             char* type = max(type1, type2);
-            char* a1 = widen(node->left->addr, type1, type);
-            char* a2 = widen(node->right->addr, type2, type);
+            struct AddrTypePair atp1;
+            atp1.addr = node->left->addr;
+            atp1.type = node->left->addr_type;
+            widen(&atp1, type1, type);
+            struct AddrTypePair atp2;
+            atp2.addr = node->right->addr;
+            atp2.type = node->right->addr_type;
+            widen(&atp2, type1, type);
             node->addr = newtemp();
-            append_triple(gen_binop(a1, node->binary_op->type, a2, node->addr), QUAD_BINOP);
-            emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
+            node->addr_type = TEMPORARY;
+            append_triple(gen_binop(atp1.addr, atp1.type,
+                            node->binary_op->type,
+                            atp2.addr, atp2.type,
+                            node->addr), QUAD_BINOP);
             return type;
 
         }
         case EXPR_UOP: {
             char* type = visit_Expr_rval(node->expr);
             node->addr = newtemp();
-            append_triple(gen_uop(node->addr, node->unary_op->type, node->expr->addr), QUAD_UOP);
-            emit("%s = neg %s", node->addr, node->expr->addr);
+            append_triple(gen_uop(node->expr->addr, node->expr->addr_type,
+                                node->unary_op->type, node->addr), QUAD_UOP);
             return type;
         }
         case EXPR_CONST: {
@@ -340,14 +359,18 @@ char* visit_Expr_rval(struct Expr* node)
                 case ICONST:
                     node->addr = malloc(12);
                     sprintf(node->addr, "%ld", node->val->i_val);
+                    node->addr_type = CONSTANT;
                     return "inontot";
                 case FCONST:
                     node->addr = malloc(11);
                     sprintf(node->addr, "%lf", node->val->f_val);
+                    node->addr_type = CONSTANT;
                     return "fofloloatot";
                 case SCONST:
 
                     node->addr = node->val->lexeme;
+                    node->addr_type = CONSTANT;
+
                     return "sostotrorinongog";
                 default:
                     fprintf(stderr,
@@ -359,10 +382,14 @@ char* visit_Expr_rval(struct Expr* node)
         case EXPR_FUNCCALL: {
             char* type = visit_FuncCall(node->function_call);
             node->addr = node->function_call->addr;
+            node->addr_type = FUNCTION;
+
             return type;
         }
         case EXPR_VARACC:
-            node->addr = node->variable_access->variable->lexeme;
+            node->addr = get_curr_name_entry(node->variable_access->variable->lexeme);
+            node->addr_type = VARIABLE;
+
             return visit_VarAcc(node->variable_access);
     }
 }
@@ -374,25 +401,36 @@ void visit_Expr_jump(struct Expr* node)
             char* type1 = visit_Expr_rval(node->left);
             char* type2 = visit_Expr_rval(node->right);
             char* type = max(type1, type2);
-            char* a1 = widen(node->left->addr, type1, type);
-            char* a2 = widen(node->right->addr, type2, type);
+            struct AddrTypePair atp1;
+            atp1.addr = node->left->addr;
+            atp1.type = node->left->addr_type;
+            widen(&atp1, type1, type);
+            struct AddrTypePair atp2;
+            atp2.addr = node->right->addr;
+            atp2.type = node->right->addr_type;
+            widen(&atp2, type1, type);
+
+            set_cond_and_targets(gen_cond(atp1.addr, atp1.type, node->binary_op->lexeme, atp2.addr, atp2.type), node->true, node->false);
+            return;
+            /*
             if (strcmp(node->true, "fall") == 0) {
                 if (strcmp(node->false, "fall") != 0)
-                    emit("if %s %s %s goto %s", a1,
+                    //emit("if %s %s %s goto %s", a1,
                             relop_inv(node->binary_op->lexeme), a2,
                             node->false);
             } else if (strcmp(node->false, "fall") == 0) {
-                emit("if %s %s %s goto %s", a1,
+                //emit("if %s %s %s goto %s", a1,
                         node->binary_op->lexeme, a2,
                         node->true);
             } else {
-                emit("if %s %s %s goto %s", a1,
+                //emit("if %s %s %s goto %s", a1,
                         node->binary_op->lexeme, a2,
                         node->true);
-                emit("goto %s", node->false);
+                //emit("goto %s", node->false);
             }
-            return;
-        }
+            */
+
+        }/*
         case EXPR_AND:
             node->left->true = "fall";
             node->right->true = node->true;
@@ -401,7 +439,7 @@ void visit_Expr_jump(struct Expr* node)
                 node->left->false = newlabel();
                 visit_Expr_jump(node->left);
                 visit_Expr_jump(node->right);
-                emitlabel(node->left->false);
+                //emitlabel(node->left->false);
             } else {
                 node->left->false = node->false;
                 visit_Expr_jump(node->left);
@@ -416,7 +454,7 @@ void visit_Expr_jump(struct Expr* node)
                 node->left->true = newlabel();
                 visit_Expr_jump(node->left);
                 visit_Expr_jump(node->right);
-                emitlabel(node->left->true);
+                //emitlabel(node->left->true);
             } else {
                 node->left->true = node->true;
                 visit_Expr_jump(node->left);
@@ -432,18 +470,29 @@ void visit_Expr_jump(struct Expr* node)
             char* type1 = visit_Expr_rval(node->left);
             char* type2 = visit_Expr_rval(node->right);
             char* type = max(type1, type2);
-            char* a1 = widen(node->left->addr, type1, type);
-            char* a2 = widen(node->right->addr, type2, type);
+            struct AddrTypePair atp1;
+            atp1.addr = node->left->addr;
+            atp1.type = node->left->addr_type;
+            widen(&atp1, type1, type);
+            struct AddrTypePair atp2;
+            atp2.addr = node->right->addr;
+            atp2.type = node->right->addr_type;
+            widen(&atp2, type1, type);
+            // Is this really needed?? Is it used by a parent function??????
             node->addr = newtemp();
-            emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
+            node->addr_type = TEMPORARY;
+            append_triple(gen_binop(atp1.addr, atp1.type, node->binary_op->type, atp2.addr, atp2.type, node->addr));
+            set_cond_and_targets(gen_cond(node->addr, TEMPORARY, "!=", "0", CONSTANT), node->true, node->false);
+            /*
+            //emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
             if (strcmp(node->true, "fall") != 0) {
                 if (strcmp(node->false, "fall") != 0)
-                    emit("if %s == 0 goto %s", node->addr, node->false);
+                    //emit("if %s == 0 goto %s", node->addr, node->false);
             } else if (strcmp(node->false, "fall") != 0) {
-                emit("if %s != 0 goto %s", node->addr, node->true);
+                //emit("if %s != 0 goto %s", node->addr, node->true);
             } else {
-                emit("if %s != 0 goto %s", node->addr, node->true);
-                emit("goto %s", node->false);
+                //emit("if %s != 0 goto %s", node->addr, node->true);
+                //emit("goto %s", node->false);
             }
             return;
         }
@@ -452,15 +501,15 @@ void visit_Expr_jump(struct Expr* node)
             /*
              * Since the truth value of a number doesn't depend on it's
              * sign, we can omit the instruction for sign change.
-             */
+             *//*
             if (strcmp(node->true, "fall") == 0) {
                 if (strcmp(node->false, "fall") != 0)
-                    emit("if %s == 0 goto %s", node->expr->addr, node->false);
+                    //emit("if %s == 0 goto %s", node->expr->addr, node->false);
             } else if (strcmp(node->false, "fall") == 0) {
-                emit("if %s != 0 goto %s", node->expr->addr, node->true);
+                //emit("if %s != 0 goto %s", node->expr->addr, node->true);
             } else {
-                emit("if %s != 0 goto %s", node->expr->addr, node->true);
-                emit("goto %s", node->false);
+                //emit("if %s != 0 goto %s", node->expr->addr, node->true);
+                //emit("goto %s", node->false);
             }
             return;
         }
@@ -469,32 +518,32 @@ void visit_Expr_jump(struct Expr* node)
                 /*
                  * Since the truth value of constant is known at compile time
                  * we can simply output an unconditional jump.
-                 */
+                 *//*
                 case ICONST:
                     if (node->val->i_val) {
                         if (strcmp(node->true, "fall") != 0)
-                            emit("goto %s", node->true);
+                            //emit("goto %s", node->true);
                     } else {
                         if (strcmp(node->false, "fall") != 0)
-                            emit("goto %s", node->false);
+                            //emit("goto %s", node->false);
                     }
                     return;
                 case FCONST:
                     if (node->val->f_val) {
                         if (strcmp(node->true, "fall") != 0)
-                            emit("goto %s", node->true);
+                            //emit("goto %s", node->true);
                     } else {
                         if (strcmp(node->false, "fall") != 0)
-                            emit("goto %s", node->false);
+                            //emit("goto %s", node->false);
                     }
                     return;
                 case SCONST:
                     if (node->val->lexeme[0] == 0x00) {
                         if (strcmp(node->true, "fall") != 0)
-                            emit("goto %s", node->true);
+                            //emit("goto %s", node->true);
                     } else {
                         if (strcmp(node->false, "fall") != 0)
-                            emit("goto %s", node->false);
+                            //emit("goto %s", node->false);
                     }
                     return;
                 default:
@@ -508,26 +557,26 @@ void visit_Expr_jump(struct Expr* node)
             visit_FuncCall(node->function_call);
             if (strcmp(node->true, "fall") == 0) {
                 if (strcmp(node->false, "fall") == 0)
-                    emit("if %s == 0 goto %s", node->function_call->addr, node->false);
+                    //emit("if %s == 0 goto %s", node->function_call->addr, node->false);
             } else if (strcmp(node->false, "fall") != 0) {
-                emit("if %s != 0 goto %s", node->function_call->addr, node->true);
+                //emit("if %s != 0 goto %s", node->function_call->addr, node->true);
             } else {
-                emit("if %s != 0 goto %s", node->function_call->addr, node->true);
-                emit("goto %s", node->false);
+                //emit("if %s != 0 goto %s", node->function_call->addr, node->true);
+                //emit("goto %s", node->false);
             }
             return;
         case EXPR_VARACC:
             visit_VarAcc(node->variable_access);
             if (strcmp(node->true, "fall") == 0) {
                 if (strcmp(node->false, "fall") != 0)
-                    emit("if %s == 0 goto %s", node->variable_access->variable->lexeme, node->false);
+                    //emit("if %s == 0 goto %s", node->variable_access->variable->lexeme, node->false);
             } else if (strcmp(node->false, "fall") == 0) {
-                emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
+                //emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
             } else {
-                emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
-                emit("goto %s", node->false);
+                //emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
+                //emit("goto %s", node->false);
             }
-            return;
+            return;*/
     }
 }
 
@@ -546,47 +595,44 @@ char* visit_FuncCall(struct FuncCall* node)
         mismatching_params_error(node, decl);
     for (int i = 0; i < node->n_args; i++) {
         char* arg_type = visit_Expr_rval(node->args[i]);
-        widen(node->args[i]->addr, decl->params[i]->type->lexeme, arg_type);
+        struct AddrTypePair atp1;
+        atp1.addr = node->args[i]->addr;
+        atp1.type = node->args[i]->addr_type;
+        widen(&atp1, decl->params[i]->type->lexeme, arg_type);
     }
     for (int i = 0; i < node->n_args; i++) {
-        emit("param %s", node->args[i]->addr);
+        //emit("param %s", node->args[i]->addr);
     }
-    char* temp = newtemp();
-    emit("%s = call %s",temp,  node->func->lexeme);
+    struct SymTab_entry* temp = newtemp();
+    //emit("%s = call %s",temp,  node->func->lexeme);
     node->addr = temp;
+    node->addr_type = TEMPORARY;
+
     return decl->type->lexeme;
 }
 
 void visit_AStmt(struct AStmt* node)
 {
-    char* var_name = node->variable_access->variable->lexeme;
+    struct SymTab_entry* var_entry = get_curr_name_entry(node->variable_access->variable->lexeme);
     char* var_type = visit_VarAcc(node->variable_access);
     if (node->assignment_type->type == SUFFIXOP) {
-        char* temp = newtemp();
+        struct SymTab_entry* temp = newtemp();
         switch (node->assignment_type->lexeme[0]) {
             case '+':
-                append_triple(gen_binop(var_name, '+', "1", temp), QUAD_BINOP);
-                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
-                emit("%s = %s + 1", temp, var_name);
-                emit("%s = %s", var_name, temp);
+                append_triple(gen_binop(var_entry, VARIABLE, '+', "1", CONSTANT, temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN);
                 break;
             case '-':
-                append_triple(gen_binop(var_name, '-', "1", temp), QUAD_BINOP);
-                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
-                emit("%s = %s - 1", temp, var_name);
-                emit("%s = %s", var_name, temp);
+                append_triple(gen_binop(var_entry, VARIABLE, '-', "1", CONSTANT, temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN);
                 break;
             case '*':
-                append_triple(gen_binop(var_name, SHL, "1", temp), QUAD_BINOP);
-                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
-                emit("%s = %s << 1", temp, var_name);
-                emit("%s = %s", var_name, temp);
+                append_triple(gen_binop(var_entry, VARIABLE, SHL, "1", CONSTANT, temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN);
                 break;
             case '/':
-                append_triple(gen_binop(var_name, SHR, "1", temp), QUAD_BINOP);
-                append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
-                emit("%s = %s >> 1", temp, var_name);
-                emit("%s = %s", var_name, temp);
+                append_triple(gen_binop(var_entry, VARIABLE, SHR, "1", CONSTANT, temp), QUAD_BINOP);
+                append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN);
                 break;
             default:
                 fprintf(stderr, "Internal error:Did not expect '%c' as suffixop\n",
@@ -598,12 +644,15 @@ void visit_AStmt(struct AStmt* node)
         if (strcmp(max(var_type, expr_type), var_type) != 0)
             type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
                         expr_type, node->variable_access->variable->lexeme, var_type);
-        char* addr = widen(node->expr->addr, expr_type, var_type);
+        struct AddrTypePair atp1;
+        atp1.addr = node->expr->addr;
+        atp1.type = node->expr->addr_type;
+        widen(&atp1, expr_type, var_type);
         if (node->assignment_type->type != '=') {
             /*
              * This is a bit of a hack
              */
-            char* temp = newtemp();
+            struct SymTab_entry* temp = newtemp();
             enum TokenType op_type;
             switch (node->assignment_type->lexeme[0]) {
                 case '+':
@@ -637,14 +686,10 @@ void visit_AStmt(struct AStmt* node)
                     op_type = SHL;
                     break;
             }
-            append_triple(gen_binop(var_name, op_type, addr, temp), QUAD_BINOP);
-            append_triple(gen_assignment(var_name, temp), QUAD_ASSIGN);
-            emit("%s = %s %c %s", temp, var_name,
-                node->assignment_type->lexeme[0], addr);
-            emit("%s = %s", var_name, temp);
+            append_triple(gen_binop(var_entry, VARIABLE, op_type, atp1.addr,atp1.type, temp), QUAD_BINOP);
+            append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN);
         } else {
-            append_triple(gen_assignment(var_name, addr), QUAD_ASSIGN);
-            emit("%s = %s", var_name, addr);
+            append_triple(gen_assignment(var_entry, atp1.addr,atp1.type), QUAD_ASSIGN);
         }
 
     }
@@ -653,57 +698,67 @@ void visit_AStmt(struct AStmt* node)
 void visit_IEEStmt(struct IEEStmt* node)
 {
     if (node->_else != NULL) {
-        char* next = node->next;
-        if_with_else(node->if_stmt, next);
+        struct BasicBlock** next = node->next;
+        struct BasicBlock** prev_false = if_with_else(node->if_stmt, next, NULL); // ???
         for (int i = 0; i < node->n_elifs; i++)
-            if_with_else(node->elif_list[i], next);
+            prev_false = if_with_else(node->elif_list[i], next, prev_false);
         push_Env();
+        *(prev_false) = new_bb();
         node->_else->next = next;
         visit_CompStmt(node->_else);
+        set_uncond_target(next);
         pop_Env();
     } else if (node->n_elifs == 0) {
-        node->if_stmt->boolean->true = "fall";
+        node->if_stmt->boolean->true = newlabel();
         node->if_stmt->boolean->false = node->if_stmt->body->next = node->next;
         visit_Expr_jump(node->if_stmt->boolean);
         push_Env();
+        *(node->if_stmt->boolean->true) = new_bb();
         visit_CompStmt(node->if_stmt->body);
+        set_uncond_target(node->next);
         pop_Env();
     } else {
-        char* next = node->next;
-        if_with_else(node->if_stmt, next);
+        struct BasicBlock** next = node->next;
+        struct BasicBlock** prev_false = if_with_else(node->if_stmt, next, NULL);
         int n_elifs_minus_1 = node->n_elifs-1;
         for (int i = 0; i < n_elifs_minus_1; i++)
-            if_with_else(node->elif_list[i], next);
+            if_with_else(node->elif_list[i], next, prev_false);
         struct CondStmt* last_elif = node->elif_list[n_elifs_minus_1];
-        last_elif->boolean->true = "fall";
-        last_elif->boolean->false = node->if_stmt->body->next = node->next;
+
+        last_elif->boolean->true = newlabel();
+        last_elif->boolean->false = next;
+        *(prev_false) = new_bb();
         visit_Expr_jump(last_elif->boolean);
         push_Env();
+        *(last_elif->boolean->true) = new_bb();
         visit_CompStmt(last_elif->body);
+        set_uncond_target(next);
         pop_Env();
     }
 }
 
-void if_with_else(struct CondStmt* node, char* next)
+struct BasicBlock** if_with_else(struct CondStmt* node, struct BasicBlock** next, struct BasicBlock** prev_false)
 {
-    new_bb();
-    node->boolean->true = "fall";
-    char* falsel = newlabel();
-    node->boolean->false = falsel;
+    node->boolean->true = newlabel();
+    node->boolean->false  = newlabel();
     node->body->next = next;
+    if (prev_false != NULL)
+        *prev_false = new_bb();
+
     visit_Expr_jump(node->boolean);
+    *(node->boolean->true) = new_bb();
     push_Env();
     visit_CompStmt(node->body);
     pop_Env();
-    emit("goto %s", next);
-    emitlabel(falsel);
+    set_uncond_target(next);
+    return node->boolean->false;
 }
 
 void visit_WLoop(struct CondStmt* node)
 {
-    char* begin = newlabel();
+    struct BasicBlock** begin = newlabel();
 
-    emitlabel(begin);
+    *begin = new_bb();
     node->boolean->true = "fall";
     node->boolean->false = node->next;
     visit_Expr_jump(node->boolean);
@@ -711,7 +766,6 @@ void visit_WLoop(struct CondStmt* node)
     push_Env();
     visit_CompStmt(node->body);
     pop_Env();
-    emit("goto %s", begin);
 }
 
 void visit_FLoop(struct FLoop* node)
@@ -722,7 +776,7 @@ void visit_FLoop(struct FLoop* node)
     else
         visit_AStmt(node->init_stmt);
     char* begin = newlabel();
-    emitlabel(begin);
+    //emitlabel(begin);
     node->boolean->true = "fall";
     node->boolean->false = node->next;
     visit_Expr_jump(node->boolean);
@@ -731,7 +785,7 @@ void visit_FLoop(struct FLoop* node)
     visit_CompStmt(node->body);
     pop_Env();
     visit_AStmt(node->update_statement);
-    emit("goto %s", begin);
+    //emit("goto %s", begin);
 }
 
 
@@ -740,6 +794,9 @@ void visit_ReturnStmt(struct Expr* node)
     if (!in_function)
         return_not_in_func_error();
     char* type = visit_Expr_rval(node);
-    widen(node->addr, type, function_type);
+    struct AddrTypePair atp1;
+    atp1.addr = node->addr;
+    atp1.type = node->addr_type;
+    widen(&atp1, type, function_type);
 
 }

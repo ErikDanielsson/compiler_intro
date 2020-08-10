@@ -13,7 +13,7 @@
 #include "table_generator.h"
 #include "consts.h"
 #include "intermediate_code.h"
-
+#include "IC_table.h"
 
 int main(int argc, const char** argv)
 {
@@ -39,6 +39,9 @@ int main(int argc, const char** argv)
     close(file_desc);
     init_IC_generator();
     generate_IC(tree);
+    printf("IC generation done\n\n");
+    with_childs(IC_table_get_entry(intermediate_code, "main"));
+
     #if VERBOSE
     print_Env_tree();
     #endif

@@ -1,6 +1,7 @@
 #pragma once
 #include "lexer.h"
 #include "symbol_table.h"
+#include "IC_table.h"
 
 enum QuadType {
     QUAD_ASSIGN,
@@ -19,10 +20,16 @@ struct BasicBlock {
      * A basic block can at most contain one jump
      */
     enum QuadType jump_type;
-    char* jump;
-    struct BasicBlock* true;
-    struct BasicBlock* false;
-    struct SymTab* symbol_table;
+    union {
+        struct BasicBlock** jump;
+        struct {
+            struct CondQuad* condition;
+            struct BasicBlock** true;
+            struct BasicBlock** false;
+        };
+    };
+
+
 };
 
 struct QuadList {
@@ -35,9 +42,9 @@ struct AssignQuad {
     /*
      * The lvalue of a 'real' assingment must be a variable
      */
-    char* lval;
+    struct SymTab_entry* lval;
     enum SymbolType rval_type;
-    char* rval;
+    void* rval;
 };
 
 enum BinOpType {
@@ -54,19 +61,19 @@ enum BinOpType {
 };
 
 struct BinOpQuad {
-    char* result;
+    struct SymTab_entry* result;
     enum SymbolType op1_type;
-    char* op1;
+    void* op1;
     enum BinOpType op_type;
     enum SymbolType op2_type;
-    char* op2;
+    void* op2;
 };
 
 struct ConvQuad {
-    char* result;
+    struct SymTab_entry* result;
     char* conversion_type;
     enum SymbolType op_type;
-    char* op;
+    void* op;
 };
 
 enum UOpType {
@@ -74,10 +81,10 @@ enum UOpType {
     UOP_NOT
 };
 struct UOpQuad {
-    char* result;
+    struct SymTab_entry* result;
     enum UOpType operator_type;
     enum SymbolType operand_type;
-    char* operand;
+    void* operand;
 };
 
 enum RelopType {
@@ -91,10 +98,10 @@ enum RelopType {
 
 struct CondQuad {
     enum SymbolType op1_type;
-    char* op1;
+    void*  op1;
     enum RelopType op_type;
     enum SymbolType op2_type;
-    char* op2;
+    void*  op2;
     /*
      * Before construction of basic blocks and control flow graph (CFG),
      * the jump target is simply a pointer to an index of the instruction
@@ -111,19 +118,25 @@ struct RetQuad {
      * the jump is determined during code generation.
      */
     enum SymbolType ret_val_type;
-    char* op;
+    void*  op;
 };
 
+extern struct BasicBlock** curr_block;
+extern struct IC_table* intermediate_code;
+void with_childs(struct IC_entry* entry);
+void set_cond_and_targets(struct CondQuad* cond, struct BasicBlock** true_addr, struct BasicBlock** false_addr);
+
+
 void init_IC_generator();
-void new_bb();
+struct BasicBlock* new_bb();
 void enter_function(char* name);
 void leave_function();
 void append_triple(void* triple, enum QuadType type);
-struct AssignQuad* gen_assignment(char* lval,char* rval);
-struct BinOpQuad* gen_binop(char* op1, enum TokenType op_type, char* op2, char* result);
-struct UOpQuad* gen_uop(char* operand, enum TokenType operator, char* result);
-struct ConvQuad* gen_conv(char* conversion_type, char* op, char* result);
-struct CondQuad* gen_cond(char* op1, char* op_lexeme, char* op2, long* label);
+struct AssignQuad* gen_assignment(struct SymTab* lval,  void* rval, enum SymbolType rval_type);
+struct BinOpQuad* gen_binop(void* op1, enum SymbolType op1_type, enum TokenType op_type, void* op2, enum SymbolType op2_type, struct SymTab_entry*  result);
+struct UOpQuad* gen_uop(void* operand, enum SymbolType operand_type, enum TokenType operator, struct SymTab_entry*  result);
+struct ConvQuad* gen_conv(char* conversion_type, void* op, enum SymbolType op_type, struct SymTab_entry*  result);
+struct CondQuad* gen_cond(void* op1, enum SymbolType op1_type, char* op_lexeme, void* op2, enum SymbolType op2_type);
 struct UncondQuad* gen_uncond(long* label);
 
 void print_BasicBlock(struct BasicBlock* bb, int indent);

@@ -1,7 +1,7 @@
 #pragma once
 #include "lexer.h"
 #include "consts.h"
-
+#include "intermediate_code.h"
 enum NodeType {
     START,
     COMPOUND_STATEMENT,
@@ -34,13 +34,13 @@ enum NodeType {
 struct CompStmt {
     int n_statements;
     struct Stmt** statement_list;
-    char* next;
+    struct BasicBlock** next;
 };
 
 struct Stmt {
     enum NodeType statement_type;
     void* stmt;
-    char* next;
+    struct BasicBlock** next;
 };
 
 struct VarDecl {
@@ -108,13 +108,16 @@ enum ExprType {
 
 struct Expr {
     enum ExprType type;
-    union {
-        char* addr;
-        struct {
-            char* true;
-            char* false;
-        };
+
+    struct {
+        enum SymbolType addr_type;
+        struct SymTab_entry* addr;
     };
+    struct {
+        struct BasicBlock** true;
+        struct BasicBlock** false;
+    };
+
 
     union {
         struct {
@@ -142,7 +145,8 @@ struct FuncCall {
     struct Token* func;
     int n_args;
     struct Expr** args;
-    char* addr;
+    struct SymTab_entry* addr;
+    enum SymbolType addr_type;
 };
 
 struct Args {
@@ -155,7 +159,7 @@ struct IEEStmt {
     int n_elifs;
     struct CondStmt** elif_list;
     struct CompStmt* _else;
-    char* next;
+    struct BasicBlock** next;
 };
 
 /*
@@ -165,7 +169,7 @@ struct IEEStmt {
 struct CondStmt {
     struct Expr* boolean;
     struct CompStmt* body;
-    char* next;
+    struct BasicBlock** next;
 };
 
 struct EList {
@@ -184,7 +188,7 @@ struct FLoop {
     struct Expr* boolean;
     struct AStmt* update_statement;
     struct CompStmt* body;
-    char* next;
+    struct BasicBlock** next;
 };
 
 

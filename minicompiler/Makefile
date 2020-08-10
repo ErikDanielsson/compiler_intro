@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall -O3
+CFLAGS = -Wall
 SUBDIR = gen lexing parsing types IC
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
@@ -34,7 +34,7 @@ a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(MAIN_OBJ)
 	$(CC) $(CFLAGS) -o  a.out $^
 
 DIRS := . $(shell find . -type d)
-GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp
+GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp .*.dot *.ll
 GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
 
 clean:
