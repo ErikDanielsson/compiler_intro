@@ -42,14 +42,11 @@ struct BasicBlock* new_bb()
 
     int n_blocks = (*top_entry)->n_blocks;
     if (n_blocks) {
-        print_BasicBlock((*top_entry)->basic_block_list[n_blocks-1], 0);
         struct BasicBlock* tmp_blocks[n_blocks];
         char tmp_blockinfo[n_blocks];
         memcpy(tmp_blocks, (*top_entry)->basic_block_list, sizeof(struct BasicBlock*)*n_blocks);
-        //memcpy(tmp_blockinfo, (*top_entry)->blockinfo, sizeof(char)*n_blocks);
         (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*)*(n_blocks+1));
         memcpy((*top_entry)->basic_block_list, tmp_blocks, sizeof(struct BasicBlock*)*n_blocks);
-        //memcpy((*top_entry)->blockinfo, tmp_blockinfo, sizeof(char)*n_blocks);
         (*top_entry)->basic_block_list[n_blocks] = malloc(sizeof(struct BasicBlock));
         (*top_entry)->basic_block_list[n_blocks]->bbnum = n_blocks;
         (*top_entry)->basic_block_list[n_blocks]->instructions = malloc(sizeof(struct QuadList));
@@ -85,7 +82,7 @@ void enter_function(char* name)
     top_entry++;
     *top_entry = IC_table_get_entry(intermediate_code, name);
     curr_instr_ptr++;
-    //s*curr_instr_ptr = (*top_entry)->instructions;
+    new_bb();
 }
 
 void leave_function()
@@ -94,13 +91,24 @@ void leave_function()
     curr_instr_ptr--;
 }
 
-void append_triple(void* triple, enum QuadType type)
+void append_triple(void* triple, enum QuadType type, char init_flags)
 {
     (*curr_instr_ptr)->type = type;
     (*curr_instr_ptr)->instruction = triple;
     (*curr_instr_ptr)->next = malloc(sizeof(struct QuadList));
     *curr_instr_ptr = (*curr_instr_ptr)->next;
     (*curr_instr_ptr)->next = NULL;
+    (*curr_instr_ptr)->flags = init_flags;
+}
+
+inline void set_triple_flag(struct QuadList* list, int flag_n)
+{
+    list->flags |= flag_n;
+}
+
+inline int check_triple_flag(struct QuadList* list, int flag_n)
+{
+    return list->flags & (1 << (flag_n - 1));
 }
 
 void set_uncond_target(struct BasicBlock** target_addr)
@@ -117,7 +125,7 @@ void set_cond_and_targets(struct CondQuad* cond, struct BasicBlock** true_addr, 
     (*curr_block)->false = false_addr;
 }
 
-struct AssignQuad* gen_assignment(struct SymTab* lval,  void* rval, enum SymbolType rval_type)
+struct AssignQuad* gen_assignment(struct SymTab_entry* lval,  void* rval, enum SymbolType rval_type)
 {
     struct AssignQuad* triple = malloc(sizeof(struct AssignQuad));
     triple->lval = lval;
@@ -241,6 +249,31 @@ struct CondQuad* gen_cond(void* op1, enum SymbolType op1_type, char* op_lexeme, 
     triple->op2 = op2;
     return triple;
 }
+
+struct ParamQuad* gen_param(void* op, enum SymbolType type)
+{
+    struct ParamQuad* param = malloc(sizeof(struct ParamQuad));
+    param->op = op;
+    param->type = type;
+    return param;
+}
+
+struct FuncCQuad* gen_funccall(struct SymTab_entry* lval, char* name)
+{
+    struct FuncCQuad* func_call = malloc(sizeof(struct FuncCQuad));
+    func_call->lval = lval;
+    func_call->name = name;
+    return func_call;
+}
+
+struct RetQuad* gen_return(void* ret_val, enum SymbolType type)
+{
+    struct RetQuad* ret = malloc(sizeof(struct RetQuad));
+    ret->ret_val = ret_val;
+    ret->type = type;
+    return ret;
+}
+
 int gen_done = FALSE;
 void print_BasicBlock(struct BasicBlock* bb, int indent)
 {
@@ -252,7 +285,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
             case QUAD_ASSIGN: {
                 struct AssignQuad* assign = curr_instr->instruction;
 
-                printf("%s = ", assign->lval->key, assign->rval);
+                printf("%s = ", assign->lval->key);
                 if (assign->rval_type == CONSTANT)
                     printf("%s\n", assign->rval);
                 else
@@ -277,7 +310,13 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
             case QUAD_UOP: {
                 struct UOpQuad* uop = curr_instr->instruction;
                 char op_arr[] = {'-', '~'};
-                printf("%s = %c %s\n", uop->result, op_arr[uop->operator_type], uop->operand);
+                printf("%s = %c ", uop->result->key, op_arr[uop->operator_type]);
+                if (uop->operand_type == CONSTANT)
+                    printf("%s\n", uop->operand);
+                else
+                    printf("%s\n", ((struct SymTab_entry*)(uop->operand))->key);
+
+
                 break;
             }
             case QUAD_CONV: {
@@ -290,12 +329,29 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
 
                 break;
             }
-            case QUAD_COND:
+            case QUAD_RETURN: {
+                struct RetQuad* ret = curr_instr->instruction;
+                printf("ret ");
+                if (ret->type == CONSTANT)
+                    printf("%s\n", ret->ret_val);
+                else
+                    printf("%s\n", ((struct SymTab_entry*)(ret->ret_val))->key);
                 break;
-            case QUAD_UNCOND:
+            }
+            case QUAD_PARAM: {
+                struct ParamQuad* param = curr_instr->instruction;
+                printf("param ");
+                if (param->type == CONSTANT)
+                    printf("%s\n", param->op);
+                else
+                    printf("%s\n", ((struct SymTab_entry*)(param->op))->key);
                 break;
-            case QUAD_RETURN:
+            }
+            case QUAD_FUNC: {
+                struct FuncCQuad* func = curr_instr->instruction;
+                printf("%s = call %s\n", func->lval->key, func->name);
                 break;
+            }
         }
         curr_instr = curr_instr->next;
     }
@@ -318,7 +374,6 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
     }
     printf("\n");
 }
-
 void printr(struct BasicBlock** bb, int indent, long max_bb)
 {
     print_BasicBlock(*bb, indent);
@@ -333,8 +388,96 @@ void printr(struct BasicBlock** bb, int indent, long max_bb)
         printr((*bb)->jump, indent+1, max_bb);
     }
 }
-
-void with_childs(struct IC_entry* entry)
+void print_CFG()
 {
-    printr(entry->basic_block_list, 0, entry->n_blocks);
+    for (int i = 0; i < intermediate_code->size; i++) {
+        struct IC_entry* entry = intermediate_code->entries[i];
+        while (entry != NULL) {
+            printf("%s: \n", entry->key);
+            printr(entry->basic_block_list, 1, entry->n_blocks);
+            printf("\n");
+            entry = entry->next;
+        }
+    }
+}
+
+void destroy_instruction(struct QuadList* instruction)
+{
+    if (instruction->next == NULL)
+        return;
+    free(instruction->instruction);
+    destroy_instruction(instruction->next);
+}
+
+void destroy_block(struct BasicBlock* block, char remove_jumps)
+{
+    destroy_instruction(block->instructions);
+    if (block->jump_type == QUAD_UNCOND) {
+        if (remove_jumps)
+            free(block->jump);
+    } else {
+        free(block->condition);
+        if (remove_jumps & 1)
+            free(block->true);
+        if (remove_jumps & 2)
+            free(block->false);
+    }
+
+}
+
+
+void destroyr(struct IC_entry* entry)
+{
+    struct BasicBlock** removed_addr[1024];
+    int r_a_size = 0;
+    for (int i = 0; i < entry->n_blocks; i++) {
+        struct BasicBlock* block = entry->basic_block_list[i];
+
+        if (block->jump_type == QUAD_UNCOND) {
+            char remove_jumps = 1;
+            struct BasicBlock** jump_label = block->jump;
+            for (int i = 0; i < r_a_size; i++) {
+                if (removed_addr[i] == jump_label) {
+                    remove_jumps = 0;
+                    goto destroy;
+                }
+            }
+            removed_addr[r_a_size] = jump_label;
+            r_a_size++;
+            destroy:
+            destroy_block(entry->basic_block_list[i], remove_jumps);
+        } else {
+            char remove_jumps = 3;
+            struct BasicBlock** true_label = block->true;
+            struct BasicBlock** false_label = block->false;
+            for (int i = 0; i < r_a_size; i++) {
+                if (removed_addr[i] == true_label)
+                    remove_jumps--;
+                else if (removed_addr[i] == false_label)
+                    remove_jumps -= 2;
+            }
+            if (remove_jumps & 1) {
+                removed_addr[r_a_size] = true_label;
+                r_a_size++;
+            }
+            if (remove_jumps & 2) {
+                removed_addr[r_a_size] = false_label;
+                r_a_size++;
+            }
+            destroy_block(entry->basic_block_list[i], remove_jumps);
+        }
+
+
+    }
+    if (entry->blockinfo != NULL)
+        free(entry->blockinfo);
+
+}
+void destroy_CFG()
+{
+    for (int i = 0; i < intermediate_code->size; i++) {
+        struct IC_entry* entry = intermediate_code->entries[i];
+        for (;entry != NULL; entry = entry->next)
+            destroyr(entry);
+    }
 }

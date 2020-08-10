@@ -112,7 +112,7 @@ struct Expr {
 
     struct {
         enum SymbolType addr_type;
-        struct SymTab_entry* addr;
+        void* addr;
     };
     struct {
         struct BasicBlock** true;

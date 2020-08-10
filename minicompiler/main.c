@@ -40,8 +40,8 @@ int main(int argc, const char** argv)
     init_IC_generator();
     generate_IC(tree);
     printf("IC generation done\n\n");
-    with_childs(IC_table_get_entry(intermediate_code, "main"));
-
+    print_CFG();
+    destroy_CFG();
     #if VERBOSE
     print_Env_tree();
     #endif

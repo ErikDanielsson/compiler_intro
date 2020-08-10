@@ -10,7 +10,9 @@ enum QuadType {
     QUAD_CONV,
     QUAD_COND,
     QUAD_UNCOND,
-    QUAD_RETURN
+    QUAD_RETURN,
+    QUAD_PARAM,
+    QUAD_FUNC
 };
 
 struct BasicBlock {
@@ -33,9 +35,18 @@ struct BasicBlock {
 };
 
 struct QuadList {
-    enum QuadType type;
     void* instruction;
     struct QuadList* next;
+    enum QuadType type;
+    /*
+     * Flags:
+     * 1: Denotes whether we are allowed to optimize away
+     * the temporary the result is assigned to
+     * 2:
+     * 3:
+     * ...
+     */
+    char flags;
 };
 
 struct AssignQuad {
@@ -117,26 +128,41 @@ struct RetQuad {
      * the return statement is give its own instruction. The target of
      * the jump is determined during code generation.
      */
-    enum SymbolType ret_val_type;
-    void*  op;
+    enum SymbolType type;
+    void*  ret_val;
 };
 
+struct ParamQuad {
+    void* op;
+    enum SymbolType type;
+};
+struct FuncCQuad {
+    struct SymTab_entry* lval;
+    char* name;
+};
+
+
+
 extern struct BasicBlock** curr_block;
-extern struct IC_table* intermediate_code;
-void with_childs(struct IC_entry* entry);
-void set_cond_and_targets(struct CondQuad* cond, struct BasicBlock** true_addr, struct BasicBlock** false_addr);
+void print_CFG();
 
 
 void init_IC_generator();
 struct BasicBlock* new_bb();
+
+void set_uncond_target(struct BasicBlock** target_addr);
+void set_cond_and_targets(struct CondQuad* cond, struct BasicBlock** true_addr, struct BasicBlock** false_addr);
+
 void enter_function(char* name);
 void leave_function();
-void append_triple(void* triple, enum QuadType type);
-struct AssignQuad* gen_assignment(struct SymTab* lval,  void* rval, enum SymbolType rval_type);
+void append_triple(void* triple, enum QuadType type, char flags);
+struct AssignQuad* gen_assignment(struct SymTab_entry* lval,  void* rval, enum SymbolType rval_type);
 struct BinOpQuad* gen_binop(void* op1, enum SymbolType op1_type, enum TokenType op_type, void* op2, enum SymbolType op2_type, struct SymTab_entry*  result);
 struct UOpQuad* gen_uop(void* operand, enum SymbolType operand_type, enum TokenType operator, struct SymTab_entry*  result);
 struct ConvQuad* gen_conv(char* conversion_type, void* op, enum SymbolType op_type, struct SymTab_entry*  result);
 struct CondQuad* gen_cond(void* op1, enum SymbolType op1_type, char* op_lexeme, void* op2, enum SymbolType op2_type);
-struct UncondQuad* gen_uncond(long* label);
+struct ParamQuad* gen_param(void* op, enum SymbolType type);
+struct FuncCQuad* gen_funccall(struct SymTab_entry* lval, char* name);
+struct RetQuad* gen_return(void* ret_val, enum SymbolType type);
 
-void print_BasicBlock(struct BasicBlock* bb, int indent);
+void destroy_CFG();
