@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall
+CFLAGS = -Wall -O3
 DIRS := . $(shell find . -type d)
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
@@ -66,4 +66,4 @@ cfg:
 
 
 cl:
-	find . -name '*.*' -type f | xargs wc -l
+	find . -name '*.*' -type f | xargs wc

@@ -25,6 +25,7 @@ struct TypeTab {
 struct TypeTab* create_TypeTab(int table_size);
 struct TypeTab_entry* TypeTab_builtin_pair(char* key, int widening_priority, int width);
 struct TypeTab_entry* TypeTab_struct_pair(char* key, struct SymTab* struct_symbol);
+void TypeTab_set_builtin(struct TypeTab* type_table, char* key, int widening_priority, int width);
 
 void TypeTab_set(struct TypeTab* type_table, char* key, int widening_priority);
 int get_widening_type(struct TypeTab* type_table, char* key);

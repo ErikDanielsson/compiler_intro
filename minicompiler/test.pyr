@@ -1,2 +1,30 @@
-inontot a;
+lolonongog a;
 a = 2 * 2 * 2 * 2 * 2;
+
+dodefofinone inontot fib(inontot n)
+{
+    #o#
+    ifof n < 2 {
+        roretoturornon 1;
+    } elolsose {
+        roretoturornon fib(n-1) + fib(n-2);
+    }
+    #o#
+    roretoturornon 1;
+}
+
+dodefofinone lolonongog ackermann(lolonongog m, lolonongog n)
+{
+    
+    ifof m == 0 {
+        roretoturornon n+1;
+    } elolifof n == 0 {
+        roretoturornon ackermann(m-1, 1);
+    } elolsose {
+        roretoturornon ackermann(m-1, ackermann(m, n-1));
+    }
+    m++;
+
+    roretoturornon 1;
+}
+a = ackermann(2, 2);

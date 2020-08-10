@@ -12,6 +12,7 @@
 #include "symbol_table.h"
 #include "IC_table.h"
 #include "intermediate_code.h"
+#include "type_table.h"
 
 /*
  *  Intermediate code generation
@@ -19,8 +20,7 @@
 
 //struct IC intermediate_code;
 
-FILE* IC_file_desc;
-char* ic_filename = "IR_file.tmp";
+
 
 int temp_num = 0;
 #define MAX_LABEL_LENGTH 10
@@ -36,32 +36,17 @@ struct SymTab_entry* newtemp()
 int label_num = 0;
 struct BasicBlock** newlabel()
 {
-    return malloc(sizeof(struct BasicBlock*));
+    void* ret = malloc(sizeof(struct BasicBlock*));
+    if (ret == NULL) {
+        fprintf(stderr, "NULL pointer in newlabel\n");
+        exit(-1);
+    }
+    return ret;
 }
 
 void generate_IC(struct CompStmt* node)
 {
-
-    IC_file_desc = fopen(ic_filename, "w");
-    fprintf(IC_file_desc, "\n\nCode begin\n\n");
     visit_CompStmt(node);
-    fprintf(IC_file_desc, "\n\nCode end\n\n");
-    fclose(IC_file_desc);
-}
-
-void emit(char* instr, ...)
-{
-    va_list args;
-    fprintf(IC_file_desc, "\t");
-    va_start(args, instr);
-    vfprintf(IC_file_desc, instr, args);
-    va_end(args);
-    fprintf(IC_file_desc, "\n");
-}
-
-void emitlabel(char* label)
-{
-    fprintf(IC_file_desc, "%s:", label);
 }
 
 void widening_error(char* type1, char* type2)
@@ -219,12 +204,13 @@ void visit_FuncDecl(struct FuncDecl* node)
 {
     if (in_function)
         nested_function_error(node);
+    enter_function(node->name->lexeme);
     in_function = TRUE;
     epilogue = newlabel();
     function_type = node->type->lexeme;
     check_type_defined(function_type);
     check_and_set_func(node);
-    enter_function(node->name->lexeme);
+
     push_Env();
     for (int i = 0; i < node->n_params; i++)
         visit_VarDecl(node->params[i]);
@@ -444,7 +430,6 @@ void visit_Expr_jump(struct Expr* node)
             return;
         }
         case EXPR_AND:
-            printf("hej");
             node->left->true = newlabel();
             node->left->false = node->false;
             visit_Expr_jump(node->left);
@@ -558,6 +543,7 @@ char* visit_VarAcc(struct VarAcc* node)
 
 char* visit_FuncCall(struct FuncCall* node)
 {
+
     struct FuncDecl* decl = check_func_declared(node);
     int n_args = node->n_args;
     if (n_args != decl->n_params)
@@ -568,15 +554,20 @@ char* visit_FuncCall(struct FuncCall* node)
         atp1.addr = node->args[i]->addr;
         atp1.type = node->args[i]->addr_type;
         widen(&atp1, decl->params[i]->type->lexeme, arg_type);
-        append_triple(gen_param(atp1.addr, atp1.type), QUAD_PARAM, 0);
+        append_triple(gen_param(atp1.addr, atp1.type), QUAD_PARAM, 1);
     }
     struct SymTab_entry* temp = newtemp();
     append_triple(gen_funccall(temp, node->func->lexeme), QUAD_FUNC, 1);
+    struct BasicBlock** next = newlabel();
+
+    set_uncond_target(next);
+    *next = new_bb();
 
     node->addr = temp;
     node->addr_type = TEMPORARY;
 
     return decl->type->lexeme;
+
 }
 
 void visit_AStmt(struct AStmt* node)

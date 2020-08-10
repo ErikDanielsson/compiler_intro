@@ -227,6 +227,6 @@ void init_type_checker()
     TypeTab_set_builtin(type_table, "fofloloatot", 2, 4);
     TypeTab_set_builtin(type_table, "dodouboblole", 3, 8);
     //TypeTab_set_builtin(type_table, "sostotrorinongog", -1, NULL);
-    TypeTab_set_builtin(type_table, "vovoidod", -1);
+    TypeTab_set_builtin(type_table, "vovoidod", -1, 0);
     *top_symtab = create_SymTab(TABLESIZE, NULL);
 }

@@ -70,7 +70,7 @@ int get_widening_type(struct TypeTab* type_table, char* key)
 
 void type_table_error(char* key)
 {
-    fprintf(stderr, "Internal error:Type '%s' should have been entered in type_table\n");
+    fprintf(stderr, "Internal error:Type '%s' should have been entered in type_table\n", key);
     exit(-1);
 }
 

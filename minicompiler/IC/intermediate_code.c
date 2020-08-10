@@ -43,7 +43,6 @@ struct BasicBlock* new_bb()
     int n_blocks = (*top_entry)->n_blocks;
     if (n_blocks) {
         struct BasicBlock* tmp_blocks[n_blocks];
-        char tmp_blockinfo[n_blocks];
         memcpy(tmp_blocks, (*top_entry)->basic_block_list, sizeof(struct BasicBlock*)*n_blocks);
         (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*)*(n_blocks+1));
         memcpy((*top_entry)->basic_block_list, tmp_blocks, sizeof(struct BasicBlock*)*n_blocks);
@@ -82,13 +81,16 @@ void enter_function(char* name)
     top_entry++;
     *top_entry = IC_table_get_entry(intermediate_code, name);
     curr_instr_ptr++;
+    curr_block++;
     new_bb();
+
 }
 
 void leave_function()
 {
     top_entry--;
     curr_instr_ptr--;
+    curr_block--;
 }
 
 void append_triple(void* triple, enum QuadType type, char init_flags)
@@ -278,12 +280,12 @@ int gen_done = FALSE;
 void print_BasicBlock(struct BasicBlock* bb, int indent)
 {
     print_w_indent(indent, "Block %ld\n", bb->bbnum);
-    struct QuadList* curr_instr = bb->instructions;
-    for (int i = 0;curr_instr->next != NULL; i++) {
+    struct QuadList* instr = bb->instructions;
+    for (int i = 0; instr->next != NULL; i++) {
         print_w_indent(indent+1, "%d\t", i);
-        switch(curr_instr->type) {
+        switch (instr->type) {
             case QUAD_ASSIGN: {
-                struct AssignQuad* assign = curr_instr->instruction;
+                struct AssignQuad* assign = instr->instruction;
 
                 printf("%s = ", assign->lval->key);
                 if (assign->rval_type == CONSTANT)
@@ -293,7 +295,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 break;
             }
             case QUAD_BINOP: {
-                struct BinOpQuad* binop = curr_instr->instruction;
+                struct BinOpQuad* binop = instr->instruction;
                 char* op_arr[] = {"+", "-", "*", "/", "%", "^", "&", "|", ">>", "<<"};
                 printf("%s = ", binop->result->key);
                 if (binop->op1_type == CONSTANT)
@@ -308,7 +310,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 break;
             }
             case QUAD_UOP: {
-                struct UOpQuad* uop = curr_instr->instruction;
+                struct UOpQuad* uop = instr->instruction;
                 char op_arr[] = {'-', '~'};
                 printf("%s = %c ", uop->result->key, op_arr[uop->operator_type]);
                 if (uop->operand_type == CONSTANT)
@@ -320,7 +322,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 break;
             }
             case QUAD_CONV: {
-                struct ConvQuad* conv = curr_instr->instruction;
+                struct ConvQuad* conv = instr->instruction;
                 printf("%s = (%s)", conv->result->key, conv->conversion_type);
                 if (conv->op_type == CONSTANT)
                     printf("%s\n", conv->op);
@@ -330,7 +332,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 break;
             }
             case QUAD_RETURN: {
-                struct RetQuad* ret = curr_instr->instruction;
+                struct RetQuad* ret = instr->instruction;
                 printf("ret ");
                 if (ret->type == CONSTANT)
                     printf("%s\n", ret->ret_val);
@@ -339,7 +341,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 break;
             }
             case QUAD_PARAM: {
-                struct ParamQuad* param = curr_instr->instruction;
+                struct ParamQuad* param = instr->instruction;
                 printf("param ");
                 if (param->type == CONSTANT)
                     printf("%s\n", param->op);
@@ -348,12 +350,15 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 break;
             }
             case QUAD_FUNC: {
-                struct FuncCQuad* func = curr_instr->instruction;
+                struct FuncCQuad* func = instr->instruction;
                 printf("%s = call %s\n", func->lval->key, func->name);
                 break;
             }
+            default:
+                fprintf(stderr, "internal error:value  %d should not exist in print BB switch\n", instr->type);
+                exit(-1);
         }
-        curr_instr = curr_instr->next;
+        instr = instr->next;
     }
     if (bb->jump_type == QUAD_COND)
     {
