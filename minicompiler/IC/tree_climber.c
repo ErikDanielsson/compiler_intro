@@ -430,36 +430,26 @@ void visit_Expr_jump(struct Expr* node)
             }
             */
 
-        }/*
+        }
         case EXPR_AND:
-            node->left->true = "fall";
+            printf("hej");
+            node->left->true = newlabel();
+            node->left->false = node->false;
+            visit_Expr_jump(node->left);
+
+            *(node->left->true) = new_bb();
             node->right->true = node->true;
             node->right->false = node->false;
-            if (strcmp(node->false, "fall") == 0) {
-                node->left->false = newlabel();
-                visit_Expr_jump(node->left);
-                visit_Expr_jump(node->right);
-                //emitlabel(node->left->false);
-            } else {
-                node->left->false = node->false;
-                visit_Expr_jump(node->left);
-                visit_Expr_jump(node->right);
-            }
+            visit_Expr_jump(node->right);
             return;
         case EXPR_OR:
-            node->left->false = "fall";
+            node->left->false = newlabel();
+            node->left->true = node->true;
+            visit_Expr_jump(node->left);
+            *(node->left->false) = new_bb();
             node->right->true = node->true;
             node->right->false = node->false;
-            if (strcmp(node->true, "fall") == 0) {
-                node->left->true = newlabel();
-                visit_Expr_jump(node->left);
-                visit_Expr_jump(node->right);
-                //emitlabel(node->left->true);
-            } else {
-                node->left->true = node->true;
-                visit_Expr_jump(node->left);
-                visit_Expr_jump(node->right);
-            }
+            visit_Expr_jump(node->right);
             return;
         case EXPR_NOT:
             node->expr->true = node->false;
@@ -479,21 +469,13 @@ void visit_Expr_jump(struct Expr* node)
             atp2.type = node->right->addr_type;
             widen(&atp2, type1, type);
             // Is this really needed?? Is it used by a parent function??????
-            node->addr = newtemp();
-            node->addr_type = TEMPORARY;
-            append_triple(gen_binop(atp1.addr, atp1.type, node->binary_op->type, atp2.addr, atp2.type, node->addr));
-            set_cond_and_targets(gen_cond(node->addr, TEMPORARY, "!=", "0", CONSTANT), node->true, node->false);
-            /*
-            //emit("%s = %s %c %s", node->addr, a1, node->binary_op->c_val, a2);
-            if (strcmp(node->true, "fall") != 0) {
-                if (strcmp(node->false, "fall") != 0)
-                    //emit("if %s == 0 goto %s", node->addr, node->false);
-            } else if (strcmp(node->false, "fall") != 0) {
-                //emit("if %s != 0 goto %s", node->addr, node->true);
-            } else {
-                //emit("if %s != 0 goto %s", node->addr, node->true);
-                //emit("goto %s", node->false);
-            }
+            struct SymTab_entry* temp_addr = newtemp();
+            append_triple(gen_binop(atp1.addr, atp1.type,
+                        node->binary_op->type,
+                        atp2.addr, atp2.type,
+                        temp_addr),
+                        QUAD_BINOP);
+            set_cond_and_targets(gen_cond(temp_addr, TEMPORARY, "!=", "0", CONSTANT), node->true, node->false);
             return;
         }
         case EXPR_UOP: {
@@ -501,16 +483,11 @@ void visit_Expr_jump(struct Expr* node)
             /*
              * Since the truth value of a number doesn't depend on it's
              * sign, we can omit the instruction for sign change.
-             *//*
-            if (strcmp(node->true, "fall") == 0) {
-                if (strcmp(node->false, "fall") != 0)
-                    //emit("if %s == 0 goto %s", node->expr->addr, node->false);
-            } else if (strcmp(node->false, "fall") == 0) {
-                //emit("if %s != 0 goto %s", node->expr->addr, node->true);
-            } else {
-                //emit("if %s != 0 goto %s", node->expr->addr, node->true);
-                //emit("goto %s", node->false);
-            }
+             */
+             set_cond_and_targets(gen_cond(node->expr->addr, TEMPORARY,
+                                "!=",
+                                "0", CONSTANT),
+                                node->true, node->false);
             return;
         }
         case EXPR_CONST: {
@@ -518,33 +495,27 @@ void visit_Expr_jump(struct Expr* node)
                 /*
                  * Since the truth value of constant is known at compile time
                  * we can simply output an unconditional jump.
-                 *//*
+                 *
+                 * We should then be able to simply walk the CFG to see whether
+                 * some blocks are unreachable and thus removable.
+                 */
                 case ICONST:
-                    if (node->val->i_val) {
-                        if (strcmp(node->true, "fall") != 0)
-                            //emit("goto %s", node->true);
-                    } else {
-                        if (strcmp(node->false, "fall") != 0)
-                            //emit("goto %s", node->false);
-                    }
+                    if (node->val->i_val)
+                        set_uncond_target(node->true);
+                    else
+                        set_uncond_target(node->false);
                     return;
                 case FCONST:
-                    if (node->val->f_val) {
-                        if (strcmp(node->true, "fall") != 0)
-                            //emit("goto %s", node->true);
-                    } else {
-                        if (strcmp(node->false, "fall") != 0)
-                            //emit("goto %s", node->false);
-                    }
+                    if (node->val->f_val)
+                        set_uncond_target(node->true);
+                    else
+                        set_uncond_target(node->false);
                     return;
                 case SCONST:
-                    if (node->val->lexeme[0] == 0x00) {
-                        if (strcmp(node->true, "fall") != 0)
-                            //emit("goto %s", node->true);
-                    } else {
-                        if (strcmp(node->false, "fall") != 0)
-                            //emit("goto %s", node->false);
-                    }
+                    if (node->val->lexeme[0] == 0x00)
+                        set_uncond_target(node->false);
+                    else
+                        set_uncond_target(node->true);
                     return;
                 default:
                     fprintf(stderr,
@@ -555,35 +526,22 @@ void visit_Expr_jump(struct Expr* node)
         }
         case EXPR_FUNCCALL:
             visit_FuncCall(node->function_call);
-            if (strcmp(node->true, "fall") == 0) {
-                if (strcmp(node->false, "fall") == 0)
-                    //emit("if %s == 0 goto %s", node->function_call->addr, node->false);
-            } else if (strcmp(node->false, "fall") != 0) {
-                //emit("if %s != 0 goto %s", node->function_call->addr, node->true);
-            } else {
-                //emit("if %s != 0 goto %s", node->function_call->addr, node->true);
-                //emit("goto %s", node->false);
-            }
+            set_cond_and_targets(gen_cond(node->function_call->addr, TEMPORARY,
+                               "!=", "0", CONSTANT), node->true, node->false);
             return;
         case EXPR_VARACC:
             visit_VarAcc(node->variable_access);
-            if (strcmp(node->true, "fall") == 0) {
-                if (strcmp(node->false, "fall") != 0)
-                    //emit("if %s == 0 goto %s", node->variable_access->variable->lexeme, node->false);
-            } else if (strcmp(node->false, "fall") == 0) {
-                //emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
-            } else {
-                //emit("if %s != 0 goto %s", node->variable_access->variable->lexeme, node->true);
-                //emit("goto %s", node->false);
-            }
-            return;*/
+            set_cond_and_targets(gen_cond(node->variable_access->addr, TEMPORARY,
+                               "!=", "0", CONSTANT), node->true, node->false);
+
+            return;
     }
 }
 
 char* visit_VarAcc(struct VarAcc* node)
 {
     char* type_name = check_var_declared(node);
-    // Code code
+    node->addr = get_curr_name_entry(node->variable->lexeme);
     return type_name;
 }
 
@@ -613,8 +571,8 @@ char* visit_FuncCall(struct FuncCall* node)
 
 void visit_AStmt(struct AStmt* node)
 {
-    struct SymTab_entry* var_entry = get_curr_name_entry(node->variable_access->variable->lexeme);
     char* var_type = visit_VarAcc(node->variable_access);
+    struct SymTab_entry* var_entry = node->variable_access->addr;
     if (node->assignment_type->type == SUFFIXOP) {
         struct SymTab_entry* temp = newtemp();
         switch (node->assignment_type->lexeme[0]) {

@@ -304,7 +304,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
 
         struct CondQuad* cond = bb->condition;
         if (cond->op1_type == CONSTANT)
-            print_w_indent( indent+1, "%s, ", cond->op1);
+            print_w_indent(indent+1, "%s, ", cond->op1);
         else
             print_w_indent(indent+1, "%s, ", ((struct SymTab_entry*)(cond->op1))->key);
 
@@ -313,36 +313,28 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
             printf("%s\n", cond->op2);
         else
             printf("%s\n", ((struct SymTab_entry*)(cond->op2))->key);
-    } else if (0) {
-        gen_done = FALSE;
-        print_BasicBlock(*(bb->jump), indent);
-        gen_done = TRUE;
+    } else {
+        print_w_indent(indent+1, "uncond");
     }
-
     printf("\n");
+}
+
+void printr(struct BasicBlock** bb, int indent, long max_bb)
+{
+    print_BasicBlock(*bb, indent);
+    if ((*bb)->bbnum == max_bb-1)
+        return;
+    if ((*bb)->jump_type == QUAD_COND) {
+        print_w_indent(indent, "true: \n");
+        printr((*bb)->true, indent+1, max_bb);
+        print_w_indent(indent, "false: \n");
+        printr((*bb)->false, indent+1, max_bb);
+    } else {
+        printr((*bb)->jump, indent+1, max_bb);
+    }
 }
 
 void with_childs(struct IC_entry* entry)
 {
-    gen_done = TRUE;
-    struct BasicBlock* bb = entry->basic_block_list[0];
-    print_BasicBlock(bb, 0);
-    bb = *(bb->jump);
-    print_BasicBlock(bb, 0);
-
-    for ( int i= 1; bb->jump_type == QUAD_COND;) {
-
-        print_w_indent(i-1, "true: \n");
-        print_BasicBlock(*(bb->true), i);
-        print_BasicBlock(*((*(bb->true))->jump), i+1);
-        print_BasicBlock(*((*((*(bb->true))->jump))->jump), i+2);
-        gen_done = FALSE;
-        print_w_indent(i-1, "false: \n");
-        print_BasicBlock(*(bb->false), i);
-
-        bb = *(bb->true);
-        bb = *(bb->jump);
-
-    }
-    //print_BasicBlock(*((*(bb->false))->jump), 5);
+    printr(entry->basic_block_list, 0, entry->n_blocks);
 }

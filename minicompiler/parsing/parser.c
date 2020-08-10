@@ -2367,7 +2367,6 @@ void print_ReturnStmt(struct Expr* node, int nest_level, char labels, char leaf)
 
 void free_CompStmt(struct CompStmt* node)
 {
-    //printf("FREE COMPOUND\n");
     for (int i = 0; i < node->n_statements; i++) {
         free_Stmt(node->statement_list[i]);
     }
@@ -2377,7 +2376,6 @@ void free_CompStmt(struct CompStmt* node)
 
 void free_Stmt(struct Stmt* node)
 {
-    //printf("FREE STATEMENT\n");
     switch (node->statement_type) {
         case VARIABLE_DECLARATION:
             free_VarDecl(node->stmt);
@@ -2414,7 +2412,6 @@ void free_Stmt(struct Stmt* node)
 
 void free_VarDecl(struct VarDecl* node)
 {
-    //printf("FREE VARIABLE DECLARATION\n");
     free_token(node->type);
     if (node->n_indices > 0) {
         for (int i = 0; i < node->n_indices; i++)
@@ -2430,7 +2427,6 @@ void free_VarDecl(struct VarDecl* node)
 
 void free_FuncDecl(struct FuncDecl* node)
 {
-    //printf("FREE FUNCTION DECLARATION\n");
     free_token(node->type);
     free_token(node->name);
     for (int i = 0; i < node->n_params; i++)
@@ -2442,7 +2438,6 @@ void free_FuncDecl(struct FuncDecl* node)
 
 void free_VarAcc(struct VarAcc* node)
 {
-    //printf("FREE VARIABLE ACCESS\n");
     free_token(node->variable);
     for (int i = 0; i < node->n_indices; i++)
         free_Expr(node->indices[i]);
@@ -2454,7 +2449,6 @@ void free_VarAcc(struct VarAcc* node)
 
 void free_Expr(struct Expr* node)
 {
-    //printf("FREE EXPR\n");
         switch (node->type) {
         case EXPR_BINOP:
         case EXPR_RELOP:
@@ -2484,7 +2478,6 @@ void free_Expr(struct Expr* node)
 
 void free_AStmt(struct AStmt* node)
 {
-    //printf("FREE ASSIGMENT STATEMENT\n");
 
     free_VarAcc(node->variable_access);
     free_token(node->assignment_type);
@@ -2495,7 +2488,6 @@ void free_AStmt(struct AStmt* node)
 
 void free_FuncCall(struct FuncCall* node)
 {
-    //printf("FREE FUNCTION CALL\n");
     free_token(node->func);
     for (int i = 0; i < node->n_args; i++)
         free_Expr(node->args[i]);
@@ -2505,7 +2497,6 @@ void free_FuncCall(struct FuncCall* node)
 
 void free_IEEStmt(struct IEEStmt* node)
 {
-    //printf("FREE IF ELIF ELSE STATEMENT\n");
     free_CondStmt(node->if_stmt);
     if (node->n_elifs > 0) {
         for (int i = 0; i < node->n_elifs; i++)
@@ -2519,7 +2510,6 @@ void free_IEEStmt(struct IEEStmt* node)
 
 void free_CondStmt(struct CondStmt* node)
 {
-    //printf("FREE CONDITIONAL STATEMENT\n");
     free_Expr(node->boolean);
     free_CompStmt(node->body);
     free(node);
@@ -2527,7 +2517,6 @@ void free_CondStmt(struct CondStmt* node)
 
 void free_FLoop(struct FLoop* node)
 {
-    //printf("FREE FOR LOOP\n");
     if (node->type == VARIABLE_DECLARATION)
         free_VarDecl(node->init_stmt);
     else

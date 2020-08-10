@@ -89,6 +89,7 @@ struct Inds {
 
 struct VarAcc {
     struct Token* variable;
+    struct SymTab_entry* addr;
     int n_indices;
     struct Expr** indices;
     struct VarAcc* next;
