@@ -31,12 +31,7 @@ int main(int argc, const char** argv)
     printf("parsing...\n");
     #endif
     struct CompStmt* tree = lr_parser(1);
-    #if VERBOSE
-    //print_CompStmt((struct CompStmt*)(*record_ptr), 0, 1, 0);
-    //SymTab_dump(type_table, "Types", 0);
-    #endif
-    //if (return_found)
-    //    return_error();
+
     close(file_desc);
     init_IC_generator();
     generate_IC(tree);

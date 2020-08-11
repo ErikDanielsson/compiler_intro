@@ -3,11 +3,10 @@
 #include "intermediate_code.h"
 #include "hashing.h"
 
+#define DEBUG 0
+
 struct SymTab_entry_entry;
-
 struct SymTab_entry_table;
-
-
 
 struct SymTab_entry_table* create_SymTab_entry_table(int size);
 
@@ -265,7 +264,9 @@ long get_info(struct SymTab_entry_table* table,
     struct SymTab_entry_entry* t_entry = table->entries[hashv];
     while (t_entry != NULL) {
         if (t_entry->real_entry == real_entry) {
+            #if DEBUG
             printf("%s: live: %d, use: %d\n", real_entry->key, t_entry->info & 1, t_entry->info >> 1);
+            #endif
             return t_entry->info;
         }
         t_entry = t_entry->next;
@@ -275,7 +276,9 @@ long get_info(struct SymTab_entry_table* table,
 
 void clear_entries(struct SymTab_entry_table* table)
 {
+    #if DEBUG
     printf("\nclear\n\n");
+    #endif
     for (int i = 0; i < table->size; i++) {
         struct SymTab_entry_entry* entry = table->entries[i];
         while (entry != NULL) {

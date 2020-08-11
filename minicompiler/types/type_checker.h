@@ -9,6 +9,7 @@ void mismatching_params_error(struct FuncCall* funccall, struct FuncDecl* funcde
 
 void push_Env();
 void pop_Env();
+struct SymTab* pop_Env_func();
 struct SymTab* pop_Env_struct();
 void print_Env_tree();
 void destroy_Env_tree();

@@ -415,7 +415,7 @@ void create_node_record(void*** top, int rule_num)
  * Reduction case functions.
  */
 
-static inline void reduce_to_compound_compound_list(void*** top)
+void reduce_to_compound_compound_list(void*** top)
 {
     struct CompStmt* node = malloc(sizeof(struct CompStmt));
     struct Stmt* tmp_stmt = **top;
@@ -443,7 +443,7 @@ static inline void reduce_to_compound_compound_list(void*** top)
     #endif
 }
 
-static inline void reduce_to_compound_statement(void*** top)
+void reduce_to_compound_statement(void*** top)
 {
     struct CompStmt* node = malloc(sizeof(struct CompStmt));
     node->n_statements = 1;
@@ -461,7 +461,7 @@ static inline void reduce_to_compound_statement(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_vardecl(void*** top)
+void reduce_to_stmt_vardecl(void*** top)
 {
     #if DEBUG || TREEBUILDER
     printf("statement -> variable_declaration ';'\n");
@@ -484,7 +484,7 @@ static inline void reduce_to_stmt_vardecl(void*** top)
 
 }
 
-static inline void reduce_to_stmt_structdecl(void*** top)
+void reduce_to_stmt_structdecl(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -504,7 +504,7 @@ static inline void reduce_to_stmt_structdecl(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_funcdecl_(void*** top)
+void reduce_to_stmt_funcdecl_(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -524,7 +524,7 @@ static inline void reduce_to_stmt_funcdecl_(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_assignment_statement(void*** top)
+void reduce_to_stmt_assignment_statement(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -545,7 +545,7 @@ static inline void reduce_to_stmt_assignment_statement(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_funccall(void*** top)
+void reduce_to_stmt_funccall(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -566,7 +566,7 @@ static inline void reduce_to_stmt_funccall(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_ieestmt(void*** top)
+void reduce_to_stmt_ieestmt(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -585,7 +585,7 @@ static inline void reduce_to_stmt_ieestmt(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_wloop(void*** top)
+void reduce_to_stmt_wloop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -604,7 +604,7 @@ static inline void reduce_to_stmt_wloop(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_floop(void*** top)
+void reduce_to_stmt_floop(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -623,7 +623,7 @@ static inline void reduce_to_stmt_floop(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_scope(void*** top)
+void reduce_to_stmt_scope(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -642,7 +642,7 @@ static inline void reduce_to_stmt_scope(void*** top)
     #endif
 }
 
-static inline void reduce_to_stmt_return(void*** top)
+void reduce_to_stmt_return(void*** top)
 {
     struct Stmt* node = malloc(sizeof(struct Stmt));
     node->next = NULL;
@@ -665,7 +665,7 @@ static inline void reduce_to_stmt_return(void*** top)
     #endif
 }
 
-static inline void reduce_to_vardecl_w_ind(void*** top)
+void reduce_to_vardecl_w_ind(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
     node->name = **top;
@@ -695,7 +695,7 @@ static inline void reduce_to_vardecl_w_ind(void*** top)
     #endif
 }
 
-static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
+void reduce_to_vardecl_w_ind_n_expr(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
     node->expr = **top;
@@ -730,7 +730,7 @@ static inline void reduce_to_vardecl_w_ind_n_expr(void*** top)
     #endif
 }
 
-static inline void reduce_to_vardecl(void*** top)
+void reduce_to_vardecl(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
     node->n_indices = 0;
@@ -754,7 +754,7 @@ static inline void reduce_to_vardecl(void*** top)
     #endif
 }
 
-static inline void reduce_to_vardecl_w_expr(void*** top)
+void reduce_to_vardecl_w_expr(void*** top)
 {
     struct VarDecl* node = malloc(sizeof(struct VarDecl));
     node->n_indices = 0;
@@ -783,7 +783,7 @@ static inline void reduce_to_vardecl_w_expr(void*** top)
     #endif
 }
 
-static inline void reduce_to_structdecl_type(void*** top)
+void reduce_to_structdecl_type(void*** top)
 {
     struct StructDecl* node = malloc(sizeof(struct StructDecl));
     free_token(**top);
@@ -814,7 +814,7 @@ static inline void reduce_to_structdecl_type(void*** top)
     #endif
 }
 
-static inline void reduce_to_decllist_decllist_vardecl(void*** top)
+void reduce_to_decllist_decllist_vardecl(void*** top)
 {
     free_token(**top);
     (*top)--;
@@ -845,7 +845,7 @@ static inline void reduce_to_decllist_decllist_vardecl(void*** top)
 
 }
 
-static inline void reduce_to_decllist_vardecl(void*** top)
+void reduce_to_decllist_vardecl(void*** top)
 {
     struct DeclList* node = malloc(sizeof(struct DeclList));
     node->bool_arr = malloc(sizeof(char));
@@ -862,7 +862,7 @@ static inline void reduce_to_decllist_vardecl(void*** top)
     #endif
 }
 
-static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
+void reduce_to_func_decl_w_ind_n_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
     free_token(**top);
@@ -911,7 +911,7 @@ static inline void reduce_to_func_decl_w_ind_n_params(void*** top)
     #endif
 }
 
-static inline void reduce_to_func_decl_w_ind(void*** top)
+void reduce_to_func_decl_w_ind(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
     free_token(**top);
@@ -954,7 +954,7 @@ static inline void reduce_to_func_decl_w_ind(void*** top)
     #endif
 }
 
-static inline void reduce_to_func_decl_w_params(void*** top)
+void reduce_to_func_decl_w_params(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
     free_token(**top);
@@ -1006,7 +1006,7 @@ static inline void reduce_to_func_decl_w_params(void*** top)
     #endif
 }
 
-static inline void reduce_to_func_decl(void*** top)
+void reduce_to_func_decl(void*** top)
 {
     struct FuncDecl* node = malloc(sizeof(struct FuncDecl));
     free_token(**top);
@@ -1046,7 +1046,7 @@ static inline void reduce_to_func_decl(void*** top)
     #endif
 }
 
-static inline void reduce_to_empty_ind_list(void*** top)
+void reduce_to_empty_ind_list(void*** top)
 {
     int* node;
     free_token(**top);
@@ -1065,7 +1065,7 @@ static inline void reduce_to_empty_ind_list(void*** top)
 
 }
 //20
-static inline void reduce_to_empty_ind(void*** top)
+void reduce_to_empty_ind(void*** top)
 {
     int* node = malloc(sizeof(int));
 
@@ -1082,7 +1082,7 @@ static inline void reduce_to_empty_ind(void*** top)
 
 }
 
-static inline void reduce_to_param_list(void*** top)
+void reduce_to_param_list(void*** top)
 {
     struct Params* node = malloc(sizeof(struct Params));
 
@@ -1109,7 +1109,7 @@ static inline void reduce_to_param_list(void*** top)
 
 }
 
-static inline void reduce_to_param(void*** top)
+void reduce_to_param(void*** top)
 {
     struct Params* node = malloc(sizeof(struct Params));
 
@@ -1126,7 +1126,7 @@ static inline void reduce_to_param(void*** top)
     #endif
 }
 
-static inline void reduce_to_ind_list_w_expr(void*** top)
+void reduce_to_ind_list_w_expr(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
 
@@ -1155,7 +1155,7 @@ static inline void reduce_to_ind_list_w_expr(void*** top)
 
 }
 
-static inline void reduce_to_ind_w_expr(void*** top)
+void reduce_to_ind_w_expr(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
 
@@ -1179,7 +1179,7 @@ static inline void reduce_to_ind_w_expr(void*** top)
 
 }
 
-static inline void reduce_to_ind_list(void*** top)
+void reduce_to_ind_list(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
 
@@ -1206,7 +1206,7 @@ static inline void reduce_to_ind_list(void*** top)
 
 }
 
-static inline void reduce_to_ind(void*** top)
+void reduce_to_ind(void*** top)
 {
     struct Inds* node = malloc(sizeof(struct Inds));
 
@@ -1226,7 +1226,7 @@ static inline void reduce_to_ind(void*** top)
     #endif
 }
 
-static inline void reduce_to_varacc(void*** top)
+void reduce_to_varacc(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
     node->next = NULL;
@@ -1248,7 +1248,7 @@ static inline void reduce_to_varacc(void*** top)
 
 }
 
-static inline void reduce_to_varacc_w_ind(void*** top)
+void reduce_to_varacc_w_ind(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
     node->next = NULL;
@@ -1275,7 +1275,7 @@ static inline void reduce_to_varacc_w_ind(void*** top)
     #endif
 }
 
-static inline void reduce_to_varacc_list(void*** top)
+void reduce_to_varacc_list(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
     node->n_indices = 0;
@@ -1300,7 +1300,7 @@ static inline void reduce_to_varacc_list(void*** top)
 
 }
 
-static inline void reduce_to_varacc_w_ind_list(void*** top)
+void reduce_to_varacc_w_ind_list(void*** top)
 {
     struct VarAcc* node = malloc(sizeof(struct VarAcc));
     struct Inds* ind = **top;
@@ -1328,7 +1328,7 @@ static inline void reduce_to_varacc_w_ind_list(void*** top)
     #endif
 }
 
-static inline void reduce_to_expr_binop(void*** top)
+void reduce_to_expr_binop(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_BINOP;
@@ -1354,7 +1354,7 @@ static inline void reduce_to_expr_binop(void*** top)
 
 }
 
-static inline void reduce_to_expr_relop(void*** top)
+void reduce_to_expr_relop(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_RELOP;
@@ -1380,7 +1380,7 @@ static inline void reduce_to_expr_relop(void*** top)
 
 }
 
-static inline void reduce_to_expr_and(void*** top)
+void reduce_to_expr_and(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_AND;
@@ -1406,7 +1406,7 @@ static inline void reduce_to_expr_and(void*** top)
 
 }
 
-static inline void reduce_to_expr_or(void*** top)
+void reduce_to_expr_or(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_OR;
@@ -1432,7 +1432,7 @@ static inline void reduce_to_expr_or(void*** top)
 
 }
 
-static inline void reduce_to_expr_paren(void*** top)
+void reduce_to_expr_paren(void*** top)
 {
     free_token(**top);
     (*top)--;
@@ -1457,7 +1457,7 @@ static inline void reduce_to_expr_paren(void*** top)
 
 }
 
-static inline void reduce_to_expr_const(void*** top)
+void reduce_to_expr_const(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_CONST;
@@ -1475,7 +1475,7 @@ static inline void reduce_to_expr_const(void*** top)
 
 }
 
-static inline void reduce_to_expr_varacc(void*** top)
+void reduce_to_expr_varacc(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_VARACC;
@@ -1492,7 +1492,7 @@ static inline void reduce_to_expr_varacc(void*** top)
     #endif
 }
 
-static inline void reduce_to_expr_funccall(void*** top)
+void reduce_to_expr_funccall(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_FUNCCALL;
@@ -1511,7 +1511,7 @@ static inline void reduce_to_expr_funccall(void*** top)
 
 }
 
-static inline void reduce_to_expr_unary(void*** top)
+void reduce_to_expr_unary(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_UOP;
@@ -1533,7 +1533,7 @@ static inline void reduce_to_expr_unary(void*** top)
     #endif
 }
 
-static inline void reduce_to_expr_uplus(void*** top)
+void reduce_to_expr_uplus(void*** top)
 {
     /*
      * Since unary plus has no effect, there is no point in storing it.
@@ -1555,7 +1555,7 @@ static inline void reduce_to_expr_uplus(void*** top)
     #endif
 }
 
-static inline void reduce_to_expr_not(void*** top)
+void reduce_to_expr_not(void*** top)
 {
     struct Expr* node = malloc(sizeof(struct Expr));
     node->type = EXPR_NOT;
@@ -1577,7 +1577,7 @@ static inline void reduce_to_expr_not(void*** top)
     #endif
 }
 
-static inline void reduce_to_assign(void*** top)
+void reduce_to_assign(void*** top)
 {
     struct AStmt* node = malloc(sizeof(struct AStmt));
     node->expr = **top;
@@ -1598,7 +1598,7 @@ static inline void reduce_to_assign(void*** top)
     #endif
 }
 
-static inline void reduce_to_assign_suffixop(void*** top)
+void reduce_to_assign_suffixop(void*** top)
 {
     struct AStmt* node = malloc(sizeof(struct AStmt));
     node->assignment_type = **top;
@@ -1617,7 +1617,7 @@ static inline void reduce_to_assign_suffixop(void*** top)
     #endif
 }
 
-static inline void reduce_to_funccall_w_args(void*** top)
+void reduce_to_funccall_w_args(void*** top)
 {
     struct FuncCall* node = malloc(sizeof(struct FuncCall));
     free_token(**top);
@@ -1651,7 +1651,7 @@ static inline void reduce_to_funccall_w_args(void*** top)
 
 }
 
-static inline void reduce_to_funccall(void*** top)
+void reduce_to_funccall(void*** top)
 {
     struct FuncCall* node = malloc(sizeof(struct FuncCall));
     free_token(**top);
@@ -1678,7 +1678,7 @@ static inline void reduce_to_funccall(void*** top)
 
 }
 
-static inline void reduce_to_args_args(void*** top)
+void reduce_to_args_args(void*** top)
 {
     struct Args* node = malloc(sizeof(struct Args));
     struct Expr* next_arg = **top;
@@ -1704,7 +1704,7 @@ static inline void reduce_to_args_args(void*** top)
 
 }
 
-static inline void reduce_to_args_expr(void*** top)
+void reduce_to_args_expr(void*** top)
 {
     struct Args* node = malloc(sizeof(struct Args));
     node->n_args = 1;
@@ -1718,7 +1718,7 @@ static inline void reduce_to_args_expr(void*** top)
     #endif
 }
 
-static inline void reduce_to_ieestmt_ifstmt(void*** top)
+void reduce_to_ieestmt_ifstmt(void*** top)
 {
     struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
     node->n_elifs = 0;
@@ -1739,7 +1739,7 @@ static inline void reduce_to_ieestmt_ifstmt(void*** top)
 
 }
 
-static inline void reduce_to_ieestmt_eliflist(void*** top)
+void reduce_to_ieestmt_eliflist(void*** top)
 {
     struct IEEStmt* node = malloc(sizeof(struct IEEStmt));
     struct EList* elif_list = **top;
@@ -1775,7 +1775,7 @@ static inline void reduce_to_ieestmt_eliflist(void*** top)
 
 }
 
-static inline void reduce_to_eliflist_eliflist(void*** top)
+void reduce_to_eliflist_eliflist(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
     struct EList* prior_list = **top;
@@ -1803,7 +1803,7 @@ static inline void reduce_to_eliflist_eliflist(void*** top)
 
 }
 
-static inline void reduce_to_eliflist_elif(void*** top)
+void reduce_to_eliflist_elif(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
     node->n_elifs = 1;
@@ -1819,7 +1819,7 @@ static inline void reduce_to_eliflist_elif(void*** top)
 
 }
 
-static inline void reduce_to_eliflist_else(void*** top)
+void reduce_to_eliflist_else(void*** top)
 {
     struct EList* node = malloc(sizeof(struct EList));
     node->n_elifs = 0;
@@ -1832,7 +1832,7 @@ static inline void reduce_to_eliflist_else(void*** top)
     #endif
 }
 
-static inline void reduce_to_cond(void*** top)
+void reduce_to_cond(void*** top)
 {
     struct CondStmt* node = malloc(sizeof(struct CondStmt));
     free_token(**top);
@@ -1862,7 +1862,7 @@ static inline void reduce_to_cond(void*** top)
     #endif
 }
 
-static inline void reduce_to_else(void*** top)
+void reduce_to_else(void*** top)
 {
     /*
      * Similiar to a paranthesized expressions, the memory for an else is
@@ -1891,7 +1891,7 @@ static inline void reduce_to_else(void*** top)
     #endif
 }
 
-static inline void reduce_to_for_vardecl(void*** top)
+void reduce_to_for_vardecl(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
     free_token(**top);
@@ -1929,7 +1929,7 @@ static inline void reduce_to_for_vardecl(void*** top)
 
 }
 
-static inline void reduce_to_for_assign(void*** top)
+void reduce_to_for_assign(void*** top)
 {
     struct FLoop* node = malloc(sizeof(struct FLoop));
 
@@ -1975,7 +1975,7 @@ static inline void reduce_to_for_assign(void*** top)
 
 }
 
-static inline void reduce_to_scope(void*** top)
+void reduce_to_scope(void*** top)
 {
     free_token(**top);
     (*top)--;
@@ -1997,7 +1997,7 @@ static inline void reduce_to_scope(void*** top)
     #endif
 }
 
-static inline void reduce_to_return(void*** top)
+void reduce_to_return(void*** top)
 {
     struct Expr* node;
     node = **top;

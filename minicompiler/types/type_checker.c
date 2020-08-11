@@ -93,12 +93,12 @@ struct SymTab* get_curr_symtab()
     return *top_symtab;
 }
 
-void push_Env()
+void push_Env(char* name)
 {
     if (top_symtab-symbol_table_stack == NESTINGDEPTH-1)
         nesting_error();
     top_symtab++;
-    *top_symtab = create_SymTab(TABLESIZE, *(top_symtab-1));
+    *top_symtab = create_SymTab(TABLESIZE, *(top_symtab-1), name);
     offset++;
     (*offset) = 0;
 }
@@ -121,6 +121,24 @@ void pop_Env()
     #endif
 }
 
+struct SymTab* pop_Env_func()
+{
+    /*
+     * Set parent pointer to NULL to avoid dangling pointer errors
+     */
+    #if VERBOSE
+    SymTab_dump(*top_symtab, "leaving");
+    #endif
+    (*top_symtab)->parent = NULL;
+    top_symtab--;
+
+    offset--;
+    #if VERBOSE
+    SymTab_dump(*top_symtab, "entering");
+    #endif
+    return *(top_symtab+1);
+}
+
 struct SymTab* pop_Env_struct()
 {
     /*
@@ -135,7 +153,7 @@ struct SymTab* pop_Env_struct()
 
 void print_Env_tree_helper(struct SymTab* env, int indent)
 {
-    SymTab_dump(env, "Local env", indent);
+    SymTab_dump(env, indent);
     for (int i = 0; i < env->n_childs; i++)
         print_Env_tree_helper(env->childs[i], indent+1);
 }
@@ -144,7 +162,7 @@ void print_Env_tree()
 {
     printf("Symbol tables for scopes\n");
     struct SymTab* env = symbol_table_stack[0];
-    SymTab_dump(env, "Global env", 0);
+    SymTab_dump(env, 0);
     for (int i = 0; i < env->n_childs; i++)
         print_Env_tree_helper(env->childs[i], 1);
 }
@@ -205,9 +223,9 @@ char* check_var_declared(struct VarAcc* varacc)
 struct FuncDecl* check_func_declared(struct FuncCall* funccall)
 {
     struct SymTab_entry* entry = SymTab_getr(*top_symtab, funccall->func->lexeme, FUNCTION);
-    struct FuncDecl* node = entry->symbol;
-    if (node == NULL)
+    if (entry == NULL)
         undeclared_func_error(funccall);
+    struct FuncDecl* node = entry->symbol;
     return node;
 }
 
@@ -216,7 +234,7 @@ struct SymTab_entry* get_curr_name_entry(char* name)
     struct SymTab_entry* entry = SymTab_getr(*top_symtab, name, VARIABLE);
     if (entry != NULL)
         return entry;
-    return SymTab_getr(*top_symtab, name, TEMPORARY);;
+    return SymTab_getr(*top_symtab, name, TEMPORARY);
 }
 
 void init_type_checker()
@@ -228,5 +246,5 @@ void init_type_checker()
     TypeTab_set_builtin(type_table, "dodouboblole", 3, 8);
     //TypeTab_set_builtin(type_table, "sostotrorinongog", -1, NULL);
     TypeTab_set_builtin(type_table, "vovoidod", -1, 0);
-    *top_symtab = create_SymTab(TABLESIZE, NULL);
+    *top_symtab = create_SymTab(TABLESIZE, NULL, "main");
 }

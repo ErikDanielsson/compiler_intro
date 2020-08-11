@@ -152,7 +152,7 @@ void visit_Stmt(struct Stmt* node)
             *(node->next) = new_bb();
             return;
         case SCOPE:
-            push_Env();
+            push_Env(NULL);
             visit_CompStmt(node->stmt);
             pop_Env();
             return;
@@ -190,10 +190,11 @@ void visit_VarDecl(struct VarDecl* node)
 
 void visit_StructDecl(struct StructDecl* node)
 {
-    push_Env();
+    char* type_name = node->type_name->lexeme;
+    push_Env(type_name);
     for (int i = 0; i < node->n_decl; i++)
         visit_VarDecl(node->fields[i]);
-    char* type_name = node->type_name->lexeme;
+
     enter_type_def(type_name, pop_Env_struct());
 }
 
@@ -211,15 +212,15 @@ void visit_FuncDecl(struct FuncDecl* node)
     check_type_defined(function_type);
     check_and_set_func(node);
 
-    push_Env();
+    push_Env(node->name->lexeme);
     for (int i = 0; i < node->n_params; i++)
         visit_VarDecl(node->params[i]);
     node->body->next = epilogue;
     visit_CompStmt(node->body);
-    pop_Env();
     *epilogue = new_bb();
+
+    leave_function(pop_Env_func());
     in_function = FALSE;
-    leave_function();
 }
 
 char* visit_Expr_rval(struct Expr* node)
@@ -662,7 +663,7 @@ void visit_IEEStmt(struct IEEStmt* node)
         struct BasicBlock** prev_false = if_with_else(node->if_stmt, next, NULL); // ???
         for (int i = 0; i < node->n_elifs; i++)
             prev_false = if_with_else(node->elif_list[i], next, prev_false);
-        push_Env();
+        push_Env(NULL);
         *(prev_false) = new_bb();
         node->_else->next = next;
         visit_CompStmt(node->_else);
@@ -672,7 +673,7 @@ void visit_IEEStmt(struct IEEStmt* node)
         node->if_stmt->boolean->true = newlabel();
         node->if_stmt->boolean->false = node->if_stmt->body->next = node->next;
         visit_Expr_jump(node->if_stmt->boolean);
-        push_Env();
+        push_Env(NULL);
         *(node->if_stmt->boolean->true) = new_bb();
         visit_CompStmt(node->if_stmt->body);
         set_uncond_target(node->next);
@@ -689,7 +690,7 @@ void visit_IEEStmt(struct IEEStmt* node)
         last_elif->boolean->false = next;
         *(prev_false) = new_bb();
         visit_Expr_jump(last_elif->boolean);
-        push_Env();
+        push_Env(NULL);
         *(last_elif->boolean->true) = new_bb();
         visit_CompStmt(last_elif->body);
         set_uncond_target(next);
@@ -707,7 +708,7 @@ struct BasicBlock** if_with_else(struct CondStmt* node, struct BasicBlock** next
 
     visit_Expr_jump(node->boolean);
     *(node->boolean->true) = new_bb();
-    push_Env();
+    push_Env(NULL);
     visit_CompStmt(node->body);
     pop_Env();
     set_uncond_target(next);
@@ -723,7 +724,7 @@ void visit_WLoop(struct CondStmt* node)
     node->boolean->false = node->next;
     visit_Expr_jump(node->boolean);
     node->body->next = begin;
-    push_Env();
+    push_Env(NULL);
     *(node->boolean->true) = new_bb();
     visit_CompStmt(node->body);
     set_uncond_target(begin);
@@ -732,7 +733,7 @@ void visit_WLoop(struct CondStmt* node)
 
 void visit_FLoop(struct FLoop* node)
 {
-    push_Env();
+    push_Env(NULL);
     if (node->type == VARIABLE_DECLARATION)
         visit_VarDecl(node->init_stmt);
     else

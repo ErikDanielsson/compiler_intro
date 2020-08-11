@@ -7,10 +7,11 @@
 #include "consts.h"
 #include "parser.h"
 
-struct SymTab* create_SymTab(int table_size, struct SymTab* parent)
+struct SymTab* create_SymTab(int table_size, struct SymTab* parent, char* name)
 {
     struct SymTab* symbol_table = malloc(sizeof(struct SymTab));
     symbol_table->table_size = table_size;
+    symbol_table->name = name;
     symbol_table->entries = malloc(sizeof(struct SymTab_entry*) * table_size);
 
     for (int i = 0; i < table_size; i++) {
@@ -146,10 +147,14 @@ void SymTab_destroyr(struct SymTab* symbol_table)
     SymTab_destroy(symbol_table);
 }
 
-void SymTab_dump(struct SymTab* symbol_table, char* title, int indent)
+void SymTab_dump(struct SymTab* symbol_table,  int indent)
 {
     printf("\n");
-    print_w_indent(indent, "%s:\n", title);
+    if (symbol_table->name != NULL)
+        print_w_indent(indent, "%s:\n", symbol_table->name);
+    else
+        print_w_indent(indent, "Local env:\n", symbol_table->name);
+
     for (int i = 0; i < symbol_table->table_size; i++) {
         struct SymTab_entry* entry = symbol_table->entries[i];
         if (entry == NULL) {

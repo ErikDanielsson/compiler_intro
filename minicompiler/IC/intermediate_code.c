@@ -86,8 +86,9 @@ void enter_function(char* name)
 
 }
 
-void leave_function()
+void leave_function(struct SymTab* symbol_table)
 {
+    (*top_entry)->symbol_table = symbol_table;
     top_entry--;
     curr_instr_ptr--;
     curr_block--;
