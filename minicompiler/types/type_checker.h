@@ -13,7 +13,7 @@ struct SymTab* pop_Env_func();
 struct SymTab* pop_Env_struct();
 void print_Env_tree();
 void destroy_Env_tree();
-struct SymTab* get_curr_symtab();
+struct SymTab* get_main_SymTab();
 void enter_type_def(char* type_name, struct SymTab* struct_env);
 void check_type_defined(char* type_name);
 enum SymbolType get_var_type(char* var_name);

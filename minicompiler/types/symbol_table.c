@@ -50,7 +50,7 @@ void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
  */
 unsigned int symbol_counter = 0;
 struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
-                                void* symbol, long offset)
+                                void* symbol, long offset, int width)
 {
 
     struct SymTab_entry* entry = malloc(sizeof(struct SymTab_entry) * 1);
@@ -60,19 +60,20 @@ struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
     entry->next = NULL;
     entry->symbol = symbol;
     entry->offset = offset;
+    entry->width = width;
     entry->counter_value = symbol_counter;
     symbol_counter++;
     return entry;
 }
 
 int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
-                    enum SymbolType type, void* symbol, long offset)
+                    enum SymbolType type, void* symbol, long offset, int width)
 {
     unsigned int slot = hash(key, symbol_table->table_size);
     struct SymTab_entry* entry = symbol_table->entries[slot];
     struct SymTab_entry* prev;
     if (entry == NULL) {
-        symbol_table->entries[slot] = SymTab_pair(key, type, symbol, offset);
+        symbol_table->entries[slot] = SymTab_pair(key, type, symbol, offset, width);
         return 0;
     }
     do {
@@ -82,7 +83,7 @@ int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
         prev = entry;
         entry = prev->next;
     } while (entry != NULL);
-    prev->next = SymTab_pair(key, type, symbol, offset);
+    prev->next = SymTab_pair(key, type, symbol, offset, width);
     return 0;
 }
 

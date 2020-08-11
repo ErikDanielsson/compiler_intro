@@ -88,9 +88,9 @@ struct TypeTab* type_table;
 long offset_stack[NESTINGDEPTH];
 long* offset = offset_stack;
 
-struct SymTab* get_curr_symtab()
+struct SymTab* get_main_SymTab()
 {
-    return *top_symtab;
+    return symbol_table_stack[0];
 }
 
 void push_Env(char* name)
@@ -183,7 +183,7 @@ void enter_type_def(char* type_name, struct SymTab* struct_env)
 
 void enter_temp_var(char* temp_name)
 {
-    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0);
+    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0, 0);
 }
 
 void check_type_defined(char* type_name)
@@ -194,15 +194,16 @@ void check_type_defined(char* type_name)
 
 void check_and_set_var(struct VarDecl* node)
 {
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset))
+    int width = get_type_width(type_table, node->type->lexeme);
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset, width))
         type_error(TRUE, "Redefinition of variable '%s' at %d:%d\n", node->name->lexeme,
                     node->name->line, node->name->column);
-    *offset += get_type_width(type_table, node->type->lexeme);
+    *offset += width;
 }
 
 void check_and_set_func(struct FuncDecl* node)
 {
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node, 0))
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node, 0, 0))
         type_error(TRUE, "Redefinition of function '%s' at %d:%d\n",
                     node->name->lexeme,
                     node->name->line,
