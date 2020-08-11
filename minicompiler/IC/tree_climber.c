@@ -46,7 +46,9 @@ struct BasicBlock** newlabel()
 
 void generate_IC(struct CompStmt* node)
 {
+    init_IC_generator();
     visit_CompStmt(node);
+    leave_IC_generator();
 }
 
 void widening_error(char* type1, char* type2)

@@ -7,14 +7,6 @@
 #include "type_checker.h"
 #include "io.h"
 #include <ctype.h>
-long vertex_num = 0;
-long* new_vertex()
-{
-    long* label = malloc(sizeof(long));
-    *label = vertex_num;
-    vertex_num++;
-    return label;
-}
 
 #define IC_TABLE_SIZE 97
 struct IC_table* intermediate_code;
@@ -35,6 +27,11 @@ void init_IC_generator()
     IC_table_create_entry(intermediate_code, "main");
     *top_entry = IC_table_get_entry(intermediate_code, "main");
     new_bb();
+}
+
+void leave_IC_generator()
+{
+    (*top_entry)->symbol_table = get_main_SymTab();
 }
 
 struct BasicBlock* new_bb()
