@@ -14,6 +14,7 @@
 #include "consts.h"
 #include "intermediate_code.h"
 #include "IC_table.h"
+#include "live_and_use.h"
 
 int main(int argc, const char** argv)
 {
@@ -41,6 +42,8 @@ int main(int argc, const char** argv)
     generate_IC(tree);
     printf("IC generation done\n\n");
     print_CFG();
+    live_and_use();
+
     destroy_CFG();
     #if VERBOSE
     print_Env_tree();
