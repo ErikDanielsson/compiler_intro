@@ -281,8 +281,9 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
 {
     print_w_indent(indent, "Block %ld\n", bb->bbnum);
     struct QuadList* instr = bb->instructions;
-    for (int i = 0; instr->next != NULL; i++) {
-        print_w_indent(indent+1, "%d\t", i);
+    int i;
+    for (i = 0; instr->next != NULL; i++) {
+        print_w_indent(indent+1, "%d \t | ", i);
         switch (instr->type) {
             case QUAD_ASSIGN: {
                 struct AssignQuad* assign = instr->instruction;
@@ -360,24 +361,25 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
         }
         instr = instr->next;
     }
+    print_w_indent(indent+1, "%d \t | ", i);
     if (bb->jump_type == QUAD_COND)
     {
 
         struct CondQuad* cond = bb->condition;
         if (cond->op1_type == CONSTANT)
-            print_w_indent(indent+1, "%s, ", cond->op1);
+            printf("test: %s ", cond->op1);
         else
-            print_w_indent(indent+1, "%s, ", ((struct SymTab_entry*)(cond->op1))->key);
-
-        printf("op: %d, ", cond->op_type);
+            printf("test: %s ", ((struct SymTab_entry*)(cond->op1))->key);
+        char* op_arr[] = {"<", ">", "<=", ">=", "==", "!="};
+        printf("%s ", op_arr[cond->op_type]);
         if (cond->op2_type == CONSTANT)
             printf("%s\n", cond->op2);
         else
             printf("%s\n", ((struct SymTab_entry*)(cond->op2))->key);
     } else {
-        print_w_indent(indent+1, "uncond");
+        printf("uncond\n");
     }
-    printf("\n");
+
 }
 void printr(struct BasicBlock** bb, int indent, long max_bb)
 {
@@ -385,10 +387,10 @@ void printr(struct BasicBlock** bb, int indent, long max_bb)
     if ((*bb)->bbnum == max_bb-1)
         return;
     if ((*bb)->jump_type == QUAD_COND) {
-        print_w_indent(indent, "true: \n");
-        printr((*bb)->true, indent+1, max_bb);
-        print_w_indent(indent, "false: \n");
-        printr((*bb)->false, indent+1, max_bb);
+        print_w_indent(indent+1, "\033[32mtrue\033[0m: \n");
+        printr((*bb)->true, indent+2, max_bb);
+        print_w_indent(indent+1, "\033[31mfalse\033[0m: \n");
+        printr((*bb)->false, indent+2, max_bb);
     } else {
         printr((*bb)->jump, indent+1, max_bb);
     }
@@ -398,7 +400,7 @@ void print_CFG()
     for (int i = 0; i < intermediate_code->size; i++) {
         struct IC_entry* entry = intermediate_code->entries[i];
         while (entry != NULL) {
-            printf("%s: \n", entry->key);
+            printf("\033[35m%s\033[0m: \n", entry->key);
             printr(entry->basic_block_list, 1, entry->n_blocks);
             printf("\n");
             entry = entry->next;

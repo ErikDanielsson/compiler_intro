@@ -557,11 +557,12 @@ char* visit_FuncCall(struct FuncCall* node)
         append_triple(gen_param(atp1.addr, atp1.type), QUAD_PARAM, 1);
     }
     struct SymTab_entry* temp = newtemp();
-    append_triple(gen_funccall(temp, node->func->lexeme), QUAD_FUNC, 1);
     struct BasicBlock** next = newlabel();
 
     set_uncond_target(next);
     *next = new_bb();
+
+    append_triple(gen_funccall(temp, node->func->lexeme), QUAD_FUNC, 1);
 
     node->addr = temp;
     node->addr_type = TEMPORARY;

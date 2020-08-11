@@ -47,6 +47,7 @@ struct QuadList {
      * ...
      */
     char flags;
+
 };
 
 struct AssignQuad {
@@ -54,8 +55,10 @@ struct AssignQuad {
      * The lvalue of a 'real' assingment must be a variable
      */
     struct SymTab_entry* lval;
+    long lval_info;
     enum SymbolType rval_type;
     void* rval;
+    long rval_info;
 };
 
 enum BinOpType {
@@ -73,30 +76,39 @@ enum BinOpType {
 
 struct BinOpQuad {
     struct SymTab_entry* result;
+    long result_info;
     enum SymbolType op1_type;
     void* op1;
+    long op1_info;
     enum BinOpType op_type;
     enum SymbolType op2_type;
     void* op2;
+    long op2_info;
 };
-
-struct ConvQuad {
-    struct SymTab_entry* result;
-    char* conversion_type;
-    enum SymbolType op_type;
-    void* op;
-};
-
 enum UOpType {
     UOP_NEG,
     UOP_NOT
 };
+
 struct UOpQuad {
     struct SymTab_entry* result;
+    long result_info;
     enum UOpType operator_type;
     enum SymbolType operand_type;
     void* operand;
+    long operand_info;
 };
+
+struct ConvQuad {
+    struct SymTab_entry* result;
+    long result_info;
+    char* conversion_type;
+    enum SymbolType op_type;
+    void* op;
+    long op_info;
+};
+
+
 
 enum RelopType {
     RELOP_LESS,
@@ -110,15 +122,11 @@ enum RelopType {
 struct CondQuad {
     enum SymbolType op1_type;
     void*  op1;
+    long op1_info;
     enum RelopType op_type;
     enum SymbolType op2_type;
     void*  op2;
-    /*
-     * Before construction of basic blocks and control flow graph (CFG),
-     * the jump target is simply a pointer to an index of the instruction
-     * pointer array. When the CFG is constructed, we change this to be a
-     * pointer to another basic block
-     */
+    long op2_info;
 };
 
 struct RetQuad {
@@ -130,14 +138,17 @@ struct RetQuad {
      */
     enum SymbolType type;
     void*  ret_val;
+    long ret_val_info;
 };
 
 struct ParamQuad {
-    void* op;
     enum SymbolType type;
+    void* op;
+    long op_info;
 };
 struct FuncCQuad {
     struct SymTab_entry* lval;
+    long lval_info;
     char* name;
 };
 
@@ -148,6 +159,7 @@ void print_CFG();
 
 
 void init_IC_generator();
+extern struct IC_table* intermediate_code;
 struct BasicBlock* new_bb();
 
 void set_uncond_target(struct BasicBlock** target_addr);
