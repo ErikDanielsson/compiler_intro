@@ -33,23 +33,26 @@ int main(int argc, const char** argv)
     #endif
     struct CompStmt* tree = lr_parser(1);
 
+
     close(file_desc);
-    generate_IC(tree);
-    printf("IC generation done\n\n");
-    print_CFG();
-    live_and_use();
-    char basename[strlen(filename)];
-    char c;
-    int i;
-    for (i = 0; (c = filename[i]) != '.' && i < strlen(filename); i++)
-        basename[i] = c;
-    basename[i] = 0x00;
-    generate_assembly(basename);
-    destroy_CFG();
-    #if VERBOSE
-    print_Env_tree();
-    #endif
-    destroy_Env_tree();
+    if (!grammar_error) {
+        generate_IC(tree);
+        printf("IC generation done\n\n");
+        print_CFG();
+        live_and_use();
+        char basename[strlen(filename)];
+        char c;
+        int i;
+        for (i = 0; (c = filename[i]) != '.' && i < strlen(filename); i++)
+            basename[i] = c;
+        basename[i] = 0x00;
+        generate_assembly(basename);
+        destroy_CFG();
+        #if VERBOSE
+        print_Env_tree();
+        #endif
+        destroy_Env_tree();
+    }
     if (tree != NULL)
         free_CompStmt(tree);
     destroy_parse_table();

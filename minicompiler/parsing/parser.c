@@ -67,7 +67,7 @@ struct CompStmt* lr_parser(char verbose)
     *record_ptr = NULL;
 
     int action;
-    //parsing_loop:
+    parsing_loop:
     while (TRUE) {
         action = action_table[*s_ptr][type];
 
@@ -93,7 +93,7 @@ struct CompStmt* lr_parser(char verbose)
                 printf("%d, ", *(stack+i));
             printf("\n");
             #endif
-            //int* row = action_table[*s_ptr];
+            int* row = action_table[*s_ptr];
             int len;
             if (type < 128) {
                 len = 1;
@@ -105,8 +105,8 @@ struct CompStmt* lr_parser(char verbose)
             else {
                 len = strlen(a->lexeme);
             }
-            //if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL)
-            //    goto parsing_loop;
+            if ((recovery_token = insertion_fix(row, len, &a, &type)) != NULL)
+                goto parsing_loop;
 
             generic_error(a, len);
             cleanup:
@@ -254,7 +254,7 @@ void generic_error(struct Token* token, int len)
         strcat(msg, token->lexeme);
     strcat(msg, "'");
     parser_error(len, msg, 0, token->line, token->column, 0, 0);
-
+    exit(-1);
 }
 
 

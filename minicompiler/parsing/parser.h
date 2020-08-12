@@ -31,6 +31,8 @@ enum NodeType {
     TOKEN
 };
 
+extern char grammar_error;
+
 struct CompStmt {
     int n_statements;
     struct Stmt** statement_list;
