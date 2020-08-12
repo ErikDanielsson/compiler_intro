@@ -15,6 +15,7 @@
 #include "intermediate_code.h"
 #include "IC_table.h"
 #include "live_and_use.h"
+#include "code_generation.h"
 
 int main(int argc, const char** argv)
 {
@@ -33,12 +34,17 @@ int main(int argc, const char** argv)
     struct CompStmt* tree = lr_parser(1);
 
     close(file_desc);
-    init_IC_generator();
     generate_IC(tree);
     printf("IC generation done\n\n");
     print_CFG();
     live_and_use();
-
+    char basename[strlen(filename)];
+    char c;
+    int i;
+    for (i = 0; (c = filename[i]) != '.' && i < strlen(filename); i++)
+        basename[i] = c;
+    basename[i] = 0x00;
+    generate_assembly(basename);
     destroy_CFG();
     #if VERBOSE
     print_Env_tree();

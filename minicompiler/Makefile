@@ -7,7 +7,7 @@ LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
 PARSE_OBJ = parsing/table_generator.o parsing/parser.o
 TYPE_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o
 IC_OBJ = IC/tree_climber.o  IC/IC_table.o IC/intermediate_code.o
-CODEGEN_OBJ = final/live_and_use.o
+CODEGEN_OBJ = final/live_and_use.o final/code_generation.o
 MAIN_OBJ =  main.o
 
 all:
@@ -35,7 +35,7 @@ a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(CODEGEN_OBJ) 
 	$(CC) $(CFLAGS) -o  a.out $^
 
 
-GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp .*.dot *.ll
+GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp .*.dot *.ll *.s
 GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
 
 clean:
