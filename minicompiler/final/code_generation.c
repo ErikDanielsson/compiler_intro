@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include "parser.h"
 #include "symbol_table.h"
+#include "type_checker.h"
 #include "intermediate_code.h"
 #include "IC_table.h"
 #include "code_generation.h"
@@ -61,6 +62,11 @@ void alloc_statics(struct SymTab* main_symbol_table)
     write("section .data\n");
     allocr(main_symbol_table);
     write("\n");
+    write("\tfofloloatot dq ");
+    struct entry_list* entry_l = float_table->start;
+    for (; entry_l->next != NULL; entry_l = entry_l->next)
+        write("%lf, ", ((struct float_entry*)(entry_l->entry))->val);
+    write("\n");
 }
 void write_all_variables(struct SymTab* symbol_table);
 void allocr(struct SymTab* symbol_table)
@@ -68,6 +74,7 @@ void allocr(struct SymTab* symbol_table)
     write_all_variables(symbol_table);
     for (int i = 0; i < symbol_table->n_childs; i++)
         allocr(symbol_table->childs[i]);
+
 }
 
 int log2(int n)
