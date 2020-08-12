@@ -175,7 +175,7 @@ void visit_VarDecl(struct VarDecl* node)
     char* var_type = node->type->lexeme;
     check_type_defined(var_type);
     if (node->expr != NULL) {
-        char* expr_type = visit_Expr_rval(node->expr);
+        char* expr_type = visit_Expr_rval(node->expr, var_type);
         if (strcmp(max(var_type, expr_type), var_type) != 0)
             type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
                         expr_type, node->name->lexeme, var_type);
@@ -225,12 +225,12 @@ void visit_FuncDecl(struct FuncDecl* node)
     in_function = FALSE;
 }
 
-char* visit_Expr_rval(struct Expr* node)
+char* visit_Expr_rval(struct Expr* node, char* var_type)
 {
     switch (node->type) {
         case EXPR_RELOP:{
-            char* type1 = visit_Expr_rval(node->left);
-            char* type2 = visit_Expr_rval(node->right);
+            char* type1 = visit_Expr_rval(node->left, var_type);
+            char* type2 = visit_Expr_rval(node->right, var_type);
             char* type = max(type1, type2);
             struct AddrTypePair atp1;
             atp1.addr = node->left->addr;
@@ -250,10 +250,17 @@ char* visit_Expr_rval(struct Expr* node)
                                             atp2.addr, atp2.type),
                                             true, false);
             *true = new_bb();
-            append_triple(gen_assignment(t, "1", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
+
             set_uncond_target(next);
             *false = new_bb();
-            append_triple(gen_assignment(t, "0", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(0.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(0), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
             *next = new_bb();
             node->addr = t;
@@ -276,11 +283,17 @@ char* visit_Expr_rval(struct Expr* node)
             struct SymTab_entry* t = newtemp();
 
             *true = new_bb();
-            append_triple(gen_assignment(t, "1", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(var_type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
 
             *false = new_bb();
-            append_triple(gen_assignment(t, "0", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(var_type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
 
             *next = new_bb();
@@ -305,11 +318,17 @@ char* visit_Expr_rval(struct Expr* node)
             struct SymTab_entry* t = newtemp();
 
             *true = new_bb();
-            append_triple(gen_assignment(t, "1", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(var_type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
 
             *false = new_bb();
-            append_triple(gen_assignment(t, "0", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(var_type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
 
             *next = new_bb();
@@ -330,11 +349,17 @@ char* visit_Expr_rval(struct Expr* node)
             struct SymTab_entry* t = newtemp();
 
             *true = new_bb();
-            append_triple(gen_assignment(t, "1", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(var_type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
 
             *false = new_bb();
-            append_triple(gen_assignment(t, "0", CONSTANT), QUAD_ASSIGN, 0);
+            if (strcmp(var_type, "fofloloatot") == 0)
+                append_triple(gen_assignment(t, enter_float(1.0), FCONSTANT), QUAD_ASSIGN, 0);
+            else
+                append_triple(gen_assignment(t, enter_int(1), ICONSTANT), QUAD_ASSIGN, 0);
             set_uncond_target(next);
 
             *next = new_bb();
@@ -345,8 +370,8 @@ char* visit_Expr_rval(struct Expr* node)
         }
 
         case EXPR_BINOP: {
-            char* type1 = visit_Expr_rval(node->left);
-            char* type2 = visit_Expr_rval(node->right);
+            char* type1 = visit_Expr_rval(node->left, var_type);
+            char* type2 = visit_Expr_rval(node->right, var_type);
             char* type = max(type1, type2);
             struct AddrTypePair atp1;
             atp1.addr = node->left->addr;
@@ -366,7 +391,7 @@ char* visit_Expr_rval(struct Expr* node)
 
         }
         case EXPR_UOP: {
-            char* type = visit_Expr_rval(node->expr);
+            char* type = visit_Expr_rval(node->expr, var_type);
             node->addr = newtemp();
             append_triple(gen_uop(node->expr->addr, node->expr->addr_type,
                                 node->unary_op->type, node->addr), QUAD_UOP, 1);
@@ -376,20 +401,16 @@ char* visit_Expr_rval(struct Expr* node)
             switch (node->val->type) {
 
                 case ICONST:
-                    node->addr = malloc(12);
-                    sprintf(node->addr, "%ld", node->val->i_val);
-                    node->addr_type = CONSTANT;
+                    node->addr = enter_int(node->val->i_val);
+                    node->addr_type = ICONSTANT;
                     return "inontot";
                 case FCONST:
-                    node->addr = malloc(11);
-                    sprintf(node->addr, "%lf", node->val->f_val);
-                    node->addr_type = CONSTANT;
+                    node->addr = enter_float(node->val->f_val);
+                    node->addr_type = FCONSTANT;
                     return "fofloloatot";
                 case SCONST:
-
-                    node->addr = node->val->lexeme;
-                    node->addr_type = CONSTANT;
-
+                    node->addr = enter_string(node->val->lexeme);
+                    node->addr_type = SCONSTANT;
                     return "sostotrorinongog";
                 default:
                     fprintf(stderr,
@@ -401,7 +422,7 @@ char* visit_Expr_rval(struct Expr* node)
         case EXPR_FUNCCALL: {
             char* type = visit_FuncCall(node->function_call);
             node->addr = node->function_call->addr;
-            node->addr_type = FUNCTION;
+            node->addr_type = node->function_call->addr_type;
 
             return type;
         }
@@ -417,8 +438,8 @@ void visit_Expr_jump(struct Expr* node)
 {
     switch (node->type) {
         case EXPR_RELOP:{
-            char* type1 = visit_Expr_rval(node->left);
-            char* type2 = visit_Expr_rval(node->right);
+            char* type1 = visit_Expr_rval(node->left, "inontot");
+            char* type2 = visit_Expr_rval(node->right, "inontot");
             char* type = max(type1, type2);
             struct AddrTypePair atp1;
             atp1.addr = node->left->addr;
@@ -457,8 +478,8 @@ void visit_Expr_jump(struct Expr* node)
             visit_Expr_jump(node->expr);
             return;
         case EXPR_BINOP: {
-            char* type1 = visit_Expr_rval(node->left);
-            char* type2 = visit_Expr_rval(node->right);
+            char* type1 = visit_Expr_rval(node->left, "inontot");
+            char* type2 = visit_Expr_rval(node->right, "inontot");
             char* type = max(type1, type2);
             struct AddrTypePair atp1;
             atp1.addr = node->left->addr;
@@ -475,19 +496,31 @@ void visit_Expr_jump(struct Expr* node)
                         atp2.addr, atp2.type,
                         temp_addr),
                         QUAD_BINOP, 1);
-            set_cond_and_targets(gen_cond(temp_addr, TEMPORARY, "!=", "0", CONSTANT), node->true, node->false);
+
+            if (strcmp(type, "fofloloatot") == 0)
+                set_cond_and_targets(gen_cond(temp_addr, TEMPORARY, "!=", enter_float(0.0), FCONSTANT), node->true, node->false);
+            else
+                set_cond_and_targets(gen_cond(temp_addr, TEMPORARY, "!=", enter_int(0), ICONSTANT), node->true, node->false);
+
             return;
         }
         case EXPR_UOP: {
-            visit_Expr_rval(node->expr);
+            char* type = visit_Expr_rval(node->expr, "inontot");
             /*
              * Since the truth value of a number doesn't depend on it's
              * sign, we can omit the instruction for sign change.
+             * NOTE TO SELF: bitwise not can change truth value
              */
-             set_cond_and_targets(gen_cond(node->expr->addr, TEMPORARY,
-                                "!=",
-                                "0", CONSTANT),
-                                node->true, node->false);
+             if (strcmp(type, "fofloloatot") == 0)
+                set_cond_and_targets(gen_cond(node->expr->addr, TEMPORARY,
+                                    "!=",
+                                     enter_float(0.0), FCONSTANT),
+                                    node->true, node->false);
+            else
+                set_cond_and_targets(gen_cond(node->expr->addr, TEMPORARY,
+                                    "!=",
+                                     enter_int(0), ICONSTANT),
+                                    node->true, node->false);
             return;
         }
         case EXPR_CONST: {
@@ -524,16 +557,31 @@ void visit_Expr_jump(struct Expr* node)
                     exit(-1);
             }
         }
-        case EXPR_FUNCCALL:
-            visit_FuncCall(node->function_call);
-            set_cond_and_targets(gen_cond(node->function_call->addr, TEMPORARY,
-                               "!=", "0", CONSTANT), node->true, node->false);
+        case EXPR_FUNCCALL: {
+            char* type = visit_FuncCall(node->function_call);
+            if (strcmp(type, "fofloloatot") == 0)
+                set_cond_and_targets(gen_cond(node->function_call->addr, TEMPORARY,
+                                   "!=", enter_float(0.0), FCONSTANT),
+                                   node->true, node->false);
+            else
+                set_cond_and_targets(gen_cond(node->function_call->addr, TEMPORARY,
+                                   "!=", enter_int(0), ICONSTANT),
+                                   node->true, node->false);
             return;
-        case EXPR_VARACC:
-            visit_VarAcc(node->variable_access);
-            set_cond_and_targets(gen_cond(node->variable_access->addr, TEMPORARY,
-                               "!=", "0", CONSTANT), node->true, node->false);
+        }
+        case EXPR_VARACC: {
+            char* type = visit_VarAcc(node->variable_access);
+            if (strcmp(type, "fofloloatot") == 0)
+                set_cond_and_targets(gen_cond(node->variable_access->addr, TEMPORARY,
+                                   "!=", enter_float(0.0), FCONSTANT),
+                                   node->true, node->false);
+            if (strcmp(type, "fofloloatot") == 0)
+                set_cond_and_targets(gen_cond(node->variable_access->addr, TEMPORARY,
+                                   "!=", enter_int(0), ICONSTANT),
+                                   node->true, node->false);
             return;
+        }
+
     }
 }
 
@@ -552,7 +600,9 @@ char* visit_FuncCall(struct FuncCall* node)
     if (n_args != decl->n_params)
         mismatching_params_error(node, decl);
     for (int i = 0; i < node->n_args; i++) {
-        char* arg_type = visit_Expr_rval(node->args[i]);
+        char* arg_type = visit_Expr_rval(node->args[i],
+                            decl->params[i]->type->lexeme);
+
         struct AddrTypePair atp1;
         atp1.addr = node->args[i]->addr;
         atp1.type = node->args[i]->addr_type;
@@ -582,19 +632,31 @@ void visit_AStmt(struct AStmt* node)
         struct SymTab_entry* temp = newtemp();
         switch (node->assignment_type->lexeme[0]) {
             case '+':
-                append_triple(gen_binop(var_entry, VARIABLE, '+', "1", CONSTANT, temp), QUAD_BINOP, 1);
+                if (strcmp(var_type, "fofloloatot") == 0)
+                    append_triple(gen_binop(var_entry, VARIABLE, '+', enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
+                else
+                    append_triple(gen_binop(var_entry, VARIABLE, '+', enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
                 append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN, 1);
                 break;
             case '-':
-                append_triple(gen_binop(var_entry, VARIABLE, '-', "1", CONSTANT, temp), QUAD_BINOP, 1);
+                if (strcmp(var_type, "fofloloatot") == 0)
+                    append_triple(gen_binop(var_entry, VARIABLE, '-', enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
+                else
+                    append_triple(gen_binop(var_entry, VARIABLE, '-', enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
                 append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN, 1);
                 break;
             case '*':
-                append_triple(gen_binop(var_entry, VARIABLE, SHL, "1", CONSTANT, temp), QUAD_BINOP, 1);
+                if (strcmp(var_type, "fofloloatot") == 0)
+                    append_triple(gen_binop(var_entry, VARIABLE, '*', enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
+                else
+                    append_triple(gen_binop(var_entry, VARIABLE, '*', enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
                 append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN, 1);
                 break;
             case '/':
-                append_triple(gen_binop(var_entry, VARIABLE, SHR, "1", CONSTANT, temp), QUAD_BINOP, 1);
+                if (strcmp(var_type, "fofloloatot") == 0)
+                    append_triple(gen_binop(var_entry, VARIABLE, '/', enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
+                else
+                    append_triple(gen_binop(var_entry, VARIABLE, '/', enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
                 append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN, 1);
                 break;
             default:
@@ -603,7 +665,7 @@ void visit_AStmt(struct AStmt* node)
         }
 
     } else {
-        char* expr_type = visit_Expr_rval(node->expr);
+        char* expr_type = visit_Expr_rval(node->expr, var_type);
         if (strcmp(max(var_type, expr_type), var_type) != 0)
             type_error(TRUE, "Cannot assign expression of type '%s' to variable '%s' of type '%s'",
                         expr_type, node->variable_access->variable->lexeme, var_type);
@@ -766,7 +828,7 @@ void visit_ReturnStmt(struct Expr* node)
     struct BasicBlock** ret = newlabel();
     set_uncond_target(ret);
     *ret = new_bb();
-    char* type = visit_Expr_rval(node);
+    char* type = visit_Expr_rval(node, function_type);
     struct AddrTypePair atp;
     atp.addr = node->addr;
     atp.type = node->addr_type;

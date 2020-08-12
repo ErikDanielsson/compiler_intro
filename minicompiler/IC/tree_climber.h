@@ -17,7 +17,7 @@ void visit_VarDecl(struct VarDecl* node);
 void visit_StructDecl(struct StructDecl* node);
 void visit_FuncDecl(struct FuncDecl* node);
 char* visit_VarAcc(struct VarAcc* node);
-char* visit_Expr_rval(struct Expr* node);
+char* visit_Expr_rval(struct Expr* node, char* var_type);
 void visit_Expr_jump(struct Expr* node);
 void visit_AStmt(struct AStmt* node);
 char* visit_FuncCall(struct FuncCall* node);

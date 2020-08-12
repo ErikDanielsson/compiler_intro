@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "intermediate_code.h"
 #include "IC_table.h"
 #include "symbol_table.h"
 #include "type_checker.h"
 #include "io.h"
-#include <ctype.h>
+#include "constant_table.h"
 
 #define IC_TABLE_SIZE 97
 struct IC_table* intermediate_code;
@@ -275,6 +276,29 @@ struct RetQuad* gen_return(void* ret_val, enum SymbolType type)
 }
 
 int gen_done = FALSE;
+
+void print_val(enum SymbolType type, void* val)
+{
+    switch (type) {
+        case ICONSTANT:
+            printf("%ld", ((struct int_entry*)(val))->val);
+            break;
+        case FCONSTANT:
+            printf("%lf", ((struct float_entry*)(val))->val);
+            break;
+        case SCONSTANT:
+            printf("%s", ((struct string_entry*)(val))->val);
+            break;
+        case VARIABLE:
+        case TEMPORARY:
+            printf("%s", ((struct SymTab_entry*)(val))->key);
+            break;
+        default:
+            fprintf(stderr, "internal error:Did not expect SymbolType %d in 'print_val'\n", type);
+            exit(-1);
+    }
+}
+
 void print_BasicBlock(struct BasicBlock* bb, int indent)
 {
     print_w_indent(indent, "Block %ld\n", bb->bbnum);
@@ -287,65 +311,48 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
                 struct AssignQuad* assign = instr->instruction;
 
                 printf("%s = ", assign->lval->key);
-                if (assign->rval_type == CONSTANT)
-                    printf("%s\n", assign->rval);
-                else
-                    printf("%s\n", ((struct SymTab_entry*)(assign->rval))->key);
+                print_val(assign->rval_type, assign->rval);
+                printf("\n");
                 break;
             }
             case QUAD_BINOP: {
                 struct BinOpQuad* binop = instr->instruction;
                 char* op_arr[] = {"+", "-", "*", "/", "%", "^", "&", "|", ">>", "<<"};
                 printf("%s = ", binop->result->key);
-                if (binop->op1_type == CONSTANT)
-                    printf("%s ", binop->op1);
-                else
-                    printf("%s ", ((struct SymTab_entry*)(binop->op1))->key);
+                print_val(binop->op1_type, binop->op1);
+                printf(" ");
                 printf("%s ", op_arr[binop-> op_type]);
-                if (binop->op2_type == CONSTANT)
-                    printf("%s\n", binop->op2);
-                else
-                    printf("%s\n", ((struct SymTab_entry*)(binop->op2))->key);
+                print_val(binop->op2_type, binop->op2);
+                printf("\n");
                 break;
             }
             case QUAD_UOP: {
                 struct UOpQuad* uop = instr->instruction;
                 char op_arr[] = {'-', '~'};
                 printf("%s = %c ", uop->result->key, op_arr[uop->operator_type]);
-                if (uop->operand_type == CONSTANT)
-                    printf("%s\n", uop->operand);
-                else
-                    printf("%s\n", ((struct SymTab_entry*)(uop->operand))->key);
-
-
+                print_val(uop->operand_type, uop->operand);
+                printf("\n");
                 break;
             }
             case QUAD_CONV: {
                 struct ConvQuad* conv = instr->instruction;
                 printf("%s = (%s)", conv->result->key, conv->conversion_type);
-                if (conv->op_type == CONSTANT)
-                    printf("%s\n", conv->op);
-                else
-                    printf("%s\n", ((struct SymTab_entry*)(conv->op))->key);
-
+                print_val(conv->op_type, conv->op);
+                printf("\n");
                 break;
             }
             case QUAD_RETURN: {
                 struct RetQuad* ret = instr->instruction;
                 printf("ret ");
-                if (ret->type == CONSTANT)
-                    printf("%s\n", ret->ret_val);
-                else
-                    printf("%s\n", ((struct SymTab_entry*)(ret->ret_val))->key);
+                print_val(ret->type, ret->ret_val);
+                printf("\n");
                 break;
             }
             case QUAD_PARAM: {
                 struct ParamQuad* param = instr->instruction;
                 printf("param ");
-                if (param->type == CONSTANT)
-                    printf("%s\n", param->op);
-                else
-                    printf("%s\n", ((struct SymTab_entry*)(param->op))->key);
+                print_val(param->type, param->op);
+                printf("\n");
                 break;
             }
             case QUAD_FUNC: {
@@ -364,16 +371,13 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
     {
 
         struct CondQuad* cond = bb->condition;
-        if (cond->op1_type == CONSTANT)
-            printf("test: %s ", cond->op1);
-        else
-            printf("test: %s ", ((struct SymTab_entry*)(cond->op1))->key);
+        printf("test:");
+        print_val(cond->op1_type, cond->op1);
+        printf(" ");
         char* op_arr[] = {"<", ">", "<=", ">=", "==", "!="};
         printf("%s ", op_arr[cond->op_type]);
-        if (cond->op2_type == CONSTANT)
-            printf("%s\n", cond->op2);
-        else
-            printf("%s\n", ((struct SymTab_entry*)(cond->op2))->key);
+        print_val(cond->op2_type, cond->op2);
+        printf("\n");
     } else {
         printf("uncond\n");
     }
@@ -381,6 +385,8 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
 }
 void printr(struct BasicBlock** bb, int indent, long max_bb)
 {
+    if (bb == NULL)
+        return;
     print_BasicBlock(*bb, indent);
     if ((*bb)->bbnum == max_bb-1)
         return;
@@ -390,8 +396,10 @@ void printr(struct BasicBlock** bb, int indent, long max_bb)
         print_w_indent(indent+1, "\033[31mfalse\033[0m: \n");
         printr((*bb)->false, indent+2, max_bb);
     } else {
+
         printr((*bb)->jump, indent+1, max_bb);
     }
+
 }
 void print_CFG()
 {

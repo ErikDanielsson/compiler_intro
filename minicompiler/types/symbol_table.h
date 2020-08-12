@@ -1,7 +1,9 @@
 #pragma once
 
 enum SymbolType {
-    CONSTANT,
+    ICONSTANT,
+    FCONSTANT,
+    SCONSTANT,
     VARIABLE,
     TEMPORARY,
     FUNCTION,

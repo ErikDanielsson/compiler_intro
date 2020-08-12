@@ -5,6 +5,7 @@
 #include "type_checker.h"
 #include "symbol_table.h"
 #include "type_table.h"
+#include "constant_table.h"
 
 #define TABLESIZE 127
 #define VERBOSE 0
@@ -238,9 +239,29 @@ struct SymTab_entry* get_curr_name_entry(char* name)
     return SymTab_getr(*top_symtab, name, TEMPORARY);
 }
 
+struct ConstTab* int_table;
+struct ConstTab* float_table;
+struct ConstTab* string_table;
+
+struct int_entry* enter_int(int val)
+{
+    return append_int(int_table, val);
+}
+
+struct float_entry* enter_float(float val)
+{
+    return append_float(float_table, val);
+}
+
+struct string_entry* enter_string(char* val)
+{
+    return append_string(string_table, val);
+}
+
+
 void init_type_checker()
 {
-    type_table = create_TypeTab(10);
+    type_table = create_TypeTab(11);
     TypeTab_set_builtin(type_table, "inontot", 0, 4);
     TypeTab_set_builtin(type_table, "lolonongog", 1, 8);
     TypeTab_set_builtin(type_table, "fofloloatot", 2, 4);
@@ -248,4 +269,8 @@ void init_type_checker()
     //TypeTab_set_builtin(type_table, "sostotrorinongog", -1, NULL);
     TypeTab_set_builtin(type_table, "vovoidod", -1, 0);
     *top_symtab = create_SymTab(TABLESIZE, NULL, "main");
+
+    int_table = create_ConstTab(129);
+    float_table = create_ConstTab(129);
+    string_table = create_ConstTab(129);
 }

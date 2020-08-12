@@ -23,3 +23,7 @@ void check_and_set_func(struct FuncDecl* node);
 char* check_var_declared(struct VarAcc* varacc);
 struct FuncDecl* check_func_declared(struct FuncCall* funccall);
 struct SymTab_entry* get_curr_name_entry(char* name);
+
+struct int_entry* enter_int(int val);
+struct float_entry* enter_float(float val);
+struct string_entry* enter_string(char* val);

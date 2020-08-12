@@ -1,11 +1,11 @@
-CC = clang
-CFLAGS = -Wall -O3
+CC = gcc
+CFLAGS = -Wall
 DIRS := . $(shell find . -type d)
 DEPS = includes/
 GEN_OBJ = gen/io.o gen/hashing.o
 LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
 PARSE_OBJ = parsing/table_generator.o parsing/parser.o
-TYPE_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o
+TYPE_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o types/constant_table.o
 IC_OBJ = IC/tree_climber.o  IC/IC_table.o IC/intermediate_code.o
 CODEGEN_OBJ = final/live_and_use.o final/code_generation.o
 MAIN_OBJ =  main.o
@@ -19,7 +19,7 @@ table:
 
 
 disassemble: $(wildcard *.out)
-	objdump -d --disassembler-options=intel-mnemonic $< \
+	objdump -d -s --disassembler-options=intel-mnemonic $< \
 	>$(basename $<).asm
 
 
