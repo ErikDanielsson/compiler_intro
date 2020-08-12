@@ -100,7 +100,8 @@ void visit_assign(struct AssignQuad* instruction, int n)
 {
     instruction->lval_info = get_info(set, instruction->lval);
     insert_entry(set, instruction->lval, 0, -1);
-    if (instruction->rval_type != CONSTANT) {
+    if (instruction->rval_type == VARIABLE ||
+        instruction->rval_type == TEMPORARY) {
         instruction->rval_info = get_info(set, instruction->rval);
         insert_entry(set, instruction->rval, 1, n);
     } else {
@@ -111,13 +112,15 @@ void visit_binop(struct BinOpQuad* instruction, int n)
 {
     instruction->result_info = get_info(set, instruction->result);
     insert_entry(set, instruction->result, 0, -1);
-    if (instruction->op1_type != CONSTANT) {
+    if (instruction->op1_type == VARIABLE ||
+        instruction->op1_type == TEMPORARY) {
         instruction->op1_info = get_info(set, instruction->op1);
         insert_entry(set, instruction->op1, 1, n);
     } else {
         instruction->op1_info = -1;
     }
-    if (instruction->op2_type != CONSTANT) {
+    if (instruction->op2_type == VARIABLE ||
+        instruction->op2_type == TEMPORARY) {
         instruction->op2_info = get_info(set, instruction->op2);
         insert_entry(set, instruction->op2, 1, n);
     } else {
@@ -129,7 +132,8 @@ void visit_uop(struct UOpQuad* instruction, int n)
 {
     instruction->result_info = get_info(set, instruction->result);
     insert_entry(set, instruction->result, 0, -1);
-    if (instruction->operand_type != CONSTANT) {
+    if (instruction->operand_type == VARIABLE ||
+        instruction->operand_type == TEMPORARY) {
         instruction->operand_info = get_info(set, instruction->operand);
         insert_entry(set, instruction->operand, 1, n);
     } else {
@@ -141,7 +145,8 @@ void visit_conv(struct ConvQuad* instruction, int n)
 {
     instruction->result_info = get_info(set, instruction->result);
     insert_entry(set, instruction->result, 0, -1);
-    if (instruction->op_type != CONSTANT) {
+    if (instruction->op_type == VARIABLE ||
+        instruction->op_type == TEMPORARY) {
         instruction->op_info = get_info(set, instruction->op);
         insert_entry(set, instruction->op, 1, n);
     } else {
@@ -151,7 +156,8 @@ void visit_conv(struct ConvQuad* instruction, int n)
 
 void visit_return(struct RetQuad* instruction, int n)
 {
-    if (instruction->type != CONSTANT) {
+    if (instruction->type == VARIABLE ||
+        instruction->type == TEMPORARY) {
         instruction->ret_val_info = get_info(set, instruction->ret_val);
         insert_entry(set, instruction->ret_val, 1, n);
     } else {
@@ -161,7 +167,8 @@ void visit_return(struct RetQuad* instruction, int n)
 
 void visit_param(struct ParamQuad* instruction, int n)
 {
-    if (instruction->type != CONSTANT) {
+    if (instruction->type == VARIABLE ||
+        instruction->type == TEMPORARY) {
         instruction->op_info = get_info(set, instruction->op);
         insert_entry(set, instruction->op, 0, -1);
     } else {
@@ -177,14 +184,16 @@ void visit_func(struct FuncCQuad* instruction, int n)
 
 void visit_cond(struct CondQuad* instruction, int n)
 {
-    if (instruction->op1_type != CONSTANT) {
+    if (instruction->op1_type == VARIABLE ||
+        instruction->op1_type == TEMPORARY) {
         get_info(set, instruction->op1);
         instruction->op1_info = get_info(set, instruction->op1);
         insert_entry(set, instruction->op1, 1, n);
     } else {
         instruction->op1_info = -1;
     }
-    if (instruction->op2_type != CONSTANT) {
+    if (instruction->op2_type == VARIABLE ||
+        instruction->op2_type == TEMPORARY) {
         instruction->op2_info = get_info(set, instruction->op2);
         insert_entry(set, instruction->op2, 1, n);
     } else {
