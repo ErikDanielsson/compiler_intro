@@ -1,5 +1,7 @@
 #pragma once
 #include "parser.h"
+#include "constant_table.h"
+
 extern struct TypeTab* type_table;
 void type_error(int fatal, char* string, ...);
 void init_type_checker();
@@ -23,6 +25,10 @@ void check_and_set_func(struct FuncDecl* node);
 char* check_var_declared(struct VarAcc* varacc);
 struct FuncDecl* check_func_declared(struct FuncCall* funccall);
 struct SymTab_entry* get_curr_name_entry(char* name);
+
+extern struct ConstTab* int_table;
+extern struct ConstTab* float_table;
+extern struct ConstTab* string_table;
 
 struct int_entry* enter_int(int val);
 struct float_entry* enter_float(float val);
