@@ -1,5 +1,6 @@
 #pragma once
 #include "symbol_table.h"
+#include "intermediate_code.h"
 struct IC_table {
     int size;
     struct IC_entry** entries;
@@ -9,8 +10,9 @@ struct IC_entry {
     char* key;
     struct SymTab* symbol_table;
     struct BasicBlock** basic_block_list;
-    char* blockinfo;
+    struct BasicBlock*** labels;
     int n_blocks;
+    int n_labels;
     struct IC_entry* next;
 
 };

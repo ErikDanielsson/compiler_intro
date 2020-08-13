@@ -152,6 +152,10 @@ struct FuncCQuad {
     char* name;
 };
 
+struct BasicBlock** newlabel();
+void append_label(struct BasicBlock** new);
+
+
 
 
 extern struct BasicBlock** curr_block;

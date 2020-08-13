@@ -18,31 +18,16 @@
  *  Intermediate code generation
  */
 
-//struct IC intermediate_code;
-
-
-
-int temp_num = 0;
-#define MAX_LABEL_LENGTH 10
-struct SymTab_entry* newtemp()
-{
-    char* temp = malloc(MAX_LABEL_LENGTH+1);
-    sprintf(temp, "$%d", temp_num);
-    enter_temp_var(temp);
-    temp_num++;
-    return get_curr_name_entry(temp);
-}
-
-int label_num = 0;
-struct BasicBlock** newlabel()
-{
-    void* ret = malloc(sizeof(struct BasicBlock*));
-    if (ret == NULL) {
-        fprintf(stderr, "NULL pointer in newlabel\n");
-        exit(-1);
-    }
-    return ret;
-}
+ int temp_num = 0;
+ #define MAX_LABEL_LENGTH 10
+ struct SymTab_entry* newtemp()
+ {
+     char* temp = malloc(MAX_LABEL_LENGTH+1);
+     sprintf(temp, "$%d", temp_num);
+     enter_temp_var(temp);
+     temp_num++;
+     return get_curr_name_entry(temp);
+ }
 
 void generate_IC(struct CompStmt* node)
 {

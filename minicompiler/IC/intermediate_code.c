@@ -22,6 +22,40 @@ struct QuadList* instr_stack[2];
 struct QuadList** curr_instr_ptr = instr_stack;
 
 
+
+struct BasicBlock** newlabel()
+{
+    void* ret = malloc(sizeof(struct BasicBlock*));
+    if (ret == NULL) {
+        fprintf(stderr, "NULL pointer in newlabel\n");
+        exit(-1);
+    }
+    append_label(ret);
+    return ret;
+}
+
+void append_label(struct BasicBlock** new)
+{
+    int n_labels = (*top_entry)->n_labels;
+    if (n_labels) {
+        struct BasicBlock** tmp[n_labels];
+        memcpy(tmp, (*top_entry)->labels,
+                sizeof(struct BasicBlock**)*n_labels);
+        free((*top_entry)->labels);
+        (*top_entry)->labels = malloc(sizeof(struct BasicBlock**)*(n_labels+1));
+        memcpy((*top_entry)->labels, tmp,
+                sizeof(struct BasicBlock**)*n_labels);
+        (*top_entry)->labels[n_labels] = new;
+        (*top_entry)->n_labels++;
+    } else {
+        (*top_entry)->labels = malloc(sizeof(struct BasicBlock**));
+        (*top_entry)->labels[0] = new;
+        (*top_entry)->n_labels++;
+    }
+}
+
+
+
 void init_IC_generator()
 {
     intermediate_code = create_IC_table(IC_TABLE_SIZE);
@@ -42,6 +76,7 @@ struct BasicBlock* new_bb()
     if (n_blocks) {
         struct BasicBlock* tmp_blocks[n_blocks];
         memcpy(tmp_blocks, (*top_entry)->basic_block_list, sizeof(struct BasicBlock*)*n_blocks);
+        free((*top_entry)->basic_block_list);
         (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*)*(n_blocks+1));
         memcpy((*top_entry)->basic_block_list, tmp_blocks, sizeof(struct BasicBlock*)*n_blocks);
         (*top_entry)->basic_block_list[n_blocks] = malloc(sizeof(struct BasicBlock));
@@ -416,75 +451,24 @@ void print_CFG()
 
 void destroy_instruction(struct QuadList* instruction)
 {
-    if (instruction->next == NULL)
-        return;
     free(instruction->instruction);
-    destroy_instruction(instruction->next);
+    if (instruction->next != NULL)
+        destroy_instruction(instruction->next);
 }
 
-void destroy_block(struct BasicBlock* block, char remove_jumps)
+void destroy_block(struct BasicBlock* block)
 {
     destroy_instruction(block->instructions);
-    if (block->jump_type == QUAD_UNCOND) {
-        if (remove_jumps)
-            free(block->jump);
-    } else {
-        free(block->condition);
-        if (remove_jumps & 1)
-            free(block->true);
-        if (remove_jumps & 2)
-            free(block->false);
-    }
-
+    free(block);
 }
 
 
 void destroyr(struct IC_entry* entry)
 {
-    struct BasicBlock** removed_addr[1024];
-    int r_a_size = 0;
-    for (int i = 0; i < entry->n_blocks; i++) {
-        struct BasicBlock* block = entry->basic_block_list[i];
 
-        if (block->jump_type == QUAD_UNCOND) {
-            char remove_jumps = 1;
-            struct BasicBlock** jump_label = block->jump;
-            for (int i = 0; i < r_a_size; i++) {
-                if (removed_addr[i] == jump_label) {
-                    remove_jumps = 0;
-                    goto destroy;
-                }
-            }
-            removed_addr[r_a_size] = jump_label;
-            r_a_size++;
-            destroy:
-            destroy_block(entry->basic_block_list[i], remove_jumps);
-        } else {
-            char remove_jumps = 3;
-            struct BasicBlock** true_label = block->true;
-            struct BasicBlock** false_label = block->false;
-            for (int i = 0; i < r_a_size; i++) {
-                if (removed_addr[i] == true_label)
-                    remove_jumps--;
-                else if (removed_addr[i] == false_label)
-                    remove_jumps -= 2;
-            }
-            if (remove_jumps & 1) {
-                removed_addr[r_a_size] = true_label;
-                r_a_size++;
-            }
-            if (remove_jumps & 2) {
-                removed_addr[r_a_size] = false_label;
-                r_a_size++;
-            }
-            destroy_block(entry->basic_block_list[i], remove_jumps);
-        }
-
-
-    }
-    if (entry->blockinfo != NULL)
-        free(entry->blockinfo);
-
+    for (int i = 0; i < entry->n_labels; i++)
+        destroy_block(*(entry->labels[i]));
+    free(entry->labels);
 }
 void destroy_CFG()
 {

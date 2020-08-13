@@ -27,7 +27,7 @@ int main(int argc, const char** argv)
     KeywordTab_dump(keywords);
     #endif
     generate_parse_table(table_file);
-    init_type_checker();
+
     #if VERBOSE
     printf("parsing...\n");
     #endif
@@ -36,9 +36,13 @@ int main(int argc, const char** argv)
 
     close(file_desc);
     if (!grammar_error) {
+        init_type_checker();
         generate_IC(tree);
         printf("IC generation done\n\n");
+        #if VERBOSE
+        print_Env_tree();
         print_CFG();
+        #endif
         live_and_use();
         char basename[strlen(filename)];
         char c;
@@ -48,9 +52,6 @@ int main(int argc, const char** argv)
         basename[i] = 0x00;
         generate_assembly(basename);
         destroy_CFG();
-        #if VERBOSE
-        print_Env_tree();
-        #endif
         destroy_Env_tree();
     }
     if (tree != NULL)
