@@ -57,15 +57,26 @@ void codegen()
 }
 
 void allocr(struct SymTab* symbol_table);
+static inline void write_float_consts()
+{
+    write("\tfofloloatot dq ");
+    struct entry_list* entry_l = float_table->start;
+    for (; entry_l->next != NULL; entry_l = entry_l->next)
+        write("%lf, ", ((struct float_entry*)(entry_l->entry))->val);
+    write("\n");
+}
+
 void alloc_statics(struct SymTab* main_symbol_table)
 {
     write("section .data\n");
     allocr(main_symbol_table);
     write("\n");
-    write("\tfofloloatot dq ");
-    struct entry_list* entry_l = float_table->start;
-    for (; entry_l->next != NULL; entry_l = entry_l->next)
-        write("%lf, ", ((struct float_entry*)(entry_l->entry))->val);
+
+    /*
+     * We only need to emit the float consts, since ints can
+     * be directly.
+     */
+    write_float_consts();
     write("\n");
 }
 void write_all_variables(struct SymTab* symbol_table);
@@ -142,7 +153,31 @@ char* mov[] = {
     "movsd"     // <RXdest>, <src>  Place <src> (64 bit) in <RXdest>
 };
 
-char* conv_in_a[] = {"cbw", ""};
+char* conv_in_a[] = {
+    "cbw",      // byte@al -> word@ax
+    "cwd",      // word@ax -> dword@ax:dx
+    "cwde",     // word@ax -> dword@eax
+    "cdq",      // dword@eax -> qword@eax:edx
+    "cdqe",     // dword@eax -> qword@rax
+    "cqo"       // dword@rax -> qword@rax:rdx
+};
+
+char* conv_signed[] = {
+    "movsx",        // <reg16-64>, <op8-16>     Convert to size of register
+    "movsx"         // <reg64>, <op32>
+};
+
+char* conv_float[] = {
+    "cvtss2sd",     // float -> double
+    "cvtss2ss"      // double -> float
+};
+
+char* conv_float_int[] = {
+    "cvtss2si",     // float -> int
+    "cvtsd2si",     // double -> int
+    "cvtsi2ss",     // int -> float
+    "cvtsi2sd"      // int -> double
+};
 
 char* int_arithmetic[] = {
     "add",      // <dest>, <src>
@@ -162,4 +197,54 @@ char* int_arithmetic[] = {
     "dec"       // <op>
 };
 
-char* float_arithmetic[] = {""};
+char* float_arithmetic[] = {
+    "addss",    //
+    "addsd",
+    "subss",
+    "subsd",
+    "mulss",
+    "mulsd",
+    "divss",
+    "divsd",
+};
+
+char* int_control[] = {
+    "cmp"       // <op1>, <op2>. Compare op1 and op2, result in rFlags
+    "test"      // <op1>, <op2>. 'and' op1 and op2, result in rFlags.
+                // Will only be used for zero comparisions.
+};
+
+char* float_control[] = {
+    "ucomiss",  // <op32>, <op32>.  Compare op1 and Compare op1 and op2,
+                // result in rFlags
+    "ucomisd"   // <op64>, <op64>.  Compare op1 and Compare op1 and op2,
+                // result in rFlags
+};
+
+char* cond_jumps[] = {
+    "je",       // Based on flags set by comparision: <op1> == <op2>
+    "jne"       // Based on flags set by comparision: <op1> != <op2>
+
+    // For signed ints:
+    "jl",       // Based on flags set by comparision: <op1> < <op2>
+    "jle",      // Based on flags set by comparision: <op1> <= <op2>
+    "jge",      // Based on flags set by comparision: <op1> > <op2>
+    "jg",       // Based on flags set by comparision: <op1> >= <op2>
+
+    // For unsigned ints and floats:
+    "jb",       // Based on flags set by comparision: <op1> <  <op2>
+    "jbe",      // Based on flags set by comparision: <op1> <=  <op2>
+    "ja",       // Based on flags set by comparision: <op1> > <op2>
+    "jae",      // Based on flags set by comparision: <op1> >= <op2>
+
+};
+
+char* stack[] = {
+    "push"      // <op64>. Push <op64> onto stack and adjust rsp.
+    "pop"       // <op64>. Pop <op64> from stack and adjust rsp.
+};
+
+char* function[] = {
+    "call"      // <funcname>. Push rip and jump to <funcname>
+    "ret"       // Pop rip.
+};
