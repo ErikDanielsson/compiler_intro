@@ -41,8 +41,9 @@ int main(int argc, const char** argv)
         printf("IC generation done\n\n");
         #if VERBOSE
         print_Env_tree();
-        print_CFG();
+
         #endif
+        print_CFG();
         live_and_use();
         char basename[strlen(filename)];
         char c;
