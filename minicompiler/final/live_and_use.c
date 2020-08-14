@@ -12,7 +12,7 @@ struct SymTab_entry_table* create_SymTab_entry_table(int size);
 
 void insert_entry(struct SymTab_entry_table* table,
                     struct SymTab_entry* real_entry,
-                    char live, int next_use);
+                    char live, unsigned int next_use);
 
 long get_info(struct SymTab_entry_table* table,
             struct SymTab_entry* real_entry);
@@ -105,7 +105,7 @@ void visit_assign(struct AssignQuad* instruction, int n)
         instruction->rval_info = get_info(set, instruction->rval);
         insert_entry(set, instruction->rval, 1, n);
     } else {
-        instruction->rval_info = -1;
+        instruction->rval_info = 0;
     }
 }
 void visit_binop(struct BinOpQuad* instruction, int n)
@@ -117,14 +117,14 @@ void visit_binop(struct BinOpQuad* instruction, int n)
         instruction->op1_info = get_info(set, instruction->op1);
         insert_entry(set, instruction->op1, 1, n);
     } else {
-        instruction->op1_info = -1;
+        instruction->op1_info = 0;
     }
     if (instruction->op2_type == VARIABLE ||
         instruction->op2_type == TEMPORARY) {
         instruction->op2_info = get_info(set, instruction->op2);
         insert_entry(set, instruction->op2, 1, n);
     } else {
-        instruction->op2_info = -1;
+        instruction->op2_info = 0;
     }
 }
 
@@ -137,7 +137,7 @@ void visit_uop(struct UOpQuad* instruction, int n)
         instruction->operand_info = get_info(set, instruction->operand);
         insert_entry(set, instruction->operand, 1, n);
     } else {
-        instruction->operand_info = -1;
+        instruction->operand_info = 0;
     }
 }
 
@@ -150,7 +150,7 @@ void visit_conv(struct ConvQuad* instruction, int n)
         instruction->op_info = get_info(set, instruction->op);
         insert_entry(set, instruction->op, 1, n);
     } else {
-        instruction->op_info = -1;
+        instruction->op_info = 0;
     }
 }
 
@@ -161,7 +161,7 @@ void visit_return(struct RetQuad* instruction, int n)
         instruction->ret_val_info = get_info(set, instruction->ret_val);
         insert_entry(set, instruction->ret_val, 1, n);
     } else {
-        instruction->ret_val_info = -1;
+        instruction->ret_val_info = 0;
     }
 }
 
@@ -172,7 +172,7 @@ void visit_param(struct ParamQuad* instruction, int n)
         instruction->op_info = get_info(set, instruction->op);
         insert_entry(set, instruction->op, 0, -1);
     } else {
-        instruction->op_info = -1;
+        instruction->op_info = 0;
     }
 }
 
@@ -190,14 +190,14 @@ void visit_cond(struct CondQuad* instruction, int n)
         instruction->op1_info = get_info(set, instruction->op1);
         insert_entry(set, instruction->op1, 1, n);
     } else {
-        instruction->op1_info = -1;
+        instruction->op1_info = 0;
     }
     if (instruction->op2_type == VARIABLE ||
         instruction->op2_type == TEMPORARY) {
         instruction->op2_info = get_info(set, instruction->op2);
         insert_entry(set, instruction->op2, 1, n);
     } else {
-        instruction->op2_info = -1;
+        instruction->op2_info = 0;
     }
 }
 
@@ -206,7 +206,12 @@ void visit_cond(struct CondQuad* instruction, int n)
 struct SymTab_entry_entry {
     struct SymTab_entry* real_entry;
     struct SymTab_entry_entry* next;
-    long info;
+    /*
+     * The first bit of info denotes whether the info should be considered.
+     * The second bit denotes liveness.
+     * The bits above is an int denoting next use.
+     */
+    unsigned long info;
 };
 
 struct SymTab_entry_table {
@@ -224,9 +229,12 @@ struct SymTab_entry_table* create_SymTab_entry_table(int size)
     return table;
 }
 
+#define STORE_INFO(live, next_use) \
+    ((unsigned long)1) + ((unsigned long)live << 1) + (((unsigned long)next_use) << 2);\
+
 void insert_entry(struct SymTab_entry_table* table,
                     struct SymTab_entry* real_entry,
-                    char live, int next_use)
+                    char live, unsigned int next_use)
 {
     unsigned int hashv = ptr_hash(real_entry, table->size);
     struct SymTab_entry_entry* t_entry = table->entries[hashv];
@@ -235,15 +243,15 @@ void insert_entry(struct SymTab_entry_table* table,
         t_entry = malloc(sizeof(struct SymTab_entry_entry));
         t_entry->next = NULL;
         t_entry->real_entry = &(*real_entry);
-        t_entry->info = live + (((long)next_use) << 1);
+        t_entry->info = STORE_INFO(live, next_use);
         table->entries[hashv] = t_entry;
         return;
     } else if (t_entry->real_entry == NULL) {
         t_entry->real_entry = real_entry;
-        t_entry->info = live + (((long)next_use) << 1);
+        t_entry->info =  STORE_INFO(live, next_use);
         return;
     } else if (t_entry->real_entry == real_entry) {
-        t_entry->info = live + (((long)next_use) << 1);
+        t_entry->info = STORE_INFO(live, next_use);
         return;
     }
     while (TRUE) {
@@ -252,15 +260,15 @@ void insert_entry(struct SymTab_entry_table* table,
         if (t_entry == NULL) {
             prev->next = malloc(sizeof(struct SymTab_entry_entry));
             prev->next->next = NULL;
-            prev->next->real_entry = &(*real_entry);
-            prev->next->info = live + (((long)next_use) << 1);
+            prev->next->real_entry = real_entry;
+            prev->next->info = STORE_INFO(live, next_use);
             return;
         } else if (t_entry->real_entry == NULL) {
-            prev->next->real_entry = &(*real_entry);
-            prev->next->info = live + (((long)next_use) << 1);
+            prev->next->real_entry = real_entry;
+            prev->next->info = STORE_INFO(live, next_use) ;
             return;
         } else if (t_entry->real_entry == real_entry) {
-            prev->next->info = live + (((long)next_use) << 1);
+            prev->next->info = STORE_INFO(live, next_use);
             return;
         }
     }
@@ -280,7 +288,7 @@ long get_info(struct SymTab_entry_table* table,
         }
         t_entry = t_entry->next;
     }
-    return 1 + (-1 << 1);
+    return 0;
 }
 
 void clear_entries(struct SymTab_entry_table* table)
@@ -292,8 +300,13 @@ void clear_entries(struct SymTab_entry_table* table)
         struct SymTab_entry_entry* entry = table->entries[i];
         while (entry != NULL) {
             entry->real_entry = NULL;
-            entry->info = 1 + (-1 << 1);
+            entry->info = 0;
             entry = entry->next;
         }
     }
+}
+
+inline void reattach_info(struct SymTab_entry* entry, unsigned long info)
+{
+    entry->info = info;
 }

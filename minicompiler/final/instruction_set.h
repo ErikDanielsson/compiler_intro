@@ -40,14 +40,14 @@ const char* register_names[5][16] = {
 
 
 // Instruction set: A small subset of the entire x86-64 instruction set.
-char* mov[] = {
+const char* mov[] = {
     "mov",      // <dest>, <src>
     "lea",      // <reg64>, <mem>   Place address of <mem> in <reg64>
     "movss",    // <RXdest>, <src>  Place <src> (32 bit) in <RXdest>
     "movsd"     // <RXdest>, <src>  Place <src> (64 bit) in <RXdest>
 };
 
-char* conv_in_a[] = {
+const char* conv_in_a[] = {
     "cbw",      // byte@al -> word@ax
     "cwd",      // word@ax -> dword@ax:dx
     "cwde",     // word@ax -> dword@eax
@@ -56,66 +56,76 @@ char* conv_in_a[] = {
     "cqo"       // dword@rax -> qword@rax:rdx
 };
 
-char* conv_signed[] = {
+const char* conv_signed[] = {
     "movsx",        // <reg16-64>, <op8-16>     Convert to size of register
     "movsx"         // <reg64>, <op32>
 };
 
-char* conv_float[] = {
+const char* conv_float[] = {
     "cvtss2sd",     // float -> double
-    "cvtss2ss"      // double -> float
+    "cvtsd2ss"      // double -> float
 };
 
-char* conv_float_int[] = {
+const char* conv_float_int[] = {
     "cvtss2si",     // float -> int
     "cvtsd2si",     // double -> int
     "cvtsi2ss",     // int -> float
     "cvtsi2sd"      // int -> double
 };
 
-char* int_arithmetic[] = {
+const char* int_arithmetic[] = {
     "add",      // <dest>, <src>
     "sub",      // <dest>, <src>
     "imul",     // <dest>, <src>    Mul <dest> with <src> and place in <dest>
                 // <src>            Mul 'a' register with <src>, result in a:d
-    "idiv",     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
+    "idiv"     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
+
+};
+const char* bitwise[] = {
     "and",      // <dest>, <src>
     "or",       // <dest>, <src>
     "xor",      // <dest>, <src>
     "not",      // <dest>, <src>
     "sar",      // <dest>, <imm>    Max of cl and <imm> is 64.
                 // <dest>, cl
-    "sal",      // <dest>, <imm>    Max of cl and <imm> is 64.
+    "sal"       // <dest>, <imm>    Max of cl and <imm> is 64.
                 // <dest>, cl
+};
+
+const char* inc_dec[] = {
     "inc",      // <op>
     "dec"       // <op>
 };
 
-char* float_arithmetic[] = {
-    "addss",    //
-    "addsd",
-    "subss",
-    "subsd",
-    "mulss",
-    "mulsd",
-    "divss",
-    "divsd",
+const char* float_arithmetic[2][4] = {
+    {
+        "addss",    //
+        "subss",
+        "mulss",
+        "divss"
+    },
+    {
+        "addsd",
+        "subsd",
+        "mulsd",
+        "divsd"
+    }
 };
 
-char* int_control[] = {
+const char* int_control[] = {
     "cmp"       // <op1>, <op2>. Compare op1 and op2, result in rFlags
     "test"      // <op1>, <op2>. 'and' op1 and op2, result in rFlags.
                 // Will only be used for zero comparisions.
 };
 
-char* float_control[] = {
+const char* float_control[] = {
     "ucomiss",  // <op32>, <op32>.  Compare op1 and Compare op1 and op2,
                 // result in rFlags
     "ucomisd"   // <op64>, <op64>.  Compare op1 and Compare op1 and op2,
                 // result in rFlags
 };
 
-char* cond_jumps[] = {
+const char* cond_jumps[] = {
     "je",       // Based on flags set by comparision: <op1> == <op2>
     "jne"       // Based on flags set by comparision: <op1> != <op2>
 
@@ -133,12 +143,12 @@ char* cond_jumps[] = {
 
 };
 
-char* stack[] = {
+const char* stack[] = {
     "push"      // <op64>. Push <op64> onto stack and adjust rsp.
     "pop"       // <op64>. Pop <op64> from stack and adjust rsp.
 };
 
-char* function[] = {
+const char* function[] = {
     "call"      // <funcname>. Push rip and jump to <funcname>
     "ret"       // Pop rip.
 };

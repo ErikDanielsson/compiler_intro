@@ -10,6 +10,7 @@
 #include "code_generation.h"
 #include "instruction_set.h"
 #include "int_set.h"
+#include "registers.h"
 
 /*
  * The code generator will generate Intel syntax assembly for the x86-64
@@ -21,7 +22,7 @@ void codegen();
 void generate_assembly(const char* basename)
 {
     char filename[strlen(basename)+5];
-    sprintf(filename, "%s.s", basename);
+    sprintf(filename, "%s.asm", basename);
     asm_file_desc = fopen(filename, "w");
     codegen();
     fclose(asm_file_desc);
@@ -50,12 +51,13 @@ void codegen()
 void allocr(struct SymTab* symbol_table);
 static inline void write_float_consts()
 {
-    write("\tfofloloatot dq ");
+    write("\tdodouboblole dd ");
     struct entry_list* entry_l = float_table->start;
     for (; entry_l->next != NULL; entry_l = entry_l->next)
         write("%lf, ", ((struct float_entry*)(entry_l->entry))->val);
     write("\n");
 }
+
 
 void alloc_statics(struct SymTab* main_symbol_table)
 {
@@ -64,7 +66,7 @@ void alloc_statics(struct SymTab* main_symbol_table)
     write("\n");
 
     /*
-     * We only need to emit the float consts, since ints can
+     * We only need to emit the float and double consts, since ints can
      * be directly.
      */
     write_float_consts();
@@ -123,13 +125,12 @@ void write_code(struct IC_entry* main)
 
 
 #define INT_SET_SIZE 131
-#define CREATE_INT_SET(set) \
+#define CREATE_INT_SET(set)\
     set.size = INT_SET_SIZE;\
     set.entries = malloc(sizeof(struct int_set_entry*)*INT_SET_SIZE);\
-    for (int i = 0; i < INT_SET_SIZE; i++) \
+    for (int i = 0; i < INT_SET_SIZE; i++)\
         set.entries[i] = NULL;\
 
-struct reg_desc registers[32] = { 0 };
 struct int_set set;
 void visit_block(struct BasicBlock* block);
 void write_main(struct IC_entry* main)
@@ -155,7 +156,7 @@ void emit_instruction(void* instruction, enum QuadType type);
 void visit_block(struct BasicBlock* block)
 {
     struct QuadList* curr = block->instructions;
-    //for (; curr->next != NULL)
+    for (; curr->next != NULL; curr = curr->next)
         emit_instruction(curr->instruction, curr->type);
 }
 
@@ -197,10 +198,11 @@ static inline void emit_assign(struct AssignQuad* assign)
         case VARIABLE:
         case TEMPORARY:
         case FCONSTANT: {
-            int r_val_reg  = get_reg(assign->rval, assign->rval_type);
+
             long lwidth_and_type = assign->lval->width_and_type;
             int ltype = lwidth_and_type & 1;
             int lwidth = lwidth_and_type >> 2;
+            int r_val_reg  = get_reg(assign->rval, assign->rval_type, lwidth);
             if (ltype)
                 if (lwidth == 4)
                     write("movss [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
@@ -219,21 +221,45 @@ static inline void emit_assign(struct AssignQuad* assign)
                     ((struct int_entry*)(assign->rval))->val);
             return;
         default:
+            fprintf(stderr, "no assign\n");
             return;
     }
 
 
 }
+
 static inline void emit_binop(struct BinOpQuad* binop)
 {
-    return;
+    //long width_and_type = b
 }
+
 static inline void emit_uop(struct UOpQuad* assign)
 {
     return;
 }
-static inline void emit_conv(struct ConvQuad* binop)
+
+static inline void emit_conv(struct ConvQuad* conv)
 {
+    switch (conv->op_type) {
+        case VARIABLE:
+        case TEMPORARY:
+        case FCONSTANT: {
+            long width_and_type = conv->conversion_type;
+            int type = width_and_type & 1;
+            int width = width_and_type >> 2;
+            int op_reg  = get_reg(conv->op, conv->op_type, width);
+            /*
+             * We only need to set the first elem of the regs states as reserved
+             * since that makes the whole register reserved.
+             */
+            enum RegState temp_state = registers[op_reg].states[0];
+            registers[op_reg].states[0] = REG_RESERVED;
+            int res_reg = get_reg(conv->result, TEMPORARY, 0);
+            registers[op_reg].states[0] = temp_state;
+            printf("res: %lx, op: %lx\n", conv->result_info, conv->op_info);
+            printf("%s = conv %s\n", register_names[3][res_reg], register_names[3][op_reg]);
+        }
+    }
     return;
 }
 
@@ -251,16 +277,19 @@ void temp_not_computed_error(struct SymTab_entry* entry)
     exit(-1);
 }
 
+
+
 void load_var(int reg, struct SymTab_entry* var, int type, int width);
 void store(struct SymTab_entry* var, int reg);
-void load_float(int reg, long float_loc);
-int get_reg(void* symbol, enum SymbolType type)
+void load_float(int reg, long float_loc, int width);
+int get_reg(void* symbol, enum SymbolType type, int width)
 {
     /*
      * Register selection for operand. Looking at this code, overwriting of
      * destination operand would be a problem, but this is avoided by setting
      * that register to reserved.
      */
+    printf("get reg\n");
     switch (type) {
         case VARIABLE: {
             struct SymTab_entry* var = symbol;
@@ -270,24 +299,26 @@ int get_reg(void* symbol, enum SymbolType type)
                 int width = width_and_type >> 2;
                 int lreg = 16 * type;
                 for (int i = 0; i < 16; i++) {
-                    if (registers[lreg+i].value == NULL) {
+                    if (max_state(lreg+i) == -1) {
                         load_var(lreg+i, var, type, width);
-                        registers[lreg+i].type = REG_VARIABLE;
-                        registers[lreg+i].value = symbol;
+                        clear_and_set_reg(lreg+i, REG_VARIABLE, symbol);
                         return lreg+i;
                     }
                 }
                 for (int i = 0; i < 16; i++) {
-                    if (registers[lreg+i].type == REG_CONSTANT) {
+                    if (max_state(lreg+i) == REG_CONSTANT) {
                         load_var(lreg+i, var, type, width);
-                        registers[lreg+i].type = REG_VARIABLE;
-                        registers[lreg+i].value = symbol;
+                        clear_and_set_reg(lreg+i, REG_VARIABLE, symbol);
                         return lreg+i;
                     }
                 }
+
+                // unsigned int usage[16] <- next usage
                 for (int i = 0; i < 16; i++) {
-                    if (registers[lreg+i].type == REG_VARIABLE) {
-                        store(registers[lreg+i].value, lreg+i);
+                    if (max(registers[lreg+i].type) == REG_VARIABLE) {
+                        for (int j = 0; j < registers[lreg+i].n_vals; j++)
+                            if (registers[lreg+i].states[j] == REG_VARIABLE)
+                                store(registers[lreg+i].value, lreg+i);
                         load_var(lreg+i, var, type, width);
                         registers[lreg+i].type = REG_VARIABLE;
                         registers[lreg+i].value = symbol;
@@ -301,37 +332,66 @@ int get_reg(void* symbol, enum SymbolType type)
         }
         case TEMPORARY: {
             struct SymTab_entry* var = symbol;
-            if (var->reg_loc == -1)
-                temp_not_computed_error(var);
-            return var->reg_loc;
+            if (var->reg_loc == -1){
+                long width_and_type = var->width_and_type;
+                char type = width_and_type & 1;
+                int width = width_and_type >> 2;
+                int lreg = 16 * type;
+
+                for (int i = 0; i < 16; i++) {
+                    if (registers[lreg+i].value == NULL) {
+                        registers[lreg+i].type = REG_TEMP;
+                        registers[lreg+i].value = symbol;
+                        return lreg+i;
+                    }
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (registers[lreg+i].type == REG_CONSTANT) {
+                        registers[lreg+i].type = REG_TEMP;
+                        registers[lreg+i].value = symbol;
+                        return lreg+i;
+                    }
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (registers[lreg+i].type == REG_VARIABLE) {
+                        store(registers[lreg+i].value, lreg+i);
+                        registers[lreg+i].type = REG_TEMP;
+                        registers[lreg+i].value = symbol;
+                        return lreg+i;
+                    }
+                }
+                all_registers_are_reserved_error();
+            } else {
+                return var->reg_loc;
+            }
         }
 
         case FCONSTANT: {
             struct float_entry* constant = symbol;
             if (constant->reg_loc == -1) {
                 for (int i = 0; i < 16; i++) {
-                    if (registers[16+i].value == NULL) {
-                        load_float(16+i, constant->offset);
-                        registers[16+i].type = REG_CONSTANT;
-                        registers[16+i].value = symbol;
-                        return 16+i;
+                    if (registers[i].value == NULL) {
+                        load_float(i, constant->offset, width);
+                        registers[i].type = REG_CONSTANT;
+                        registers[i].value = symbol;
+                        return i;
                     }
                 }
                 for (int i = 0; i < 16; i++) {
-                    if (registers[16+i].type == REG_CONSTANT) {
-                        load_float(16+i, constant->offset);
-                        registers[16+i].type = REG_CONSTANT;
-                        registers[16+i].value = symbol;
-                        return 16+i;
+                    if (registers[i].type == REG_CONSTANT) {
+                        load_float(i, constant->offset, width);
+                        registers[i].type = REG_CONSTANT;
+                        registers[i].value = symbol;
+                        return i;
                     }
                 }
                 for (int i = 0; i < 16; i++) {
-                    if (registers[16+i].type == REG_VARIABLE) {
-                        store(registers[16+i].value, 16+i);
-                        load_float(16+i, constant->offset);
-                        registers[16+i].type = REG_VARIABLE;
-                        registers[16+i].value = symbol;
-                        return 16+i;
+                    if (registers[i].type == REG_VARIABLE) {
+                        store(registers[i].value, i);
+                        load_float(i, constant->offset, 4);
+                        registers[i].type = REG_VARIABLE;
+                        registers[i].value = symbol;
+                        return i;
                     }
                 }
                 all_registers_are_reserved_error();
@@ -347,6 +407,11 @@ int get_reg(void* symbol, enum SymbolType type)
     }
 }
 
+int get_a_and_d(struct SymTab_entry* var)
+{
+
+}
+
 void load_var(int reg, struct SymTab_entry* var, int type, int width)
 {
     if (type)
@@ -360,10 +425,26 @@ void load_var(int reg, struct SymTab_entry* var, int type, int width)
 
 void store(struct SymTab_entry* var, int reg)
 {
-    return;
+    long width_and_type = var->width_and_type;
+    int type = width_and_type & 1;
+    int width = width_and_type >> 2;
+    if (type)
+        if (width == 4)
+            write("movss [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg]);
+        else
+            write("movsd [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg]);
+    else
+        write("mov [%s%u], %s\n", var->key, var->counter_value, register_names[log2(width)][reg]);
 }
 
-void load_float(int reg, long float_loc)
+void load_float(int reg, long float_loc, int width)
 {
-    return;
+    write("movsd %s, [dodouboblole+%ld]\n", register_names[4][reg], float_loc);
+    if (width == 4)
+        write("%s %s, %s\n", conv_float[1], register_names[4][reg], register_names[4][reg]);
+}
+
+init_codegen()
+{
+    for (int i = 0; )
 }
