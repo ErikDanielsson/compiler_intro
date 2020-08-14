@@ -17,6 +17,7 @@ struct SymTab_entry {
     int width;
     void* symbol;
     char live;
+    int reg_loc;
     struct SymTab_entry* next;
 };
 

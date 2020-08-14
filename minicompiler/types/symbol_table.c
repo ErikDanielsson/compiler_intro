@@ -61,6 +61,7 @@ struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
     entry->symbol = symbol;
     entry->offset = offset;
     entry->width = width;
+    entry->reg_loc = -1;
     entry->counter_value = symbol_counter;
     symbol_counter++;
     return entry;

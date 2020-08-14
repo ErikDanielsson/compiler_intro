@@ -16,18 +16,21 @@ struct entry_list {
 struct int_entry {
     long val;
     long offset;
+    int reg_loc;
     struct int_entry* next;
 };
 
 struct float_entry {
     double val;
     long offset;
+    int reg_loc;
     struct float_entry* next;
 };
 
 struct string_entry {
     char* val;
     long offset;
+    int reg_loc;
     struct string_entry* next;
 };
 

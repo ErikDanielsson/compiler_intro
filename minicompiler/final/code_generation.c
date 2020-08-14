@@ -8,6 +8,9 @@
 #include "intermediate_code.h"
 #include "IC_table.h"
 #include "code_generation.h"
+#include "instruction_set.h"
+#include "int_set.h"
+
 /*
  * The code generator will generate Intel syntax assembly for the x86-64
  * architecture. Should rewrite it later to generate an ".o" file directly
@@ -33,19 +36,7 @@ void write(char* fstring, ...)
 }
 
 
-const char* int_registers[] = {
-    "rax", "rcx", "rdx", "rbx",
-    "rsp", "rbp", "rsi", "rdi",
-    "r8",  "r9",  "r10", "r11",
-    "r12", "r13", "r14", "r15"
-};
 
-const char* float_registers[] = {
-    "xmm0", "xmm1", "xmm2", "xmm3",
-    "xmm4", "xmm5", "xmm6", "xmm7",
-    "xmm8", "xmm9", "xmm10","xmm11",
-    "xmm12","xmm13","xmm14","xmm15"
-};
 
 void alloc_statics(struct SymTab* main_symbol_table);
 void write_code(struct IC_entry* main);
@@ -97,6 +88,8 @@ int log2(int n)
     return n;
 }
 
+
+
 void write_all_variables(struct SymTab* symbol_table)
 {
     // NOTE: for 128 bit int and floats we need 'ddq' and 'dt' as well.
@@ -129,122 +122,245 @@ void write_code(struct IC_entry* main)
 }
 
 
+#define INT_SET_SIZE 131
+#define CREATE_INT_SET(set) \
+    set.size = INT_SET_SIZE;\
+    set.entries = malloc(sizeof(struct int_set_entry*)*INT_SET_SIZE);\
+    for (int i = 0; i < INT_SET_SIZE; i++) \
+        set.entries[i] = NULL;\
 
+struct reg_desc registers[32] = { 0 };
+struct int_set set;
+void visit_block(struct BasicBlock* block);
 void write_main(struct IC_entry* main)
 {
+
+    CREATE_INT_SET(set);
     write("global main\n");
-    write("main:");
+    write("main:\n");
+    visit_block(main->basic_block_list[0]);
     write("\n\n");
 }
 
 void write_func(struct IC_entry* func)
 {
+    struct int_set set;
+    CREATE_INT_SET(set);
     write("global %s\n", func->key);
     write("%s:", func->key);
     write("\n\n");
 }
 
-// Instruction set: A small subset of the entire x86-64 instruction set.
+void emit_instruction(void* instruction, enum QuadType type);
+void visit_block(struct BasicBlock* block)
+{
+    struct QuadList* curr = block->instructions;
+    //for (; curr->next != NULL)
+        emit_instruction(curr->instruction, curr->type);
+}
 
-char* mov[] = {
-    "mov",      // <dest>, <src>
-    "lea",      // <reg64>, <mem>   Place address of <mem> in <reg64>
-    "movss",    // <RXdest>, <src>  Place <src> (32 bit) in <RXdest>
-    "movsd"     // <RXdest>, <src>  Place <src> (64 bit) in <RXdest>
-};
+static inline void emit_assign(struct AssignQuad* assign);
+static inline void emit_binop(struct BinOpQuad* binop);
+static inline void emit_uop(struct UOpQuad* assign);
+static inline void emit_conv(struct ConvQuad* binop);
+void emit_instruction(void* instruction, enum QuadType type)
+{
+    switch (type) {
+        case QUAD_ASSIGN:
+            emit_assign(instruction);
+            return;
+        case QUAD_BINOP:
+            emit_binop(instruction);
+            return;
+        case QUAD_UOP:
+            emit_uop(instruction);
+            return;
+        case QUAD_CONV:
+            emit_conv(instruction);
+            return;
+        case QUAD_COND:
+            return;
+        case QUAD_UNCOND:
+            return;
+        case QUAD_RETURN:
+            return;
+        case QUAD_PARAM:
+            return;
+        case QUAD_FUNC:
+            return;
+    }
+}
 
-char* conv_in_a[] = {
-    "cbw",      // byte@al -> word@ax
-    "cwd",      // word@ax -> dword@ax:dx
-    "cwde",     // word@ax -> dword@eax
-    "cdq",      // dword@eax -> qword@eax:edx
-    "cdqe",     // dword@eax -> qword@rax
-    "cqo"       // dword@rax -> qword@rax:rdx
-};
+static inline void emit_assign(struct AssignQuad* assign)
+{
+    switch (assign->rval_type) {
+        case VARIABLE:
+        case TEMPORARY:
+        case FCONSTANT: {
+            int r_val_reg  = get_reg(assign->rval, assign->rval_type);
 
-char* conv_signed[] = {
-    "movsx",        // <reg16-64>, <op8-16>     Convert to size of register
-    "movsx"         // <reg64>, <op32>
-};
+            if (strcmp(((struct VarDecl*)(assign->lval->symbol))->type->lexeme, "fofloloatot") == 0)
+                if (assign->lval->width == 4)
+                    write("movss [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
+                            register_names[r_val_reg]);
+                else
+                    write("movsd [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
+                            register_names[r_val_reg]);
+            else
+                write("mov [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
+                        register_names[r_val_reg]);
 
-char* conv_float[] = {
-    "cvtss2sd",     // float -> double
-    "cvtss2ss"      // double -> float
-};
+            return;
+        }
+        case ICONSTANT:
+            write("mov [%s%u], %ld", assign->lval->key, assign->lval->counter_value,
+                    ((struct int_entry*)(assign->rval))->val);
+            return;
+        default:
+            return;
+    }
 
-char* conv_float_int[] = {
-    "cvtss2si",     // float -> int
-    "cvtsd2si",     // double -> int
-    "cvtsi2ss",     // int -> float
-    "cvtsi2sd"      // int -> double
-};
 
-char* int_arithmetic[] = {
-    "add",      // <dest>, <src>
-    "sub",      // <dest>, <src>
-    "imul",     // <dest>, <src>    Mul <dest> with <src> and place in <dest>
-                // <src>            Mul 'a' register with <src>, result in a:d
-    "idiv",     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
-    "and",      // <dest>, <src>
-    "or",       // <dest>, <src>
-    "xor",      // <dest>, <src>
-    "not",      // <dest>, <src>
-    "sar",      // <dest>, <imm>    Max of cl and <imm> is 64.
-                // <dest>, cl
-    "sal",      // <dest>, <imm>    Max of cl and <imm> is 64.
-                // <dest>, cl
-    "inc",      // <op>
-    "dec"       // <op>
-};
+}
+static inline void emit_binop(struct BinOpQuad* binop)
+{
+    return;
+}
+static inline void emit_uop(struct UOpQuad* assign)
+{
+    return;
+}
+static inline void emit_conv(struct ConvQuad* binop)
+{
+    return;
+}
 
-char* float_arithmetic[] = {
-    "addss",    //
-    "addsd",
-    "subss",
-    "subsd",
-    "mulss",
-    "mulsd",
-    "divss",
-    "divsd",
-};
 
-char* int_control[] = {
-    "cmp"       // <op1>, <op2>. Compare op1 and op2, result in rFlags
-    "test"      // <op1>, <op2>. 'and' op1 and op2, result in rFlags.
-                // Will only be used for zero comparisions.
-};
 
-char* float_control[] = {
-    "ucomiss",  // <op32>, <op32>.  Compare op1 and Compare op1 and op2,
-                // result in rFlags
-    "ucomisd"   // <op64>, <op64>.  Compare op1 and Compare op1 and op2,
-                // result in rFlags
-};
+void all_registers_are_reserved_error()
+{
+    fprintf(stderr, "internal error:All registers are reserved....\n");
+    exit(-1);
+}
 
-char* cond_jumps[] = {
-    "je",       // Based on flags set by comparision: <op1> == <op2>
-    "jne"       // Based on flags set by comparision: <op1> != <op2>
+void temp_not_computed_error(struct SymTab_entry* entry)
+{
+    fprintf(stderr, "internal error:Temporary '%s' has not been computed but wants register\n", entry->key);
+    exit(-1);
+}
 
-    // For signed ints:
-    "jl",       // Based on flags set by comparision: <op1> < <op2>
-    "jle",      // Based on flags set by comparision: <op1> <= <op2>
-    "jge",      // Based on flags set by comparision: <op1> > <op2>
-    "jg",       // Based on flags set by comparision: <op1> >= <op2>
+void load_var(int reg, struct SymTab_entry* var, int type);
+void store(struct SymTab_entry* var, int reg);
+void load_float(int reg, long float_loc);
+int get_reg(void* symbol, enum SymbolType type)
+{
+    /*
+     * Register selection for operand. Looking at this code, overwriting of
+     * destination operand would be a problem, but this is avoided by setting
+     * that register to reserved.
+     */
+    switch (type) {
+        case VARIABLE: {
+            struct SymTab_entry* var = symbol;
+            if (var->reg_loc == -1) {
+                int type = strcmp(((struct VarDecl*)(var->symbol))->type->lexeme, "fofloloatot") == 0;
+                int lreg = 16 * type;
+                for (int i = 0; i < 16; i++) {
+                    if (registers[lreg+i].value == NULL) {
+                        load_var(lreg+i, var, type);
+                        registers[lreg+i].type = REG_VARIABLE;
+                        registers[lreg+i].value = symbol;
+                        return lreg+i;
+                    }
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (registers[lreg+i].type == REG_CONSTANT) {
+                        load_var(lreg+i, var, type);
+                        registers[lreg+i].type = REG_VARIABLE;
+                        registers[lreg+i].value = symbol;
+                        return lreg+i;
+                    }
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (registers[lreg+i].type == REG_VARIABLE) {
+                        store(registers[lreg+i].value, lreg+i);
+                        load_var(lreg+i, var, type);
+                        registers[lreg+i].type = REG_VARIABLE;
+                        registers[lreg+i].value = symbol;
+                        return lreg+i;
+                    }
+                }
+                all_registers_are_reserved_error();
+            } else {
+                return var->reg_loc;
+            }
+        }
+        case TEMPORARY: {
+            struct SymTab_entry* var = symbol;
+            if (var->reg_loc == -1)
+                temp_not_computed_error(var);
+            return var->reg_loc;
+        }
 
-    // For unsigned ints and floats:
-    "jb",       // Based on flags set by comparision: <op1> <  <op2>
-    "jbe",      // Based on flags set by comparision: <op1> <=  <op2>
-    "ja",       // Based on flags set by comparision: <op1> > <op2>
-    "jae",      // Based on flags set by comparision: <op1> >= <op2>
+        case FCONSTANT: {
+            struct float_entry* constant = symbol;
+            if (constant->reg_loc == -1) {
+                for (int i = 0; i < 16; i++) {
+                    if (registers[16+i].value == NULL) {
+                        load_float(16+i, constant->offset);
+                        registers[16+i].type = REG_CONSTANT;
+                        registers[16+i].value = symbol;
+                        return 16+i;
+                    }
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (registers[16+i].type == REG_CONSTANT) {
+                        load_float(16+i, constant->offset);
+                        registers[16+i].type = REG_CONSTANT;
+                        registers[16+i].value = symbol;
+                        return 16+i;
+                    }
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (registers[16+i].type == REG_VARIABLE) {
+                        store(registers[16+i].value, 16+i);
+                        load_float(16+i, constant->offset);
+                        registers[16+i].type = REG_VARIABLE;
+                        registers[16+i].value = symbol;
+                        return 16+i;
+                    }
+                }
+                all_registers_are_reserved_error();
+            } else {
+                return constant->reg_loc;
+            }
+        }
+        case ICONSTANT:
+        case SCONSTANT:
+        case FUNCTION:
+            fprintf(stderr, "SymbolType %d should'nt be in get_reg switch\n", type);
+            exit(-1);
+    }
+}
 
-};
+void load_var(int reg, struct SymTab_entry* var, int type)
+{
+    printf("load %s\n", var->key);
+    if (type)
+        if (var->width == 4)
+            write("movss %s, [%s%u]\n", register_names[reg], var->key, var->counter_value);
+        else
+            write("movsd %s, [%s%u]\n", register_names[reg], var->key, var->counter_value);
+    else
+        write("mov %s, [%s%u]\n", register_names[reg], var->key, var->counter_value);
+}
 
-char* stack[] = {
-    "push"      // <op64>. Push <op64> onto stack and adjust rsp.
-    "pop"       // <op64>. Pop <op64> from stack and adjust rsp.
-};
+void store(struct SymTab_entry* var, int reg)
+{
+    return;
+}
 
-char* function[] = {
-    "call"      // <funcname>. Push rip and jump to <funcname>
-    "ret"       // Pop rip.
-};
+void load_float(int reg, long float_loc)
+{
+    return;
+}
