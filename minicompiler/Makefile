@@ -1,4 +1,4 @@
-CC = gcc
+CC = clang
 CFLAGS = -Wall
 DIRS := . $(shell find . -type d)
 DEPS = includes/
@@ -53,7 +53,8 @@ SUBDIR =
 %.c :
 	cp ~/dev/ed_templates/c/$(TEMPLATE).c $(SUBDIR)/$(basename $@).c
 	touch $(SUBDIR)/$(basename $@).h
-	ln -s $(SUBDIR)/$(basename $@).h includes
+	cd includes && ln -s ../$(SUBDIR)/$(basename $@).h
+
 
 %.dot : %.c
 	clang -emit-llvm -S -I $(DEPS) $< -o $(basename $@).ll
