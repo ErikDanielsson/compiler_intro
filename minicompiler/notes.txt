@@ -16,7 +16,7 @@ parser.c:
     assembly lines.
 
 type checking:
-
+    MUST CHANGE HOW TYPES ARE STORED!!!!!!!!!!!!!!!!!
 
 IR generation:
     While the current IR generator writes pseudo-assembly to an output stream --
@@ -30,3 +30,9 @@ IR generation:
     Revisit (later) how the operand type is carried through the analysis. The
     current solution is a hack (does not work for other constants than number),
     and needs a cleanup. For example, change op.addr to carry operand type.
+
+Codegen:
+    Write code for each basic block incrementally. On a comparison let control
+    fall through. On entry on a new block emit a label 'funcname'+'blockptr'.
+    Do the same when emitting a goto of any kind ('funcname'+'blockptr'). This
+    assures that the gotos point to the correct label.
