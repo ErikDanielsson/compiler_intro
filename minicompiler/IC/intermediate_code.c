@@ -244,7 +244,7 @@ struct ConvQuad* gen_conv(char* conversion_type, void* op, enum SymbolType op_ty
 {
     struct ConvQuad* triple = malloc(sizeof(struct ConvQuad));
     triple->result = result;
-    triple->conversion_type = conversion_type;
+    triple->conversion_type = get_type_info(conversion_type);
     triple->op_type = op_type;
     triple->op = op;
     return triple;
@@ -371,7 +371,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
             }
             case QUAD_CONV: {
                 struct ConvQuad* conv = instr->instruction;
-                printf("%s = (%s)", conv->result->key, conv->conversion_type);
+                printf("%s = (%ud)", conv->result->key, conv->conversion_type);
                 print_val(conv->op_type, conv->op);
                 printf("\n");
                 break;

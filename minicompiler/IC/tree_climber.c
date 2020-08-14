@@ -20,11 +20,11 @@
 
  int temp_num = 0;
  #define MAX_LABEL_LENGTH 10
- struct SymTab_entry* newtemp()
+ struct SymTab_entry* newtemp(char* type)
  {
      char* temp = malloc(MAX_LABEL_LENGTH+1);
      sprintf(temp, "$%d", temp_num);
-     enter_temp_var(temp);
+     enter_temp_var(temp, type);
      temp_num++;
      return get_curr_name_entry(temp);
  }
@@ -57,7 +57,15 @@ void widen(struct AddrTypePair* a,  char* type1, char* type2)
     check_type_defined(type2);
 
     char* caster = max(type1, type2);
-    struct SymTab_entry* temp_entry = newtemp();
+    struct SymTab_entry* temp_entry = newtemp(caster);
+    append_triple(gen_conv(caster, a->addr, a->type, temp_entry), QUAD_CONV, 1);
+    a->addr = temp_entry;
+    a->type = TEMPORARY;
+}
+
+void cast(struct AddrTypePair* a, char* caster)
+{
+    struct SymTab_entry* temp_entry = newtemp(caster);
     append_triple(gen_conv(caster, a->addr, a->type, temp_entry), QUAD_CONV, 1);
     a->addr = temp_entry;
     a->type = TEMPORARY;
@@ -225,7 +233,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
             atp2.addr = node->right->addr;
             atp2.type = node->right->addr_type;
             widen(&atp2, type1, type);
-            struct SymTab_entry* t = newtemp();
+            struct SymTab_entry* t = newtemp(type);
             struct BasicBlock** next = newlabel();
 
             struct BasicBlock** true = newlabel();
@@ -265,7 +273,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
             visit_Expr_jump(node->left);
             *(node->left->true) = new_bb();
             visit_Expr_jump(node->right);
-            struct SymTab_entry* t = newtemp();
+            struct SymTab_entry* t = newtemp(var_type);
 
             *true = new_bb();
             if (strcmp(var_type, "fofloloatot") == 0)
@@ -300,7 +308,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
             visit_Expr_jump(node->left);
             *(node->left->false) = new_bb();
             visit_Expr_jump(node->right);
-            struct SymTab_entry* t = newtemp();
+            struct SymTab_entry* t = newtemp(var_type);
 
             *true = new_bb();
             if (strcmp(var_type, "fofloloatot") == 0)
@@ -331,7 +339,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
             node->expr->true = false;
             node->expr->false = true;
             visit_Expr_jump(node->expr);
-            struct SymTab_entry* t = newtemp();
+            struct SymTab_entry* t = newtemp(var_type);
 
             *true = new_bb();
             if (strcmp(var_type, "fofloloatot") == 0)
@@ -366,7 +374,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
             atp2.addr = node->right->addr;
             atp2.type = node->right->addr_type;
             widen(&atp2, type1, type);
-            node->addr = newtemp();
+            node->addr = newtemp(type);
             node->addr_type = TEMPORARY;
             append_triple(gen_binop(atp1.addr, atp1.type,
                             node->binary_op->type,
@@ -377,7 +385,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
         }
         case EXPR_UOP: {
             char* type = visit_Expr_rval(node->expr, var_type);
-            node->addr = newtemp();
+            node->addr = newtemp(type);
             append_triple(gen_uop(node->expr->addr, node->expr->addr_type,
                                 node->unary_op->type, node->addr), QUAD_UOP, 1);
             return type;
@@ -416,6 +424,15 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
             node->addr_type = VARIABLE;
 
             return visit_VarAcc(node->variable_access);
+        case EXPR_CAST:
+            visit_Expr_rval(node->expr, node->unary_op->lexeme);
+            struct AddrTypePair atp1;
+            atp1.addr = node->expr->addr;
+            atp1.type = node->expr->addr_type;
+            cast(&atp1, node->unary_op->lexeme);
+            node->addr = atp1.addr;
+            node->addr_type = atp1.type;
+            return node->unary_op->lexeme;
     }
 }
 
@@ -474,8 +491,7 @@ void visit_Expr_jump(struct Expr* node)
             atp2.addr = node->right->addr;
             atp2.type = node->right->addr_type;
             widen(&atp2, type1, type);
-            // Is this really needed?? Is it used by a parent function??????
-            struct SymTab_entry* temp_addr = newtemp();
+            struct SymTab_entry* temp_addr = newtemp(type);
             append_triple(gen_binop(atp1.addr, atp1.type,
                         node->binary_op->type,
                         atp2.addr, atp2.type,
@@ -566,7 +582,15 @@ void visit_Expr_jump(struct Expr* node)
                                    node->true, node->false);
             return;
         }
-
+        case EXPR_CAST:
+            visit_Expr_jump(node->expr);
+            struct AddrTypePair atp1;
+            atp1.addr = node->expr->addr;
+            atp1.type = node->expr->addr_type;
+            cast(&atp1, node->unary_op->lexeme);
+            node->addr = atp1.addr;
+            node->addr_type = atp1.type;
+            return;
     }
 }
 
@@ -594,7 +618,8 @@ char* visit_FuncCall(struct FuncCall* node)
         widen(&atp1, decl->params[i]->type->lexeme, arg_type);
         append_triple(gen_param(atp1.addr, atp1.type), QUAD_PARAM, 1);
     }
-    struct SymTab_entry* temp = newtemp();
+    char* type = decl->type->lexeme;
+    struct SymTab_entry* temp = newtemp(type);
     struct BasicBlock** next = newlabel();
 
     set_uncond_target(next);
@@ -605,7 +630,7 @@ char* visit_FuncCall(struct FuncCall* node)
     node->addr = temp;
     node->addr_type = TEMPORARY;
 
-    return decl->type->lexeme;
+    return type;
 
 }
 
@@ -614,7 +639,7 @@ void visit_AStmt(struct AStmt* node)
     char* var_type = visit_VarAcc(node->variable_access);
     struct SymTab_entry* var_entry = node->variable_access->addr;
     if (node->assignment_type->type == SUFFIXOP) {
-        struct SymTab_entry* temp = newtemp();
+        struct SymTab_entry* temp = newtemp(var_type);
         switch (node->assignment_type->lexeme[0]) {
             case '+':
                 if (strcmp(var_type, "fofloloatot") == 0)
@@ -662,7 +687,7 @@ void visit_AStmt(struct AStmt* node)
             /*
              * This is a bit of a hack
              */
-            struct SymTab_entry* temp = newtemp();
+            struct SymTab_entry* temp = newtemp(expr_type);
             enum TokenType op_type;
             switch (node->assignment_type->lexeme[0]) {
                 case '+':

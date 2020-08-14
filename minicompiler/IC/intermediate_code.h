@@ -55,10 +55,10 @@ struct AssignQuad {
      * The lvalue of a 'real' assingment must be a variable
      */
     struct SymTab_entry* lval;
-    long lval_info;
+    unsigned long lval_info;
     enum SymbolType rval_type;
     void* rval;
-    long rval_info;
+    unsigned long rval_info;
 };
 
 enum BinOpType {
@@ -76,14 +76,14 @@ enum BinOpType {
 
 struct BinOpQuad {
     struct SymTab_entry* result;
-    long result_info;
+    unsigned long result_info;
     enum SymbolType op1_type;
     void* op1;
-    long op1_info;
+    unsigned long op1_info;
     enum BinOpType op_type;
     enum SymbolType op2_type;
     void* op2;
-    long op2_info;
+    unsigned long op2_info;
 };
 enum UOpType {
     UOP_NEG,
@@ -92,20 +92,20 @@ enum UOpType {
 
 struct UOpQuad {
     struct SymTab_entry* result;
-    long result_info;
+    unsigned long result_info;
     enum UOpType operator_type;
     enum SymbolType operand_type;
     void* operand;
-    long operand_info;
+    unsigned long operand_info;
 };
 
 struct ConvQuad {
     struct SymTab_entry* result;
-    long result_info;
-    char* conversion_type;
+    unsigned long result_info;
+    unsigned long conversion_type;
     enum SymbolType op_type;
     void* op;
-    long op_info;
+    unsigned long op_info;
 };
 
 
@@ -122,11 +122,11 @@ enum RelopType {
 struct CondQuad {
     enum SymbolType op1_type;
     void*  op1;
-    long op1_info;
+    unsigned long op1_info;
     enum RelopType op_type;
     enum SymbolType op2_type;
     void*  op2;
-    long op2_info;
+    unsigned long op2_info;
 };
 
 struct RetQuad {
@@ -138,17 +138,17 @@ struct RetQuad {
      */
     enum SymbolType type;
     void*  ret_val;
-    long ret_val_info;
+    unsigned long ret_val_info;
 };
 
 struct ParamQuad {
     enum SymbolType type;
     void* op;
-    long op_info;
+    unsigned long op_info;
 };
 struct FuncCQuad {
     struct SymTab_entry* lval;
-    long lval_info;
+    unsigned long lval_info;
     char* name;
 };
 
