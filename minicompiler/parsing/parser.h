@@ -106,7 +106,8 @@ enum ExprType {
     EXPR_RELOP,
     EXPR_CONST,
     EXPR_FUNCCALL,
-    EXPR_VARACC
+    EXPR_VARACC,
+    EXPR_CAST
 };
 
 struct Expr {
@@ -257,6 +258,7 @@ void reduce_to_expr_funccall(void*** top);
 void reduce_to_expr_unary(void*** top);
 void reduce_to_expr_uplus(void*** top);
 void reduce_to_expr_not(void*** top);
+void reduce_to_expr_cast(void*** top);
 void reduce_to_assign(void*** top);
 void reduce_to_assign_suffixop(void*** top);
 void reduce_to_funccall_w_args(void*** top);

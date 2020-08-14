@@ -373,6 +373,7 @@ void (*record_creator[])(void***) = {
     &reduce_to_expr_unary,
     &reduce_to_expr_unary,
     &reduce_to_expr_not,
+    &reduce_to_expr_cast,
     &reduce_to_assign,
     &reduce_to_assign,
     &reduce_to_assign_suffixop,
@@ -1568,6 +1569,34 @@ void reduce_to_expr_not(void*** top)
 
     #if DEBUG || TREEBUILDER
     printf("expr -> '!' expr\n");
+    #endif
+    #if TREEBUILDER
+    print_Expr(**top, 0, 1, 1);
+    printf("\n");
+    printf("----------------------------------------------------------\n");
+    printf("\n");
+    #endif
+}
+
+void reduce_to_expr_cast(void*** top)
+{
+    struct Expr* node = malloc(sizeof(struct Expr));
+    node->type = EXPR_CAST;
+
+    node->expr = **top;
+    (*top)--;
+
+    free_token(**top);
+    (*top)--;
+
+    node->unary_op = **top;
+    (*top)--;
+
+    free_token(**top);
+    **top = node;
+
+    #if DEBUG || TREEBUILDER
+    printf("expr -> '(' ID ')' expr\n");
     #endif
     #if TREEBUILDER
     print_Expr(**top, 0, 1, 1);
