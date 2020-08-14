@@ -14,10 +14,14 @@ struct SymTab_entry {
     enum SymbolType type;
     int counter_value;
     long offset;
-    long width_and_type;
+    unsigned long width_and_type;
     void* symbol;
-    char live;
-    int reg_loc;
+    long info;
+    /*
+     * Holds information of where the symbol is located. The first entry
+     * tells whether the variable holds itself, the rest denotes registers.
+     */
+    unsigned int locs;
 
     struct SymTab_entry* next;
 };
@@ -36,10 +40,10 @@ struct SymTab* create_SymTab(int table_size, struct SymTab* parent, char* name);
 void SymTab_append_child(struct SymTab* parent, struct SymTab* child);
 
 struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
-                                void* symbol, long offset, int width);
+                                void* symbol, long offset, unsigned long  width);
 
 int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
-                    enum SymbolType type, void* symbol, long offset, int width);
+                    enum SymbolType type, void* symbol, long offset, unsigned long width);
 
 struct SymTab_entry* SymTab_getr(struct SymTab* symbol_table, char* key,
                                                 enum SymbolType type);

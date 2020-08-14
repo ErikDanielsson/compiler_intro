@@ -8,7 +8,7 @@ enum TypeType {
 struct TypeTab_entry {
     enum TypeType type;
     char* key;
-    int width;
+    unsigned long width;
     union {
         int widening_priority;
         void* struct_symbol;
@@ -29,6 +29,6 @@ void TypeTab_set_builtin(struct TypeTab* type_table, char* key, int widening_pri
 
 void TypeTab_set(struct TypeTab* type_table, char* key, int widening_priority);
 int get_widening_type(struct TypeTab* type_table, char* key);
-long get_type_and_width(struct TypeTab* type_table, char* key);
+unsigned long get_type_and_width(struct TypeTab* type_table, char* key);
 int TypeTab_check_and_set(struct TypeTab* type_table, char* key, void* struct_symbol);
 int TypeTab_check_defined(struct TypeTab* type_table, char* key);

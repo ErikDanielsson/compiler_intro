@@ -182,9 +182,10 @@ void enter_type_def(char* type_name, struct SymTab* struct_env)
 }
 
 
-void enter_temp_var(char* temp_name)
+void enter_temp_var(char* temp_name, char* type)
 {
-    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0, 0);
+    int width_and_type = get_type_and_width(type_table, type);
+    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0, width_and_type);
 }
 
 void check_type_defined(char* type_name)
@@ -195,7 +196,7 @@ void check_type_defined(char* type_name)
 
 void check_and_set_var(struct VarDecl* node)
 {
-    int width_and_type = get_type_and_width(type_table, node->type->lexeme);
+    unsigned long width_and_type = get_type_and_width(type_table, node->type->lexeme);
     if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset, width_and_type))
         type_error(TRUE, "Redefinition of variable '%s' at %d:%d\n", node->name->lexeme,
                     node->name->line, node->name->column);
@@ -239,11 +240,16 @@ struct SymTab_entry* get_curr_name_entry(char* name)
     return SymTab_getr(*top_symtab, name, TEMPORARY);
 }
 
+unsigned long get_type_info(char* type)
+{
+    get_type_and_width(type_table, type);
+}
+
 struct ConstTab* int_table;
 struct ConstTab* float_table;
 struct ConstTab* string_table;
 
-struct int_entry* enter_int(int val)
+struct int_entry* enter_int(long val)
 {
     return append_int(int_table, val);
 }

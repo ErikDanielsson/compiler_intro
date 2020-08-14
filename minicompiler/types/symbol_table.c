@@ -50,7 +50,7 @@ void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
  */
 unsigned int symbol_counter = 0;
 struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
-                                void* symbol, long offset, int width_and_type)
+                                void* symbol, long offset, unsigned long width_and_type)
 {
 
     struct SymTab_entry* entry = malloc(sizeof(struct SymTab_entry) * 1);
@@ -68,7 +68,7 @@ struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
 }
 
 int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
-                    enum SymbolType type, void* symbol, long offset, int width_and_type)
+                    enum SymbolType type, void* symbol, long offset, unsigned long width_and_type)
 {
     unsigned int slot = hash(key, symbol_table->table_size);
     struct SymTab_entry* entry = symbol_table->entries[slot];
