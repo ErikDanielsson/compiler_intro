@@ -14,10 +14,11 @@ struct SymTab_entry {
     enum SymbolType type;
     int counter_value;
     long offset;
-    int width;
+    long width_and_type;
     void* symbol;
     char live;
     int reg_loc;
+
     struct SymTab_entry* next;
 };
 

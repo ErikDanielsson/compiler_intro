@@ -74,13 +74,14 @@ void type_table_error(char* key)
     exit(-1);
 }
 
-long get_type_width(struct TypeTab* type_table, char* key)
+long get_type_and_width(struct TypeTab* type_table, char* key)
 {
     unsigned int hashv = hash(key, type_table->table_size);
+    long type = strcmp(key, "fofloloatot") == 0;
     struct TypeTab_entry* entry = type_table->entries[hashv];
     while (entry != NULL) {
         if (strcmp(entry->key, key) == 0)
-            return (long)entry->width;
+            return ((long)entry->width << 2) + type;
         entry = entry->next;
     }
     type_table_error(key);

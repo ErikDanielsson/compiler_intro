@@ -1,16 +1,41 @@
 #pragma once
 // Registers
-const char* register_names[] = {
-    // General purpose registers
-    "rax", "rcx", "rdx", "rbx",
-    "rsp", "rbp", "rsi", "rdi",
-    "r8",  "r9",  "r10", "r11",
-    "r12", "r13", "r14", "r15",
-    // Float registers
-    "xmm0", "xmm1", "xmm2", "xmm3",
-    "xmm4", "xmm5", "xmm6", "xmm7",
-    "xmm8", "xmm9", "xmm10","xmm11",
-    "xmm12","xmm13","xmm14","xmm15"
+const char* register_names[5][16] = {
+    {
+    // General purpose registers (8 bit section)
+        "al", "cl", "dl", "bl",
+        "spl", "bpl", "sil", "dil",
+        "r8b",  "r9b",  "r10b", "r11b",
+        "r12b", "r13b", "r14b", "r15b",
+    },
+    {
+    // General purpose registers (16 bit section)
+        "ax", "cx", "dx", "bx",
+        "sp", "bp", "si", "di",
+        "r8w",  "r9w",  "r10w", "r11w",
+        "r12w", "r13w", "r14w", "r15w",
+    },
+    {
+    // General purpose registers (32 bit section)
+        "eax", "ecx", "edx", "ebx",
+        "esp", "ebp", "esi", "edi",
+        "r8d",  "r9d",  "r10d", "r11d",
+        "r12d", "r13d", "r14d", "r15d",
+    },
+    {
+    // General purpose registers (64 bit section)
+        "rax", "rcx", "rdx", "rbx",
+        "rsp", "rbp", "rsi", "rdi",
+        "r8",  "r9",  "r10", "r11",
+        "r12", "r13", "r14", "r15",
+    },
+    {
+        // Float registers (64 and 32 bit (really SIMD...but that's a different story))
+        "xmm0", "xmm1", "xmm2", "xmm3",
+        "xmm4", "xmm5", "xmm6", "xmm7",
+        "xmm8", "xmm9", "xmm10","xmm11",
+        "xmm12","xmm13","xmm14","xmm15"
+    }
 };
 
 

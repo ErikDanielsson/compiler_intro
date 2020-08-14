@@ -100,7 +100,7 @@ void write_all_variables(struct SymTab* symbol_table)
             if (entry->type == TEMPORARY || entry->type == FUNCTION)
                 continue;
             write("\t%s%u %s 0\n", entry->key, entry->counter_value,
-            declaration_widths[log2(entry->width)]);
+            declaration_widths[log2(entry->width_and_type >> 2)]);
         }
     }
 }
@@ -198,17 +198,19 @@ static inline void emit_assign(struct AssignQuad* assign)
         case TEMPORARY:
         case FCONSTANT: {
             int r_val_reg  = get_reg(assign->rval, assign->rval_type);
-
-            if (strcmp(((struct VarDecl*)(assign->lval->symbol))->type->lexeme, "fofloloatot") == 0)
-                if (assign->lval->width == 4)
+            long lwidth_and_type = assign->lval->width_and_type;
+            int ltype = lwidth_and_type & 1;
+            int lwidth = lwidth_and_type >> 2;
+            if (ltype)
+                if (lwidth == 4)
                     write("movss [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
-                            register_names[r_val_reg]);
+                            register_names[4][r_val_reg]);
                 else
                     write("movsd [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
-                            register_names[r_val_reg]);
+                            register_names[4][r_val_reg]);
             else
                 write("mov [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
-                        register_names[r_val_reg]);
+                        register_names[log2(lwidth)][r_val_reg]);
 
             return;
         }
@@ -249,7 +251,7 @@ void temp_not_computed_error(struct SymTab_entry* entry)
     exit(-1);
 }
 
-void load_var(int reg, struct SymTab_entry* var, int type);
+void load_var(int reg, struct SymTab_entry* var, int type, int width);
 void store(struct SymTab_entry* var, int reg);
 void load_float(int reg, long float_loc);
 int get_reg(void* symbol, enum SymbolType type)
@@ -263,11 +265,13 @@ int get_reg(void* symbol, enum SymbolType type)
         case VARIABLE: {
             struct SymTab_entry* var = symbol;
             if (var->reg_loc == -1) {
-                int type = strcmp(((struct VarDecl*)(var->symbol))->type->lexeme, "fofloloatot") == 0;
+                long width_and_type = var->width_and_type;
+                char type = width_and_type & 1;
+                int width = width_and_type >> 2;
                 int lreg = 16 * type;
                 for (int i = 0; i < 16; i++) {
                     if (registers[lreg+i].value == NULL) {
-                        load_var(lreg+i, var, type);
+                        load_var(lreg+i, var, type, width);
                         registers[lreg+i].type = REG_VARIABLE;
                         registers[lreg+i].value = symbol;
                         return lreg+i;
@@ -275,7 +279,7 @@ int get_reg(void* symbol, enum SymbolType type)
                 }
                 for (int i = 0; i < 16; i++) {
                     if (registers[lreg+i].type == REG_CONSTANT) {
-                        load_var(lreg+i, var, type);
+                        load_var(lreg+i, var, type, width);
                         registers[lreg+i].type = REG_VARIABLE;
                         registers[lreg+i].value = symbol;
                         return lreg+i;
@@ -284,7 +288,7 @@ int get_reg(void* symbol, enum SymbolType type)
                 for (int i = 0; i < 16; i++) {
                     if (registers[lreg+i].type == REG_VARIABLE) {
                         store(registers[lreg+i].value, lreg+i);
-                        load_var(lreg+i, var, type);
+                        load_var(lreg+i, var, type, width);
                         registers[lreg+i].type = REG_VARIABLE;
                         registers[lreg+i].value = symbol;
                         return lreg+i;
@@ -343,16 +347,15 @@ int get_reg(void* symbol, enum SymbolType type)
     }
 }
 
-void load_var(int reg, struct SymTab_entry* var, int type)
+void load_var(int reg, struct SymTab_entry* var, int type, int width)
 {
-    printf("load %s\n", var->key);
     if (type)
-        if (var->width == 4)
-            write("movss %s, [%s%u]\n", register_names[reg], var->key, var->counter_value);
+        if (width == 4)
+            write("movss %s, [%s%u]\n", register_names[4][reg], var->key, var->counter_value);
         else
-            write("movsd %s, [%s%u]\n", register_names[reg], var->key, var->counter_value);
+            write("movsd %s, [%s%u]\n", register_names[4][reg], var->key, var->counter_value);
     else
-        write("mov %s, [%s%u]\n", register_names[reg], var->key, var->counter_value);
+        write("mov %s, [%s%u]\n", register_names[log2(width)][reg], var->key, var->counter_value);
 }
 
 void store(struct SymTab_entry* var, int reg)

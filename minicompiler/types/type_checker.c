@@ -195,11 +195,11 @@ void check_type_defined(char* type_name)
 
 void check_and_set_var(struct VarDecl* node)
 {
-    int width = get_type_width(type_table, node->type->lexeme);
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset, width))
+    int width_and_type = get_type_and_width(type_table, node->type->lexeme);
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset, width_and_type))
         type_error(TRUE, "Redefinition of variable '%s' at %d:%d\n", node->name->lexeme,
                     node->name->line, node->name->column);
-    *offset += width;
+    *offset += (width_and_type >> 2);
 }
 
 void check_and_set_func(struct FuncDecl* node)
