@@ -451,9 +451,11 @@ void print_CFG()
 
 void destroy_instruction(struct QuadList* instruction)
 {
+
+    if (instruction->next == NULL)
+        return;
     free(instruction->instruction);
-    if (instruction->next != NULL)
-        destroy_instruction(instruction->next);
+    destroy_instruction(instruction->next);
 }
 
 void destroy_block(struct BasicBlock* block)
