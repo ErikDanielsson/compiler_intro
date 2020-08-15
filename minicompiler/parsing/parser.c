@@ -22,7 +22,7 @@
 
 #define STACK_SIZE 8192
 #define DEBUG 0
-#define TREEBUILDER 0
+#define TREEBUILDER 1
 #define LABELS 0
 
 char grammar_error = FALSE;
@@ -2249,6 +2249,11 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
                 print_token_str(node->variable_access->variable);
                 printf("\n");
                 return;
+            case EXPR_CAST:
+                write_indent(nest_level);
+                printf("(%s)\n", node->unary_op->lexeme);
+                print_Expr(node->expr, nest_level+1, labels, leaf);
+                return;
         }
     } else {
         switch (node->type) {
@@ -2261,6 +2266,7 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
                 print_token_str(node->binary_op);
                 printf("\n");
                 print_Expr(node->right, nest_level+1, labels, leaf);
+                return;
             case EXPR_UOP:
             case EXPR_NOT:
                 write_indent(nest_level);
@@ -2278,6 +2284,11 @@ void print_Expr(struct Expr* node, int nest_level, char labels, char leaf)
                 return;
             case EXPR_VARACC:
                 print_VarAcc(node->variable_access, nest_level, labels, leaf);
+                return;
+            case EXPR_CAST:
+                write_indent(nest_level);
+                printf("(%s)\n", node->unary_op->lexeme);
+                print_Expr(node->expr, nest_level+1, labels, leaf);
                 return;
         }
     }
