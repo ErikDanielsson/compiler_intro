@@ -5,4 +5,4 @@ enum syscall_const {
 };
 
 void generate_assembly(const char* basename);
-int get_reg(void* symbol, enum SymbolType type, int width);
+unsigned int get_reg(void* symbol, enum SymbolType type, int width);

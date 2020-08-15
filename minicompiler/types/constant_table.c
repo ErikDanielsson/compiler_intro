@@ -22,7 +22,7 @@ struct int_entry* int_pair(long val, long* offset_ptr, struct entry_list** curr)
     struct int_entry* entry = malloc(sizeof(struct int_entry));
     entry->val = val;
     entry->offset = *offset_ptr;
-    entry->reg_loc = -1;
+    entry->locs = 1;
     *offset_ptr += 8;
     entry->next = NULL;
     (*curr)->entry = entry;
@@ -37,7 +37,7 @@ struct float_entry* float_pair(double val, long* offset_ptr, struct entry_list**
     struct float_entry* entry = malloc(sizeof(struct float_entry));
     entry->val = val;
     entry->offset = *offset_ptr;
-    entry->reg_loc = -1;
+    entry->locs = 1;
     *offset_ptr += 8;
     entry->next = NULL;
     (*curr)->entry = entry;
@@ -52,7 +52,7 @@ struct string_entry* string_pair(char* val, long* offset_ptr, struct entry_list*
     struct string_entry* entry = malloc(sizeof(struct string_entry));
     entry->val = val;
     entry->offset = *offset_ptr;
-    entry->reg_loc = -1;
+    entry->locs = 1;
     *offset_ptr += 8;
     entry->next = NULL;
     (*curr)->entry = entry;

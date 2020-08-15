@@ -3,30 +3,17 @@
 #include <string.h>
 #include "registers.h"
 #include "symbol_table.h"
+#include "instruction_set.h"
 
 struct reg_desc registers[32];
 void init_registers()
 {
-    for (int i = 0; i < 0; i++) {
+    for (int i = 0; i < 32; i++) {
         registers[i].size = 4;
-        registers[i].size = 0;
+        registers[i].n_vals = 0;
         registers[i].states = malloc(sizeof(enum RegState)*4);
         registers[i].vals = malloc(sizeof(void*)*4);
     }
-}
-
-inline int max_state(int reg_n)
-{
-    int max_state = -1;
-    for (int i = 0; i < registers[reg_n].size; i++)
-        if (max_state < registers[reg_n].states[i])
-            max_state = registers[reg_n].states[i];
-    return max_state;
-}
-
-inline void clear_reg(int reg_n)
-{
-    registers[reg_n].vals = 0;
 }
 
 void clear_and_set_reg(int reg_n, enum RegState new_state,
@@ -35,7 +22,7 @@ void clear_and_set_reg(int reg_n, enum RegState new_state,
     /*
      * Dumb code which clang/gcc should be able to optimize away.
      */
-    clear_reg(reg_n);
+    //clear_reg(reg_n);
     registers[reg_n].n_vals++;
     registers[reg_n].states[0] = new_state;
     registers[reg_n].vals[0] = new_value;
@@ -66,83 +53,57 @@ void append_to_reg(int reg_n, enum RegState new_state,
     registers[reg_n].vals[size] = new_value;
 }
 
-inline void state_on_store(struct SymTab_entry* entry)
+void remove_from_reg(struct SymTab_entry* entry, unsigned reg_n)
 {
-    entry->locs |= 1;
+    unsigned n_vals = registers[reg_n].n_vals;
+    if (n_vals-1) {
+        for (int i = 0; i < n_vals; i++)
+        {
+            if (registers[reg_n].vals[i] == entry) {
+                unsigned size = n_vals-i-1;
+                memcpy(registers[reg_n].vals+i, registers[reg_n].vals+i+1, sizeof(void*)*size);
+                memcpy(registers[reg_n].states+i, registers[reg_n].states+i+1, sizeof(int)*size);
+                return;
+            }
+        }
+    } else {
+        clear_reg(reg_n);
+    }
+
 }
 
-inline void state_on_load(int reg_n, struct SymTab_entry* entry)
+void remove_from_regs(struct SymTab_entry* entry)
 {
-    clear_and_set_reg(reg_n, REG_VARIABLE, entry);
-    entry->locs |= (1 << reg_n);
-}
-
-inline void state_on_op(int reg_n, struct SymTab_entry* entry)
-{
-    clear_and_set_reg(reg_n, REG_TEMPORARY, entry);
-    entry->locs = 1 << reg_n;
-}
-
-static inline unsigned int lowest_set_bit(unsigned int n)
-{
-    int res;
-    asm("bsf %1, %0",
-        : "=r"(res),
-        : "r"(n));
-    return res;
-}
-
-inline void state_on_assign(struct SymTab_entry* lval, struct SymTab_entry* rval)
-{
-    unsigned int rval_locs = rval->locs;
-    rval_locs &= ~1
-    lval->locs |= rval_locs;
-    for (unsigned lst = lowest_set_bit(rval_locs), real_loc = 0;
-            rval_locs; lst = lowest_set_bit(rval_locs)) {
-        rval_locs >>= lst+1;
+    unsigned locs = entry->locs >> 1;
+    for (unsigned lst = lowest_set_bit(locs), real_loc = 0;
+            locs; lst = lowest_set_bit(locs)) {
+        locs >>= lst+1;
         real_loc += lst+1;
-        append_to_reg(real_loc1-1, lval->type == TEMPORARY ? REG_TEMPORARY : REG_VARIABLE,
-                        lval);
+        #if DEBUG
+        printf("clear reg #%d from %s\n", real_loc-1, entry->key);
+        #endif
+        remove_from_reg(entry, real_loc-2);
     }
 }
 
-
-/*
-    $x = y + z
-    <=>
-    $x = y
-    $x += z;
-    <=>
-    MOV
-    MOV RN, [y]
-    ADD RN, [z]
-    MOV
-*/
-
-
-inline int next_use(int reg_n)
+void print_registers()
 {
-    unsigned int next_use = 1 << 31;
-    for (int i = 0; i < registers[reg_n].n_vals; i++) {
-        if (registers[reg_n].states[i] == REG_VARIABLE) {
-            struct SymTab_entry* entry = ((struct SymTab_entry*)(registers[reg_n].vals[i]));
-            unsigned long temp_use = entry->info;
-            if ((temp_use = (temp_use >> 2)) < next_use)
-                next_use = temp_use;
+    for (int i = 0; i < 16; i++) {
+        if (!(registers[i].n_vals))
+            continue;
+        printf(" : %s: ", register_names[3][i]);
+        for (int j = 0; j < registers[i].n_vals; j++) {
+            printf("%d, ", registers[i].states[j]);
         }
+        printf("\n");
     }
-    return next_use;
-}
-
-inline int stored_else(int reg_n)
-{
-    unsigned int next_use = 1 << 31;
-    for (int i = 0; i < registers[reg_n].n_vals; i++) {
-        if (registers[reg_n].states[i] == REG_VARIABLE) {
-            struct SymTab_entry* entry = (struct SymTab_entry*)(registers[reg_n].vals[i]);
-            unsigned long temp_use = entry->info;
-            if ((temp_use = (temp_use >> 2)) < next_use)
-                next_use = temp_use;
+    for (int i = 0; i < 16; i++) {
+        if (!(registers[16+i].n_vals))
+            continue;
+        printf("%s: ", register_names[4][i]);
+        for (int j = 0; j < registers[16+i].n_vals; j++) {
+            printf("%d, ", registers[16+i].states[j]);
         }
+        printf("\n");
     }
 }
