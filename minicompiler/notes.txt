@@ -16,7 +16,6 @@ parser.c:
     assembly lines.
 
 type checking:
-    MUST CHANGE HOW TYPES ARE STORED!!!!!!!!!!!!!!!!!
 
 IR generation:
     While the current IR generator writes pseudo-assembly to an output stream --

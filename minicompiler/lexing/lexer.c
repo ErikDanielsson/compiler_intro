@@ -353,7 +353,7 @@ void print_token_str(struct Token* token)
         printf("'%c'", token->c_val);
     else if (token->type == ICONST)
         printf("'%ld'", token->i_val);
-    else if (token->type == ICONST)
+    else if (token->type == FCONST)
         printf("'%lf'", token->f_val);
     else
         printf("'%s'", token->lexeme);
