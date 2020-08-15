@@ -7,7 +7,7 @@ LEX_OBJ = lexing/keyword_table.o lexing/lexer.o
 PARSE_OBJ = parsing/table_generator.o parsing/parser.o
 TYPE_OBJ = types/type_checker.o types/type_table.o types/symbol_table.o types/constant_table.o
 IC_OBJ = IC/tree_climber.o  IC/IC_table.o IC/intermediate_code.o
-CODEGEN_OBJ = final/live_and_use.o final/code_generation.o final/registers.o
+CODEGEN_OBJ = final/live_and_use.o final/code_generation.o final/registers.o final/instruction_set.o
 MAIN_OBJ =  main.o
 
 all:
