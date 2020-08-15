@@ -363,8 +363,15 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
         }
 
         case EXPR_BINOP: {
-            char* type1 = visit_Expr_rval(node->left, var_type);
+            /*
+             * Walking the expression nodes from right to left instead of
+             * the more natural vice versa minimizes the number of registers
+             * needed during code generation.
+             */
             char* type2 = visit_Expr_rval(node->right, var_type);
+            char* type1 = visit_Expr_rval(node->left, var_type);
+            check_binop_and_types(node->binary_op->type, type1, type2);
+
             char* type = max(type1, type2);
             struct AddrTypePair atp1;
             atp1.addr = node->left->addr;
