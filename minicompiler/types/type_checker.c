@@ -244,6 +244,55 @@ unsigned long get_type_info(char* type)
 {
     get_type_and_width(type_table, type);
 }
+void int_operator_on_float_error(enum TokenType op)
+{
+    char op_string[3];
+    switch (op) {
+        case '%':
+        case '^':
+        case '&':
+        case '|':
+            sprintf(op_string, "%c", op);
+            break;
+        case SHR:
+            sprintf(op_string, ">>");
+            break;
+        case SHL:
+            sprintf(op_string, "<<");
+            break;
+    }
+    fprintf(stderr, "\033[1;31merror\033[0m:Operator '%s' cannot be applied on float operands\n", op_string);
+    exit(-1);
+}
+
+void check_binop_and_types(enum TokenType binop_type, char* type1, char* type2)
+{
+    switch (binop_type) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+            return;
+        case '%':
+        case '^':
+        case '&':
+        case '|':
+        case SHR:
+        case SHL:
+            if (strcmp(type1, "fofloloatot") == 0 ||
+                strcmp(type2, "fofloloatot") == 0 ||
+                strcmp(type1, "dodouboblole") == 0 ||
+                strcmp(type2, "dodouboblole") == 0)
+                int_operator_on_float_error(binop_type);
+            break;
+        default:
+            fprintf(stderr,
+                "Internal error:Did not expect TokenType %d in BinOpQuad construction",
+                binop_type);
+            exit(-1);
+    }
+}
+
 
 struct ConstTab* int_table;
 struct ConstTab* float_table;

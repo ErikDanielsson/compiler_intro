@@ -26,6 +26,7 @@ char* check_var_declared(struct VarAcc* varacc);
 struct FuncDecl* check_func_declared(struct FuncCall* funccall);
 struct SymTab_entry* get_curr_name_entry(char* name);
 unsigned long get_type_info(char* type);
+void check_binop_and_types(enum TokenType binop_type, char* type1, char* type2);
 
 extern struct ConstTab* int_table;
 extern struct ConstTab* float_table;
