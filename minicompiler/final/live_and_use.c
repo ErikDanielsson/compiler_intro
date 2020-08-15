@@ -14,7 +14,7 @@ void insert_entry(struct SymTab_entry_table* table,
                     struct SymTab_entry* real_entry,
                     char live, unsigned int next_use);
 
-long get_info(struct SymTab_entry_table* table,
+unsigned long get_info(struct SymTab_entry_table* table,
             struct SymTab_entry* real_entry);
 
 void clear_entries(struct SymTab_entry_table* table);
@@ -27,7 +27,11 @@ void live_and_use()
     set = create_SymTab_entry_table(129);
     for (int i = 0; i < intermediate_code->size; i++) {
         struct IC_entry* entry = intermediate_code->entries[i];
+
         while (entry != NULL) {
+            #if DEBUG
+            printf("\nEnter function '%s'\n\n", entry->key);
+            #endif
             walk_blocks(entry);
             entry = entry->next;
         }
@@ -36,6 +40,7 @@ void live_and_use()
 void walk_block(struct BasicBlock* block);
 void walk_blocks(struct IC_entry* entry)
 {
+
     for (int i = 0; i < entry->n_blocks; i++)
         walk_block(entry->basic_block_list[i]);
 }
@@ -55,6 +60,9 @@ void visit_cond(struct CondQuad* instruction, int n);
 void visit_QuadList(struct QuadList* instruction, int n, struct CondQuad* final);
 void walk_block(struct BasicBlock* block)
 {
+    #if DEBUG
+    printf("\nnew block\n\n");
+    #endif
     clear_entries(set);
     if (block->jump_type == QUAD_COND)
         visit_QuadList(block->instructions, 0, block->condition);
@@ -65,12 +73,17 @@ void walk_block(struct BasicBlock* block)
 
 void visit_QuadList(struct QuadList* instruction, int n, struct CondQuad* final)
 {
+
     if (instruction->next == NULL) {
         if (final != NULL)
             visit_cond(final, n);
         return;
     }
+
     visit_QuadList(instruction->next, n+1, final);
+    #if DEBUG
+    printf("instr %d\n", n);
+    #endif
     switch (instruction->type) {
         case QUAD_ASSIGN:
             visit_assign(instruction->instruction, n);
@@ -93,13 +106,15 @@ void visit_QuadList(struct QuadList* instruction, int n, struct CondQuad* final)
         case QUAD_FUNC:
             visit_func(instruction->instruction, n);
             return;
+        default:
+            printf("Something fishy\n");
     }
 }
 
 void visit_assign(struct AssignQuad* instruction, int n)
 {
     instruction->lval_info = get_info(set, instruction->lval);
-    insert_entry(set, instruction->lval, 0, -1);
+    insert_entry(set, instruction->lval, 0, 0);
     if (instruction->rval_type == VARIABLE ||
         instruction->rval_type == TEMPORARY) {
         instruction->rval_info = get_info(set, instruction->rval);
@@ -111,7 +126,7 @@ void visit_assign(struct AssignQuad* instruction, int n)
 void visit_binop(struct BinOpQuad* instruction, int n)
 {
     instruction->result_info = get_info(set, instruction->result);
-    insert_entry(set, instruction->result, 0, -1);
+    insert_entry(set, instruction->result, 0, 0);
     if (instruction->op1_type == VARIABLE ||
         instruction->op1_type == TEMPORARY) {
         instruction->op1_info = get_info(set, instruction->op1);
@@ -131,7 +146,7 @@ void visit_binop(struct BinOpQuad* instruction, int n)
 void visit_uop(struct UOpQuad* instruction, int n)
 {
     instruction->result_info = get_info(set, instruction->result);
-    insert_entry(set, instruction->result, 0, -1);
+    insert_entry(set, instruction->result, 0, 0);
     if (instruction->operand_type == VARIABLE ||
         instruction->operand_type == TEMPORARY) {
         instruction->operand_info = get_info(set, instruction->operand);
@@ -144,7 +159,7 @@ void visit_uop(struct UOpQuad* instruction, int n)
 void visit_conv(struct ConvQuad* instruction, int n)
 {
     instruction->result_info = get_info(set, instruction->result);
-    insert_entry(set, instruction->result, 0, -1);
+    insert_entry(set, instruction->result, 0, 0);
     if (instruction->op_type == VARIABLE ||
         instruction->op_type == TEMPORARY) {
         instruction->op_info = get_info(set, instruction->op);
@@ -170,7 +185,7 @@ void visit_param(struct ParamQuad* instruction, int n)
     if (instruction->type == VARIABLE ||
         instruction->type == TEMPORARY) {
         instruction->op_info = get_info(set, instruction->op);
-        insert_entry(set, instruction->op, 0, -1);
+        insert_entry(set, instruction->op, 0, 0);
     } else {
         instruction->op_info = 0;
     }
@@ -230,12 +245,15 @@ struct SymTab_entry_table* create_SymTab_entry_table(int size)
 }
 
 #define STORE_INFO(live, next_use) \
-    ((unsigned long)1) + ((unsigned long)live << 1) + (((unsigned long)next_use) << 2);\
+    ((unsigned long)0) + ((unsigned long)live << 1) + (((unsigned long)next_use) << 2);\
 
 void insert_entry(struct SymTab_entry_table* table,
                     struct SymTab_entry* real_entry,
                     char live, unsigned int next_use)
 {
+    #if DEBUG
+    printf("insert: %s\n", real_entry->key);
+    #endif
     unsigned int hashv = ptr_hash(real_entry, table->size);
     struct SymTab_entry_entry* t_entry = table->entries[hashv];
     struct SymTab_entry_entry* prev;
@@ -274,7 +292,7 @@ void insert_entry(struct SymTab_entry_table* table,
     }
 }
 
-long get_info(struct SymTab_entry_table* table,
+unsigned long get_info(struct SymTab_entry_table* table,
             struct SymTab_entry* real_entry)
 {
     unsigned int hashv = ptr_hash(real_entry, table->size);
@@ -282,13 +300,16 @@ long get_info(struct SymTab_entry_table* table,
     while (t_entry != NULL) {
         if (t_entry->real_entry == real_entry) {
             #if DEBUG
-            printf("%s: live: %d, use: %d\n", real_entry->key, t_entry->info & 1, t_entry->info >> 1);
+            printf("\t%s:last: %lu live: %lu, use: %lu\n", real_entry->key, t_entry->info & 1, t_entry->info & 2, t_entry->info >> 2);
             #endif
             return t_entry->info;
         }
         t_entry = t_entry->next;
     }
-    return 0;
+    #if DEBUG
+    printf("\t%s: last: %d live: %d, use: %d\n", real_entry->key, 1, 0, 0);
+    #endif
+    return 1;
 }
 
 void clear_entries(struct SymTab_entry_table* table)
