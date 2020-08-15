@@ -393,6 +393,7 @@ char* visit_Expr_rval(struct Expr* node, char* var_type)
         case EXPR_UOP: {
             char* type = visit_Expr_rval(node->expr, var_type);
             node->addr = newtemp(type);
+            node->addr_type = TEMPORARY;
             append_triple(gen_uop(node->expr->addr, node->expr->addr_type,
                                 node->unary_op->type, node->addr), QUAD_UOP, 1);
             return type;
