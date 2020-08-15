@@ -248,6 +248,7 @@ void int_operator_on_float_error(enum TokenType op)
 {
     char op_string[3];
     switch (op) {
+        case '~':
         case '%':
         case '^':
         case '&':
@@ -287,9 +288,26 @@ void check_binop_and_types(enum TokenType binop_type, char* type1, char* type2)
             break;
         default:
             fprintf(stderr,
-                "Internal error:Did not expect TokenType %d in BinOpQuad construction",
+                "Internal error:Did not expect TokenType %d in binop type checking\n",
                 binop_type);
             exit(-1);
+    }
+}
+
+void check_uop_and_types(enum TokenType uop_type, char* type)
+{
+    switch (uop_type) {
+        case '-':
+            return;
+        case '~':
+            if (strcmp(type, "fofloloatot") == 0 ||
+                strcmp(type, "dodouboblole") == 0)
+                int_operator_on_float_error(uop_type);
+        default:
+        fprintf(stderr,
+            "Internal error:Did not expect TokenType %d in uop type checking\n",
+            uop_type);
+        exit(-1);
     }
 }
 
