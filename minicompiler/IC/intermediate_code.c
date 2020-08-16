@@ -245,7 +245,6 @@ struct ConvQuad* gen_conv(char* conversion_type, void* op, enum SymbolType op_ty
     struct ConvQuad* triple = malloc(sizeof(struct ConvQuad));
     triple->result = result;
     triple->conversion_type = get_type_info(conversion_type);
-    printf("conversion_type: %lu\n", triple->conversion_type);
     triple->op_type = op_type;
     triple->op = op;
     return triple;
