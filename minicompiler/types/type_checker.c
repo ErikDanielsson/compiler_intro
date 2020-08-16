@@ -194,6 +194,7 @@ void check_type_defined(char* type_name)
         type_error(TRUE, "type '%s' is not declared", type_name);
 }
 
+
 void check_and_set_var(struct VarDecl* node)
 {
     unsigned long width_and_type = get_type_and_width(type_table, node->type->lexeme);
@@ -242,7 +243,7 @@ struct SymTab_entry* get_curr_name_entry(char* name)
 
 unsigned long get_type_info(char* type)
 {
-    get_type_and_width(type_table, type);
+    return get_type_and_width(type_table, type);
 }
 void int_operator_on_float_error(enum TokenType op)
 {

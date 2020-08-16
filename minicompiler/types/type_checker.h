@@ -18,6 +18,7 @@ void destroy_Env_tree();
 struct SymTab* get_main_SymTab();
 void enter_type_def(char* type_name, struct SymTab* struct_env);
 void check_type_defined(char* type_name);
+
 enum SymbolType get_var_type(char* var_name);
 void enter_temp_var(char* temp_name, char* type);
 void check_and_set_var(struct VarDecl* node);

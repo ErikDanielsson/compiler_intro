@@ -38,7 +38,7 @@ void generate_IC(struct CompStmt* node)
 
 void widening_error(char* type1, char* type2)
 {
-    fprintf(stderr, "\033[1;31merror\033[0m:Unable cast '%s' to '%s' or vice versa\n", type1, type2);
+    fprintf(stderr, "\033[1;31merror\033[0m:Unable implicitly cast '%s' to '%s'\n", type2, type1);
     exit(-1);
 }
 
@@ -51,16 +51,23 @@ char* max(char* type1, char* type2)
 
 void widen(struct AddrTypePair* a,  char* type1, char* type2)
 {
-    if (strcmp(type1, type2) == 0)
-        return;
     check_type_defined(type1);
     check_type_defined(type2);
+    if (strcmp(type1, type2) == 0)
+        return;
+    if (get_widening_type(type_table, type1) > get_widening_type(type_table, type2))
+    {
+        char* caster = max(type1, type2);
+        struct SymTab_entry* temp_entry = newtemp(caster);
+        append_triple(gen_conv(caster, a->addr, a->type, temp_entry), QUAD_CONV, 1);
+        a->addr = temp_entry;
+        a->type = TEMPORARY;
+    } else {
+        widening_error(type1, type2);
+    }
 
-    char* caster = max(type1, type2);
-    struct SymTab_entry* temp_entry = newtemp(caster);
-    append_triple(gen_conv(caster, a->addr, a->type, temp_entry), QUAD_CONV, 1);
-    a->addr = temp_entry;
-    a->type = TEMPORARY;
+
+
 }
 
 void cast(struct AddrTypePair* a, char* caster)
