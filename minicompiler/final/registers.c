@@ -11,12 +11,12 @@ void init_registers()
     for (int i = 0; i < 32; i++) {
         registers[i].size = 4;
         registers[i].n_vals = 0;
-        registers[i].states = malloc(sizeof(enum RegState)*4);
+        registers[i].states = malloc(sizeof(enum RegValState)*4);
         registers[i].vals = malloc(sizeof(void*)*4);
     }
 }
 
-void clear_and_set_reg(int reg_n, enum RegState new_state,
+void clear_and_set_reg(int reg_n, enum RegValState new_state,
                         void* new_value)
 {
     /*
@@ -32,18 +32,18 @@ void expand_reg_desc(int reg_n)
 {
     int size = registers[reg_n].size;
     void* vals[size];
-    enum RegState states[size];
-    memcpy(states, registers[reg_n].states, sizeof(enum RegState)*size);
+    enum RegValState states[size];
+    memcpy(states, registers[reg_n].states, sizeof(enum RegValState)*size);
     memcpy(vals, registers[reg_n].vals, sizeof(void*)*size);
     free(registers[reg_n].states);
     free(registers[reg_n].vals);
-    registers[reg_n].states = malloc(sizeof(enum RegState)*(size+4));
+    registers[reg_n].states = malloc(sizeof(enum RegValState)*(size+4));
     registers[reg_n].vals = malloc(sizeof(void*)*(size+4));
-    memcpy(registers[reg_n].states, states, sizeof(enum RegState)*size);
+    memcpy(registers[reg_n].states, states, sizeof(enum RegValState)*size);
     memcpy(registers[reg_n].vals, vals, sizeof(void*)*size);
 }
 
-void append_to_reg(int reg_n, enum RegState new_state,
+void append_to_reg(int reg_n, enum RegValState new_state,
                     void* new_value)
 {
     if (registers[reg_n].size == registers[reg_n].size)
@@ -85,6 +85,28 @@ void remove_from_regs(struct SymTab_entry* entry)
         remove_from_reg(entry, real_loc-2);
     }
 }
+
+unsigned int least_reg(unsigned int loc)
+{
+    int reg = -1;
+    unsigned int min_n_vals = BIG_VALUE ;
+    rval_locs &= ~1;
+    for (unsigned lst = lowest_set_bit(rval_locs), real_loc = 0;
+            rval_locs; lst = lowest_set_bit(rval_locs)) {
+        rval_locs >>= lst+1;
+        real_loc += lst+1;
+        if (registers[real_loc-2].n_vals < max_n_vals) {
+            reg = real_loc-2;
+            max_n_vals = registers[real_loc-2].n_vals;
+        }
+    }
+    if (reg == -1)
+        fprintf(stderr, "Internal error:No register assigned to symbol\n");
+
+    store_all(reg);
+    return reg;
+}
+
 
 void print_registers()
 {

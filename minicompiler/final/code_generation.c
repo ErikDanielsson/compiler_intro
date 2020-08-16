@@ -260,41 +260,6 @@ static inline void emit_assign(struct AssignQuad* assign)
             }
         }
     }
-
-
-    switch (assign->rval_type) {
-        case VARIABLE:
-        case TEMPORARY:
-        case FCONSTANT: {
-
-            long lwidth_and_type = assign->lval->width_and_type;
-            int ltype = lwidth_and_type & 1;
-            int lwidth = lwidth_and_type >> 2;
-            int rval_reg  = get_reg(assign->rval, assign->rval_type, lwidth);
-            printf("rval reg: %s\n", register_names[3][rval_reg]);
-            if (ltype)
-                if (lwidth == 4)
-                    write("movss [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
-                            register_names[4][rval_reg]);
-                else
-                    write("movsd [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
-                            register_names[4][rval_reg]);
-            else
-                write("mov [%s%u], %s\n", assign->lval->key, assign->lval->counter_value,
-                        register_names[log2(lwidth)][rval_reg]);
-
-            return;
-        }
-        case ICONSTANT:
-            write("mov [%s%u], dword %ld\n", assign->lval->key, assign->lval->counter_value,
-                    ((struct int_entry*)(assign->rval))->val);
-            return;
-        default:
-            fprintf(stderr, "no assign\n");
-            return;
-    }
-
-
 }
 void write_int_arith(const char* operator, char* destination, void* operand, enum SymbolType type, int width);
 void write_int_mov(char* destination, void* operand, enum SymbolType type, int width) ;
@@ -304,15 +269,449 @@ static inline void emit_binop(struct BinOpQuad* binop)
     unsigned long width_and_type = binop->result->width_and_type;
     unsigned long width = width_and_type >> 2;
     unsigned long type = width_and_type & 1;
+    unsigned int loged_width = loged_width;
+    unsigned int result_reg;
+    if (type) {
+        switch (binop->op1_type) {
+            case TEMPORARY: {
+                struct SymTab_entry* entry = binop->op1;
+                result_reg = first_reg(entry);
+                clear_all_locations(entry);
+                entry->locs = 0;
+                break;
+            }
+            case VARIABLE: {
+                struct SymTab_entry* entry = binop->op1;
+                if (in_reg(entry->locs)) {
+                    if (!(used_later(entry->info))) {
+                        result_reg = least_reg(entry);
+                        if (!(entry->locs & 1))
+                            store(entry);
+                        clear_all_locations(entry);
+                        entry->locs = 1;
+                    } else if (count_registers(entry->locs) >= 2) {
+                        result_reg = least_reg(entry);
+                    } else {
+                        result_reg = get_reg(entry, ..);
+                        unsigned int least_reg = least_reg(entry);
+                        if (width == 4)
+                            write("movss %s, %s %s", register_names[4][result_reg],
+                                    size_spec[2], register_names[4][least_reg]);
+                        else
+                            write("movsd %s, %s %s", register_names[4][result_reg],
+                                    size_spec[3], register_names[4][least_reg]);
+                    }
+                } else {
+                    result_reg = get_reg(entry, ..);
+                    if (width == 4)
+                        write("movss %s, %s [%s%u]", register_names[4][result_reg],
+                                size_spec[2], entry->key, entry->counter_value);
+                    else
+                        write("movsd %s, %s [%s%u]", register_names[4][result_reg],
+                                size_spec[3], entry->key, entry->counter_value);
+                }
+                break;
+            }
+            case FCONSTANT: {
+                struct float_entry* entry = binop->op1;
+                result_reg = get_reg(entry, ..);
+                /*
+                 * Should add live and use info of float consts to reduce
+                 * loads of the same constant. This approach will load the same
+                 * constant over and over again.
+                 */
+                load_float(result_reg, width, entry->offset);
+                break;
+            }
+        }
+        switch (binop->op2_type) {
+            case TEMPORARY: {
+                struct SymTab_entry* entry = binop->op2;
+                unsigned int op_reg = first_reg(entry);
+                clear_all_locations(entry);
+                entry->locs = 0;
+                write("%s %s, %s", float_arithmetic[width == 4][binop->op_type],
+                        register_names[4][result_reg], register_names[4][op_reg]);
+                break;
+            }
+            case VARIABLE: {
+                struct SymTab_entry* entry = binop->op2;
+                if (in_reg(entry->locs)) {
+                    if (!(used_later(entry->info))) {
+                        result_reg = least_reg(entry);
+                        if (!(entry->locs & 1))
+                            store(entry);
+                        clear_all_locations(entry);
+                        entry->locs = 1;
+                    }  else {
+                        unsigned int op_reg = first_reg(entry);
+                        write("%s %s, %s", float_arithmetic[width == 4][binop->op_type],
+                                register_names[4][result_reg], register_names[4][op_reg]);
+                    }
+                } else if (used_later(entry->info)) {
+                    unsigned int op_reg = get_reg(entry, ..);
+                    load(entry, op_reg, width);
+                    write("%s %s, %s", float_arithmetic[width == 4][binop->op_type],
+                            register_names[4][result_reg], register_names[4][op_reg]);
+                } else {
+                    write("%s %s, %s [%s%u]", float_arithmetic[width == 4][binop->op_type],
+                             register_names[4][result_reg], size_spec[loged_width],
+                            entry->key, entry->counter_value);
+                }
+                break;
+            }
+            case FCONSTANT: {
+                struct float_entry* entry = binop->op2;
+                write("%s %s, %s [dodouboblole%u]", float_arithmetic[width == 4][binop->op_type],
+                        register_names[4][result_reg], size_spec[loged_width],
+                        entry->offset);
+            }
+
+        }
+    } else {
+        switch (binop->op_type) {
+            case BINOP_ADD:
+            case BINOP_SUB:
+            case BINOP_MUL:
+            case BINOP_AND:
+            case BINOP_OR:
+            case BINOP_XOR: {
+                switch (binop->op1_type) {
+                    case TEMPORARY: {
+                        struct SymTab_entry* entry = binop->op1;
+                        result_reg = first_reg(entry);
+                        clear_all_locations(entry);
+                        entry->locs = 0;
+                        break;
+                    }
+                    case VARIABLE: {
+                        struct SymTab_entry* entry = binop->op1;
+                        if (in_reg(entry->locs)) {
+                            if (!(used_later(entry->info))) {
+                                result_reg = least_reg(entry);
+                                if (!(entry->locs & 1))
+                                    store(entry);
+                                clear_all_locations(entry);
+                                entry->locs = 1;
+                            } else if (count_registers(entry->locs) >= 2) {
+                                result_reg = least_reg(entry);
+                            } else {
+                                result_reg = get_reg(entry, ..);
+                                unsigned int least_reg = least_reg(entry);
+                                write("mov %s, %s %s", register_names[loged_width][result_reg],
+                                            size_spec[loged_width], register_names[loged_width][least_reg]);
+                            }
+                        } else {
+                            result_reg = get_reg(entry, ..);
+                            write("mov %s, %s [%s%u]", register_names[loged_width][result_reg],
+                                    size_spec[loged_width], entry->key, entry->counter_value);
+
+                        }
+                        break;
+                    }
+                    case ICONSTANT: {
+                        struct int_entry* entry = binop->op1;
+                        result_reg = get_reg(entry, ..);
+                        if (width == 4)
+                            write("mov %s, %d\n", registers[loged_width][result_reg], (int)entry->val);
+                        else
+                            write("mov %s, %ld\n", registers[loged_width][result_reg], entry->val);
+                        break;
+                    }
+                }
+                switch (binop->op2_type) {
+                    case TEMPORARY: {
+                        struct SymTab_entry* entry = binop->op2;
+                        unsigned int op_reg = first_reg(entry);
+                        clear_all_locations(entry);
+                        entry->locs = 0;
+                        write("%s %s, %s", int_arithmetic[width == 4][binop->op_type],
+                                register_names[4][result_reg], register_names[4][op_reg]);
+                        break;
+                    }
+                    case VARIABLE: {
+                        struct SymTab_entry* entry = binop->op2;
+                        if (in_reg(entry->locs)) {
+                            if (!(used_later(entry->info))) {
+                                result_reg = least_reg(entry);
+                                if (!(entry->locs & 1))
+                                    store(entry);
+                                clear_all_locations(entry);
+                                entry->locs = 1;
+                            }  else {
+                                unsigned int op_reg = first_reg(entry);
+                                write("%s %s, %s", int_arithmetic[width == 4][binop->op_type],
+                                        register_names[4][result_reg], register_names[4][op_reg]);
+                            }
+                        } else if (used_later(entry->info)) {
+                            unsigned int op_reg = get_reg(entry, ..);
+                            load(entry, op_reg, width);
+                            write("%s %s, %s", int_arithmetic[width == 4][binop->op_type],
+                                    register_names[4][result_reg], register_names[4][op_reg]);
+                        } else {
+                            write("%s %s, %s [%s%u]", int_arithmetic[width == 4][binop->op_type],
+                                     register_names[4][result_reg], size_spec[loged_width],
+                                    entry->key, entry->counter_value);
+                        }
+                        break;
+                    }
+                    case ICONSTANT: {
+                        struct int_entry* entry = binop->op2;
+                        if (width == 4)
+                            write("%s %s, %d", int_arithmetic[width == 4][binop->op_type],
+                                    register_names[loged_width][result_reg], size_spec[loged_width],
+                                    (int)entry->offset);
+                        else
+                            write("%s %s, %ld", int_arithmetic[width == 4][binop->op_type],
+                                    register_names[loged_width][result_reg], size_spec[loged_width],
+                                    (int)entry->offset);
+                    }
+                }
+            }
+            case BINOP_DIV:
+            case BINOP_MOD: {
+
+                if (binop->op_type == BINOP_DIV)
+                    result_reg = 0;
+                else
+                    result_reg = 3;
+                /*
+                 * Free 'a' and 'd' registers to be able to perform division
+                 */
+                unsigned int op1_in_a = free_reg(0, binop->op1, binop->op1_type);
+                unsigned int op1_in_d = free_reg(3, binop->op1, binop->op1_type);
+                if (op1_in_a)
+                    goto binop_select_2nd_op;
+                if (op1_in_d) {
+                    write("mov %s, %s\n", register_names[loged_width][0], register_names[loged_width][3]);
+                    goto binop_select_2nd_op;
+                }
+                switch (binop->op1_type) {
+                    case TEMPORARY: {
+                        struct SymTab_entry* entry = binop->op1;
+                        unsigned int dividend = first_reg(entry);
+                        write("mov %s, %s", register_names[loged_width][0],
+                                            register_names[loged_width][dividend]);
+                        clear_all_locations(entry);
+                        entry->locs = 0;
+                        break;
+                    }
+                    case VARIABLE: {
+                        int dividend;
+                        struct SymTab_entry* entry = binop->op1;
+                        if (in_reg(entry->locs)) {
+                            struct SymTab_entry* entry = binop->op1;
+                            dividend = first_reg(entry);
+                            write("mov %s, %s\n",
+                                    register_names[loged_width][0],
+                                    register_names[loged_width][dividend]);
+                        } else if (used_later(entry->info) &&
+                                (dividend = get_free_reg(entry) != -1) {
+                            write("mov %s, %s\n",
+                                    register_names[loged_width][0],
+                                    register_names[loged_width][dividend]);
+                        } else {
+                            write("mov %s, %s [%s%u]\n",
+                                register_names[loged_width][0],
+                                size_spec[loged_width],
+                                entry->key,
+                                entry->counter_value);
+                        }
+                        break;
+                    }
+                    case ICONSTANT: {
+                        struct int_entry* entry = binop->op1;
+                        if (width == 4)
+                            write("mov %s, %d\n",
+                                register_names[loged_width][0],
+                                (int)entry->val);
+                        else
+                            write("mov %s, %ld\n",
+                                register_names[loged_width][0],
+                                entry->val);
+                    }
+                }
+            binop_select_2nd_op:
+                write("%s\n", conv_to_ad[loged_width]);
+                switch (binop->op2_type) {
+                    case TEMPORARY: {
+                        struct SymTab_entry* entry = binop->op2;
+                        unsigned int dividend = first_reg(entry);
+                        write("idiv %s\n", register_names[loged_width][divisior]);
+                        clear_all_locations(entry);
+                        entry->locs = 0;
+                        break;
+                    }
+                    case VARIABLE: {
+                        int divisor;
+                        struct SymTab_entry* entry = binop->op2;
+                        if (in_reg(entry->locs)) {
+                            struct SymTab_entry* entry = binop->op2;
+                            divisor = first_reg(entry);
+                            write("idiv %s\n",
+                                    register_names[loged_width][divisor]);
+                        } else if (used_later(entry->info) &&
+                                (divisor = get_free_reg(entry) != -1) {
+                            write("idiv %s\n",
+                                    register_names[loged_width][divisor]);
+                        } else {
+                            write("idiv %s [%s%u]\n",
+                                size_spec[loged_width],
+                                entry->key,
+                                entry->counter_value);
+                        }
+                        break;
+                    }
+                    case ICONSTANT: {
+                        struct int_entry* entry = binop->op2;
+                        unsigned int op_reg = get_reg(entry, ..);
+                        if (width == 4)
+                            write("mov %s, %d\n",
+                                register_names[loged_width][op_reg],
+                                (int)entry->val);
+                        else
+                            write("mov %s, %ld\n",
+                                register_names[loged_width][op_reg],
+                                entry->val);
+                        write("idiv %s\n", register_names[loged_width][op_reg]);
+                    }
+                }
+            }
+            case BINOP_SHL:
+            case BINOP_SHR: {
+                unsigned int op2_in_c;
+                if (binop->op2_type1 != ICONSTANT)
+                    op2_in_c = free_reg(2, binop->op2, binop->op2_type);
+                switch (binop->op1_type) {
+                    case TEMPORARY: {
+                        struct SymTab_entry* entry = binop->op1;
+                        result_reg = first_reg(entry);
+                        clear_all_locations(entry);
+                        entry->locs = 0;
+                        break;
+                    }
+                    case VARIABLE: {
+                        struct SymTab_entry* entry = binop->op1;
+                        if (in_reg(entry->locs)) {
+                            if (!(used_later(entry->info))) {
+                                result_reg = least_reg(entry);
+                                if (!(entry->locs & 1))
+                                    store(entry);
+                                clear_all_locations(entry);
+                                entry->locs = 1;
+                            } else if (count_registers(entry->locs) >= 2) {
+                                result_reg = least_reg(entry);
+                            } else {
+                                result_reg = get_reg(entry, ..);
+                                unsigned int least_reg = least_reg(entry);
+                                write("mov %s, %s %s", register_names[loged_width][result_reg],
+                                            size_spec[loged_width], register_names[loged_width][least_reg]);
+                            }
+                        } else {
+                            result_reg = get_reg(entry, ..);
+                            write("mov %s, %s [%s%u]", register_names[loged_width][result_reg],
+                                    size_spec[loged_width], entry->key, entry->counter_value);
+
+                        }
+                        break;
+                    }
+                    case ICONSTANT: {
+                        struct int_entry* entry = binop->op1;
+                        result_reg = get_reg(entry, ..);
+                        if (width == 4)
+                            write("mov %s, %d\n", registers[loged_width][result_reg], (int)entry->val);
+                        else
+                            write("mov %s, %ld\n", registers[loged_width][result_reg], entry->val);
+                        break;
+                    }
+                    if (op2_in_c) {
+                        write("%s %s, cl\n", int_arithmetic[binop->op_type], register_names[loged_width][result_reg]);
+                    } else {
+                        switch (binop->op2_type) {
+                            case TEMPORARY: {
+                                struct SymTab_entry* entry = binop->op2;
+                                unsigned int temp_reg = first_reg(entry);
+                                write("mov %s, %s\n", registers_names[loged_width][2],
+                                        registers_names[loged_width][temp_reg]);
+                                clear_all_locations(entry);
+                                entry->locs = 0;
+                                write("%s %s, cl\n", int_arithmetic[binop->op_type],
+                                        register_names[loged_width][result_reg]);
+                                break;
+                            }
+                            case VARIABLE: {
+                                struct SymTab_entry* entry = binop->op2;
+                                if (in_reg(entry->locs)) {
+                                    if (!(used_later(entry->info))) {
+                                        unsigned int temp_reg = least_reg(entry);
+                                        if (!(entry->locs & 1))
+                                            store(entry);
+                                        clear_all_locations(entry);
+                                        write("mov , %s\n", registers_names[loged_width][2],
+                                                registers_names[loged_width][temp_reg]);
+                                        write("%s %s, cl\n", int_arithmetic[binop->op_type],
+                                                register_names[loged_width][result_reg]);
+                                        entry->locs = 1;
+                                    }  else {
+                                        unsigned int temp_reg = first_reg(entry);
+                                        write("mov %s, %s\n", registers_names[loged_width][2],
+                                                registers_names[loged_width][temp_reg]);
+                                        write("%s %s, cl\n", int_arithmetic[binop->op_type],
+                                                register_names[loged_width][result_reg]);
+                                    }
+                                } else if (used_later(entry->info)) {
+                                    unsigned int temp_reg = get_reg(entry, ..);
+                                    load(entry, temp_reg, width);
+                                    write("mov %s, %s\n", registers_names[loged_width][2],
+                                            registers_names[loged_width][temp_reg]);
+                                    write("%s %s, cl\n", int_arithmetic[binop->op_type],
+                                            register_names[loged_width][result_reg]);
+                                } else {
+                                    write("mov %s, %s [%s%u]",
+                                            register_names[loged_width][2],
+                                             ize_spec[loged_width],
+                                            entry->key, entry->counter_value);
+                                    write("%s %s, cl\n", int_arithmetic[binop->op_type],
+                                            register_names[loged_width][result_reg]);
+
+                                }
+                                break;
+                            }
+                            case ICONSTANT: {
+                                struct int_entry* entry = binop->op2;
+                                if (width == 4)
+                                    write("%s %s, %d", int_arithmetic[binop->op_type],
+                                            register_names[loged_width][result_reg], size_spec[loged_width],
+                                            (int)entry->offset);
+                                else
+                                    write("%s %s, %ld", int_arithmetic[binop->op_type],
+                                            register_names[loged_width][result_reg], size_spec[loged_width],
+                                            (int)entry->offset);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    binop->result->locs = result_reg << 1;
+}
+
+
+
+
+
+
+
     unsigned int res_reg = get_reg(binop->result, TEMPORARY, width);
-    write_int_mov(register_names[log2(width)][res_reg], binop->op1, binop->op1_type, width);
+    write_int_mov(register_names[loged_width][res_reg], binop->op1, binop->op1_type, width);
 
 
     switch (binop->op_type) {
         case BINOP_PLUS:
         case BINOP_MINUS:
             write_int_arith(int_arithmetic[binop->op_type],
-                            register_names[log2(width)][res_reg],
+                            register_names[loged_width][res_reg],
                             binop->op2, binop->op2_type, width);
             break;
         case BINOP_MUL:
@@ -349,7 +748,7 @@ void write_int_arith(const char* operator, char* destination, void* operand, enu
         case TEMPORARY: {
             struct SymTab_entry* entry = operand;
             unsigned int reg_n = first_reg(entry);
-            write("%s\n", register_names[log2(width)][reg_n]);
+            write("%s\n", register_names[loged_width][reg_n]);
             printf("\nbefore\n");
             print_registers();
             clear_all_locations(entry);
@@ -380,7 +779,7 @@ void write_int_mov(char* destination, void* operand, enum SymbolType type, int w
         case TEMPORARY: {
             struct SymTab_entry* entry = operand;
             unsigned int reg_n = first_reg(entry);
-            write("%s\n", register_names[log2(width)][reg_n]);
+            write("%s\n", register_names[loged_width][reg_n]);
             print_registers();
             clear_all_locations(entry);
             print_registers();
@@ -696,7 +1095,7 @@ void load_var(int reg, struct SymTab_entry* var, int type, int width)
         else
             write("movsd %s, [%s%u]\n", register_names[4][reg], var->key, var->counter_value);
     else
-        write("mov %s, [%s%u]\n", register_names[log2(width)][reg], var->key, var->counter_value);
+        write("mov %s, [%s%u]\n", register_names[loged_width][reg], var->key, var->counter_value);
 }
 
 void store(struct SymTab_entry* var, int reg)
@@ -710,7 +1109,7 @@ void store(struct SymTab_entry* var, int reg)
         else
             write("movsd [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg]);
     else
-        write("mov [%s%u], %s\n", var->key, var->counter_value, register_names[log2(width)][reg]);
+        write("mov [%s%u], %s\n", var->key, var->counter_value, register_names[loged_width][reg]);
 }
 
 void load_float(int reg, long float_loc, int width)

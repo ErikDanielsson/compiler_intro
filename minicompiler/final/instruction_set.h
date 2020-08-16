@@ -16,7 +16,7 @@ extern const char* conv_float_int[];
 
 extern const char* int_arithmetic[];
 
-extern const char* bitwise[];
+extern const char* int_unary[];
 
 extern const char* inc_dec[];
 

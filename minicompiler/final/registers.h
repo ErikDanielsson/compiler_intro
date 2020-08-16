@@ -1,16 +1,25 @@
 #pragma once
 #include "symbol_table.h"
-enum RegState {
-    REG_RESERVED,
-    REG_EXTREMLY_RESERVED,
+#include "code_generation.h"
+
+#define BIG_VALUE BIG_VALUE
+enum RegValState {
     REG_VARIABLE,
     REG_TEMPORARY,
     REG_CONSTANT
 };
 
+enum RegState {
+    REG_FREE,
+    REG_OCCUPIED,
+    REG_SAVED,
+    REG_RESERVED
+};
+
 struct reg_desc {
-    int size;
-    int n_vals;
+    unsigned int size;
+    unsigned int n_vals;
+    enum RegState reg_state;
     int* states;
     void** vals;
     char reg_width;
@@ -21,9 +30,9 @@ extern struct reg_desc registers[32];
 
 // Real funcs:
 void init_registers();
-void clear_and_set_reg(int reg_n, enum RegState new_state,
+void clear_and_set_reg(int reg_n, enum RegValState new_state,
                         void* new_value);
-void append_to_reg(int reg_n, enum RegState new_state,
+void append_to_reg(int reg_n, enum RegValState new_state,
                     void* new_value);
 void remove_from_regs(struct SymTab_entry* entry);
 
@@ -113,10 +122,45 @@ static inline unsigned int resides_elsewhere(unsigned int locs, int this_residen
     return 0;
 }
 
+static inline unsigned int in_reg(unsigned int locs)
+{
+    return (locs & ~1);
+}
+
 static inline void append_reg_to_symbol(struct SymTab_entry* entry, unsigned new_reg)
 {
     entry->locs |= 1 << (new_reg+1);
 }
+
+static inline unsigned int n_set_bits(unsigned int in)
+{
+    unsigned int res;
+    asm("popcnt %1, %0"
+        : "=r"(res)
+        : "r"(in));
+    return res;
+}
+
+static inline unsigned int count_registers(unsigned int locs)
+{
+    locs &= ~1;
+    return n_set_bits(locs);
+}
+
+static inline unsigned int used_later(unsigned int info)
+{
+    return next & 1;
+}
+
+static inline void store_all(unsigned int reg_n)
+{
+    for (int i = 0; i < registers[reg_n].n_vals; i++)
+        if (registers[reg_n].states[i] == REG_VARIABLE)
+            store(registers[reg_n].vals[i], reg_n);
+
+}
+
+unsigned int get_and_clear_least_reg(unsigned int loc);
 /*
     $x = y + z
     <=>
@@ -132,7 +176,7 @@ static inline void append_reg_to_symbol(struct SymTab_entry* entry, unsigned new
 
 static inline int next_use(int reg_n)
 {
-    unsigned int next_use = 1 << 31;
+    unsigned int next_use = BIG_VALUE;
     for (int i = 0; i < registers[reg_n].n_vals; i++) {
         if (registers[reg_n].states[i] == REG_VARIABLE) {
             struct SymTab_entry* entry = ((struct SymTab_entry*)(registers[reg_n].vals[i]));
@@ -146,7 +190,7 @@ static inline int next_use(int reg_n)
 
 static inline int stored_else(int reg_n)
 {
-    unsigned int next_use = 1 << 31;
+    unsigned int next_use = BIG_VALUE;
     for (int i = 0; i < registers[reg_n].n_vals; i++) {
         if (registers[reg_n].states[i] == REG_VARIABLE) {
             struct SymTab_entry* entry = (struct SymTab_entry*)(registers[reg_n].vals[i]);

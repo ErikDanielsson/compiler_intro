@@ -84,18 +84,20 @@ const char* int_arithmetic[] = {
     "imul",     // <dest>, <src>    Mul <dest> with <src> and place in <dest>
                 // <src>            Mul 'a' register with <src>, result in a:d
     "idiv"     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
-
-};
-const char* bitwise[] = {
+    "idiv"     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
     "and",      // <dest>, <src>
     "or",       // <dest>, <src>
     "xor",      // <dest>, <src>
-    "not",      // <dest>, <src>
     "sar",      // <dest>, <imm>    Max of cl and <imm> is 64.
                 // <dest>, cl
     "sal"       // <dest>, <imm>    Max of cl and <imm> is 64.
                 // <dest>, cl
 };
+
+const char* int_unary[] = {
+    "neg",
+    "not"
+}
 
 const char* inc_dec[] = {
     "inc",      // <op>
