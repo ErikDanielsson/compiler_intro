@@ -52,13 +52,17 @@ const char* mov[] = {
     "movsd"     // <RXdest>, <src>  Place <src> (64 bit) in <RXdest>
 };
 
-const char* conv_in_a[] = {
+const char* widen_to_ad[] = {
     "cbw",      // byte@al -> word@ax
     "cwd",      // word@ax -> dword@ax:dx
-    "cwde",     // word@ax -> dword@eax
     "cdq",      // dword@eax -> qword@eax:edx
-    "cdqe",     // dword@eax -> qword@rax
     "cqo"       // dword@rax -> qword@rax:rdx
+};
+
+const char* conv_in_a[] = {
+    "cbw",      // byte@al -> word@ax
+    "cwde",     // word@ax -> dword@eax
+    "cdqe"      // dword@eax -> qword@rax
 };
 
 const char* conv_signed[] = {
@@ -97,7 +101,7 @@ const char* int_arithmetic[] = {
 const char* int_unary[] = {
     "neg",
     "not"
-}
+};
 
 const char* inc_dec[] = {
     "inc",      // <op>

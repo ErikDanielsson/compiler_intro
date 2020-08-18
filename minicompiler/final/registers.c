@@ -28,7 +28,7 @@ void clear_and_set_reg(int reg_n, enum RegValState new_state,
     registers[reg_n].vals[0] = new_value;
 }
 
-void expand_reg_desc(int reg_n)
+void expand_reg_desc(int reg_n, int expansion)
 {
     int size = registers[reg_n].size;
     void* vals[size];
@@ -37,8 +37,8 @@ void expand_reg_desc(int reg_n)
     memcpy(vals, registers[reg_n].vals, sizeof(void*)*size);
     free(registers[reg_n].states);
     free(registers[reg_n].vals);
-    registers[reg_n].states = malloc(sizeof(enum RegValState)*(size+4));
-    registers[reg_n].vals = malloc(sizeof(void*)*(size+4));
+    registers[reg_n].states = malloc(sizeof(enum RegValState)*(size+expansion));
+    registers[reg_n].vals = malloc(sizeof(void*)*(size+expansion));
     memcpy(registers[reg_n].states, states, sizeof(enum RegValState)*size);
     memcpy(registers[reg_n].vals, vals, sizeof(void*)*size);
 }
@@ -47,7 +47,7 @@ void append_to_reg(int reg_n, enum RegValState new_state,
                     void* new_value)
 {
     if (registers[reg_n].size == registers[reg_n].size)
-        expand_reg_desc(reg_n);
+        expand_reg_desc(reg_n, 4);
     int size = registers[reg_n].size++;
     registers[reg_n].states[size] = new_state;
     registers[reg_n].vals[size] = new_value;
@@ -89,15 +89,15 @@ void remove_from_regs(struct SymTab_entry* entry)
 unsigned int least_reg(unsigned int loc)
 {
     int reg = -1;
-    unsigned int min_n_vals = BIG_VALUE ;
-    rval_locs &= ~1;
-    for (unsigned lst = lowest_set_bit(rval_locs), real_loc = 0;
-            rval_locs; lst = lowest_set_bit(rval_locs)) {
-        rval_locs >>= lst+1;
+    unsigned int min_n_vals = MAX_UINT ;
+    loc &= ~1;
+    for (unsigned lst = lowest_set_bit(loc), real_loc = 0;
+            loc; lst = lowest_set_bit(loc)) {
+        loc >>= lst+1;
         real_loc += lst+1;
-        if (registers[real_loc-2].n_vals < max_n_vals) {
+        if (registers[real_loc-2].n_vals < min_n_vals) {
             reg = real_loc-2;
-            max_n_vals = registers[real_loc-2].n_vals;
+            min_n_vals = registers[real_loc-2].n_vals;
         }
     }
     if (reg == -1)
@@ -105,6 +105,23 @@ unsigned int least_reg(unsigned int loc)
 
     store_all(reg);
     return reg;
+}
+
+int copy_reg_to_reg(unsigned int dest, unsigned int orig, struct SymTab_entry* entry)
+{
+    int ret_val = 0;
+    int n_vals = registers[orig].n_vals;
+    if (registers[dest].size < n_vals)
+        expand_reg_desc(dest, registers[orig].size - registers[dest].size);
+    memcpy(registers[dest].states, registers[orig].states, n_vals);
+    memcpy(registers[dest].vals, registers[orig].vals, n_vals);
+    for (int i = 0; i < registers[orig].n_vals; i++) {
+        struct SymTab_entry* tmp_entry = registers[orig].vals[i];
+        ret_val = tmp_entry == entry;
+        entry->locs |= 1 << (dest+1);
+        entry->locs &= ~(1 << (orig+1));
+    }
+    return ret_val;
 }
 
 

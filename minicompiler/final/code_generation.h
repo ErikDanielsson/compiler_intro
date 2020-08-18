@@ -5,4 +5,5 @@ enum syscall_const {
 };
 
 void generate_assembly(const char* basename);
-unsigned int get_reg(void* symbol, enum SymbolType type, int width);
+void store(struct SymTab_entry* var, int reg);
+int get_reg(unsigned int type, unsigned int not_this_reg);  

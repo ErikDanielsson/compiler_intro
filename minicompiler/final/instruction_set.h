@@ -6,6 +6,8 @@ const char* size_spec[4];
 
 extern const char* mov[];
 
+extern const char* widen_to_ad[];
+
 extern const char* conv_in_a[];
 
 extern const char* conv_signed[];

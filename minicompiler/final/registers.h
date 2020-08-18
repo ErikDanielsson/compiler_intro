@@ -1,8 +1,9 @@
 #pragma once
 #include "symbol_table.h"
 #include "code_generation.h"
+#include "consts.h"
 
-#define BIG_VALUE BIG_VALUE
+
 enum RegValState {
     REG_VARIABLE,
     REG_TEMPORARY,
@@ -35,6 +36,8 @@ void clear_and_set_reg(int reg_n, enum RegValState new_state,
 void append_to_reg(int reg_n, enum RegValState new_state,
                     void* new_value);
 void remove_from_regs(struct SymTab_entry* entry);
+int copy_reg_to_reg(unsigned int dest, unsigned int orig,
+                    struct SymTab_entry* entry);
 
 // Should-be-inlined funcs:
 static inline int max_state(int reg_n)
@@ -47,10 +50,14 @@ static inline int max_state(int reg_n)
     return max_state;
 }
 
+static inline int get_reg_state(int reg_n)
+{
+    return registers[reg_n].reg_state;
+}
+
 static inline void clear_reg(int reg_n)
 {
     registers[reg_n].n_vals = 0;
-
 }
 
 static inline void state_on_store(struct SymTab_entry* entry)
@@ -149,7 +156,7 @@ static inline unsigned int count_registers(unsigned int locs)
 
 static inline unsigned int used_later(unsigned int info)
 {
-    return next & 1;
+    return info & 1;
 }
 
 static inline void store_all(unsigned int reg_n)
@@ -176,7 +183,7 @@ unsigned int get_and_clear_least_reg(unsigned int loc);
 
 static inline int next_use(int reg_n)
 {
-    unsigned int next_use = BIG_VALUE;
+    unsigned int next_use = MAX_UINT;
     for (int i = 0; i < registers[reg_n].n_vals; i++) {
         if (registers[reg_n].states[i] == REG_VARIABLE) {
             struct SymTab_entry* entry = ((struct SymTab_entry*)(registers[reg_n].vals[i]));
@@ -190,7 +197,7 @@ static inline int next_use(int reg_n)
 
 static inline int stored_else(int reg_n)
 {
-    unsigned int next_use = BIG_VALUE;
+    unsigned int next_use = MAX_UINT;
     for (int i = 0; i < registers[reg_n].n_vals; i++) {
         if (registers[reg_n].states[i] == REG_VARIABLE) {
             struct SymTab_entry* entry = (struct SymTab_entry*)(registers[reg_n].vals[i]);
