@@ -12,6 +12,7 @@ struct ConstTab* create_ConstTab(int size)
     constant_table->entries = malloc(sizeof(void*)*size);
     constant_table->start = malloc(sizeof(struct entry_list));
     constant_table->curr = constant_table->start;
+    constant_table->curr->next = NULL;
     for (int i = 0; i < size; i++)
         constant_table->entries[i] = NULL;
     return constant_table;

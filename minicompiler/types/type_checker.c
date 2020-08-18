@@ -50,6 +50,7 @@ void undeclared_func_error(struct FuncCall* node)
     exit(-1);
 }
 
+
 void mismatching_params_error(struct FuncCall* funccall, struct FuncDecl* funcdecl)
 {
     fprintf(stderr, "\033[1;31merror\033[0m: Call of function '%s' at %d:%d declared at line %d\nexpected %d params got %d\n",
@@ -184,7 +185,7 @@ void enter_type_def(char* type_name, struct SymTab* struct_env)
 
 void enter_temp_var(char* temp_name, char* type)
 {
-    int width_and_type = get_type_and_width(type_table, type);
+    unsigned int width_and_type = get_type_and_width(type_table, type);
     SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0, width_and_type);
 }
 
@@ -322,7 +323,7 @@ struct int_entry* enter_int(long val)
     return append_int(int_table, val);
 }
 
-struct float_entry* enter_float(float val)
+struct float_entry* enter_float(double val)
 {
     return append_float(float_table, val);
 }

@@ -36,5 +36,5 @@ extern struct ConstTab* float_table;
 extern struct ConstTab* string_table;
 
 struct int_entry* enter_int(long val);
-struct float_entry* enter_float(float val);
+struct float_entry* enter_float(double val);
 struct string_entry* enter_string(char* val);
