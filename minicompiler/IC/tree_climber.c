@@ -698,7 +698,7 @@ void visit_AStmt(struct AStmt* node)
         struct AddrTypePair atp1;
         atp1.addr = node->expr->addr;
         atp1.type = node->expr->addr_type;
-        widen(&atp1, expr_type, var_type);
+        widen(&atp1, var_type, expr_type);
         if (node->assignment_type->type != '=') {
             /*
              * This is a bit of a hack
