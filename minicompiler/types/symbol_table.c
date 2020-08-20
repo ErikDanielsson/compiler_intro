@@ -6,6 +6,7 @@
 #include "io.h"
 #include "consts.h"
 #include "parser.h"
+#include "registers.h"
 
 struct SymTab* create_SymTab(int table_size, struct SymTab* parent, char* name)
 {
@@ -50,7 +51,9 @@ void SymTab_append_child(struct SymTab* parent, struct SymTab* child)
  */
 unsigned int symbol_counter = 0;
 struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
-                                void* symbol, long offset, unsigned long width_and_type)
+                                void* symbol, long offset,
+                                unsigned long width_and_type,
+                                unsigned int is_static)
 {
 
     struct SymTab_entry* entry = malloc(sizeof(struct SymTab_entry) * 1);
@@ -61,20 +64,24 @@ struct SymTab_entry* SymTab_pair(char* key, enum SymbolType type,
     entry->symbol = symbol;
     entry->offset = offset;
     entry->width_and_type = width_and_type;
-    entry->locs = 1;
+    entry->reg_locs = 0;
+    entry->mem_loc = is_static + (1 << 1);
     entry->counter_value = symbol_counter;
     symbol_counter++;
     return entry;
 }
 
 int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
-                    enum SymbolType type, void* symbol, long offset, unsigned long width_and_type)
+                    enum SymbolType type, void* symbol, long offset,
+                    unsigned long width_and_type, unsigned int is_static)
 {
     unsigned int slot = hash(key, symbol_table->table_size);
     struct SymTab_entry* entry = symbol_table->entries[slot];
     struct SymTab_entry* prev;
     if (entry == NULL) {
-        symbol_table->entries[slot] = SymTab_pair(key, type, symbol, offset, width_and_type);
+        symbol_table->entries[slot] = SymTab_pair(key, type, symbol,
+                                                offset, width_and_type,
+                                                is_static);
         return 0;
     }
     do {
@@ -84,7 +91,9 @@ int SymTab_check_and_set(struct SymTab* symbol_table, char* key,
         prev = entry;
         entry = prev->next;
     } while (entry != NULL);
-    prev->next = SymTab_pair(key, type, symbol, offset, width_and_type);
+    prev->next = SymTab_pair(key, type, symbol,
+                            offset, width_and_type,
+                            is_static);
     return 0;
 }
 
@@ -165,12 +174,14 @@ void SymTab_dump(struct SymTab* symbol_table,  int indent)
         print_w_indent(indent, "%4d:\t", i);
         if (entry->type == VARIABLE) {
             struct VarDecl* symbol = entry->symbol;
-            printf("var %-15s : %-5s At offset %lx\n", symbol->type->lexeme, entry->key, entry->offset);
+            printf("%-15s : var %-15s  At offset %lx. In regs: ", entry->key, symbol->type->lexeme, entry->offset);
+            print_reg_str(entry->reg_locs);
+            printf("\n");
         } else if (entry->type == TEMPORARY) {
-            printf("temp t%s\n", entry->key);
+            printf("temp %s\n", entry->key);
         } else {
             struct FuncDecl* symbol = entry->symbol;
-            printf("func %s : %s\n", symbol->type->lexeme, entry->key);
+            printf("%-15s : func %-14s\n", entry->key , symbol->type->lexeme);
         }
 
         while (TRUE) {
@@ -180,7 +191,9 @@ void SymTab_dump(struct SymTab* symbol_table,  int indent)
             entry = entry->next;
             if (entry->type == VARIABLE) {
                 struct VarDecl* symbol = entry->symbol;
-                printf("\tvar %-15s : %-5s At offset %lx\n", symbol->type->lexeme, entry->key, entry->offset);
+                printf("\tvar %-15s : %-5s At offset %lx. In regs: ", symbol->type->lexeme, entry->key, entry->offset);
+                print_reg_str(entry->reg_locs);
+                printf("\n");
             } else if (entry->type == TEMPORARY) {
                 printf("\ttemp t%s\n", entry->key);
             } else {

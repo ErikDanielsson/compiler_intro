@@ -6,9 +6,8 @@
 #include "symbol_table.h"
 #include "type_table.h"
 #include "constant_table.h"
-
+#include "tree_climber.h"
 #define TABLESIZE 127
-#define VERBOSE 0
 /*
  *  The type checker enters type names during parsing, and checks whether they
  *  are used correctly during treewalk of IC generation
@@ -111,7 +110,7 @@ void pop_Env()
      * Set parent pointer to NULL to avoid dangling pointer errors
      */
     #if VERBOSE
-    SymTab_dump(*top_symtab, "leaving");
+    SymTab_dump(*top_symtab, 1);
     #endif
     (*top_symtab)->parent = NULL;
     SymTab_append_child(*(top_symtab-1), *top_symtab);
@@ -119,7 +118,7 @@ void pop_Env()
 
     offset--;
     #if VERBOSE
-    SymTab_dump(*top_symtab, "entering");
+    SymTab_dump(*top_symtab,1 );
     #endif
 }
 
@@ -129,14 +128,14 @@ struct SymTab* pop_Env_func()
      * Set parent pointer to NULL to avoid dangling pointer errors
      */
     #if VERBOSE
-    SymTab_dump(*top_symtab, "leaving");
+    SymTab_dump(*top_symtab, 1);
     #endif
     (*top_symtab)->parent = NULL;
     top_symtab--;
 
     offset--;
     #if VERBOSE
-    SymTab_dump(*top_symtab, "entering");
+    SymTab_dump(*top_symtab, 1);
     #endif
     return *(top_symtab+1);
 }
@@ -160,10 +159,9 @@ void print_Env_tree_helper(struct SymTab* env, int indent)
         print_Env_tree_helper(env->childs[i], indent+1);
 }
 
-void print_Env_tree()
+void print_Env_tree(struct SymTab* env)
 {
     printf("Symbol tables for scopes\n");
-    struct SymTab* env = symbol_table_stack[0];
     SymTab_dump(env, 0);
     for (int i = 0; i < env->n_childs; i++)
         print_Env_tree_helper(env->childs[i], 1);
@@ -186,7 +184,7 @@ void enter_type_def(char* type_name, struct SymTab* struct_env)
 void enter_temp_var(char* temp_name, char* type)
 {
     unsigned int width_and_type = get_type_and_width(type_table, type);
-    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0, width_and_type);
+    SymTab_check_and_set(*top_symtab, temp_name, TEMPORARY, NULL, 0, width_and_type, !in_function);
 }
 
 void check_type_defined(char* type_name)
@@ -199,15 +197,16 @@ void check_type_defined(char* type_name)
 void check_and_set_var(struct VarDecl* node)
 {
     unsigned long width_and_type = get_type_and_width(type_table, node->type->lexeme);
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset, width_and_type))
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, VARIABLE, node, *offset, width_and_type, !in_function))
         type_error(TRUE, "Redefinition of variable '%s' at %d:%d\n", node->name->lexeme,
                     node->name->line, node->name->column);
     *offset += (width_and_type >> 2);
 }
 
-void check_and_set_func(struct FuncDecl* node)
+void
+check_and_set_func(struct FuncDecl* node)
 {
-    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node, 0, 0))
+    if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node, 0, 0, 0))
         type_error(TRUE, "Redefinition of function '%s' at %d:%d\n",
                     node->name->lexeme,
                     node->name->line,
