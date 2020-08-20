@@ -4,6 +4,7 @@
 #include "IC_table.h"
 #include "hashing.h"
 
+
 struct IC_table* create_IC_table(int table_size)
 {
     struct IC_table* code_table = malloc(sizeof(struct IC_table));
@@ -68,4 +69,15 @@ struct IC_entry* IC_table_get_entry(struct IC_table* code_table, char* key)
     }
     lookup_error(key);
     return NULL;
+}
+
+void print_IC_tree(struct IC_table* code_table)
+{
+    for (int i = 0; i < code_table->size; i++) {
+        struct IC_entry* entry = code_table->entries[i];
+        while (entry != NULL) {
+            print_Env_tree(entry->symbol_table);
+            entry = entry->next;
+        }
+    }
 }

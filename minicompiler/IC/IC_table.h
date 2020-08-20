@@ -19,3 +19,4 @@ struct IC_entry {
 struct IC_table* create_IC_table(int table_size);
 void IC_table_create_entry(struct IC_table* code_table, char* key);
 struct IC_entry* IC_table_get_entry(struct IC_table* code_table, char* key);
+void print_IC_tree(struct IC_table* code_table);

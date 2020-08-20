@@ -116,7 +116,6 @@ void enter_function(char* name)
     curr_instr_ptr++;
     curr_block++;
     new_bb();
-
 }
 
 void leave_function(struct SymTab* symbol_table)

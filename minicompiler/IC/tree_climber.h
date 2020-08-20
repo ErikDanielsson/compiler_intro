@@ -11,6 +11,9 @@ void generate_IC(struct CompStmt* node);
 void emit(char* instr, ...);
 void emitlabel(char* label);
 
+extern char in_function;
+
+
 void visit_CompStmt(struct CompStmt* node);
 void visit_Stmt(struct Stmt* node);
 void visit_VarDecl(struct VarDecl* node);
