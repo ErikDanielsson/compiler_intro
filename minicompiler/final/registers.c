@@ -108,8 +108,9 @@ void remove_from_regs(struct SymTab_entry* entry)
     }
 }
 
-unsigned int least_reg(unsigned int loc)
+unsigned int least_reg(struct SymTab_entry* entry)
 {
+    unsigned int loc = entry->reg_locs;
     printf("least :: ");
     print_bin(loc, 32);
     int reg = -1;
@@ -128,7 +129,7 @@ unsigned int least_reg(unsigned int loc)
     if (reg == -1)
         fprintf(stderr, "Internal error:No register assigned to symbol\n");
 
-    store_all(reg);
+    store_all(reg, entry);
     return reg;
 }
 
@@ -176,6 +177,25 @@ void print_registers()
         printf("%u", registers[31-i].reg_state != REG_FREE);
     printf("\n");
     #endif
+}
+
+void store_allr_in_symtab(struct SymTab* symbol_table)
+{
+    for (int i = 0; i < symbol_table->table_size; i++) {
+        struct SymTab_entry* entry = symbol_table->entries[i];
+        while (entry != NULL) {
+            printf("%s%u\t", entry->key, entry->counter_value);
+            print_bin(entry->mem_loc, 16);
+            if (!(entry->mem_loc & (1 << 1))) {
+                printf("store it\n");
+                store(entry, first_reg(entry));
+            }
+
+            entry = entry->next;
+        }
+    }
+    for (int i = 0; i < symbol_table->n_childs; i++)
+        store_allr_in_symtab(symbol_table->childs[i]);
 }
 
 void print_reg_str(unsigned int locs)

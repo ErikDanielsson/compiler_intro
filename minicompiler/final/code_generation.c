@@ -43,10 +43,7 @@ void write(char* fstring, ...)
 {
     va_list args;
     va_start(args, fstring);
-    char buffer[800];
-    sprintf(buffer, "\t");
-    strcat(buffer, fstring);
-    vfprintf(asm_file_desc, buffer, args);
+    vfprintf(asm_file_desc, fstring, args);
     va_end(args);
 }
 
@@ -163,7 +160,8 @@ void write_main(struct IC_entry* main)
     write("global main\n");
     write("main:\n");
     visit_block(main->basic_block_list[0]);
-
+    store_allr_in_symtab(main->symbol_table);
+    write("nop\n");
     write("\n\n");
 }
 
@@ -186,6 +184,7 @@ void visit_block(struct BasicBlock* block)
         emit_instruction(curr->instruction, curr->type);
     }
 
+
 }
 
 void emit_assign(struct AssignQuad* assign);
@@ -198,7 +197,7 @@ void emit_instruction(void* instruction, enum QuadType type)
     switch (type) {
         case QUAD_ASSIGN:
             #if DEBUG
-            printf("%d | emit assign\n", instr_num);
+            write("%d | emit assign\n", instr_num);
             #endif
 
             emit_assign(instruction);
@@ -206,19 +205,19 @@ void emit_instruction(void* instruction, enum QuadType type)
             break;
         case QUAD_BINOP:
             #if DEBUG
-            printf("%d | emit binop\n", instr_num);
+            write("%d | emit binop\n", instr_num);
             #endif
             emit_binop(instruction);
             break;
         case QUAD_UOP:
             #if DEBUG
-            printf("%d | emit uop\n", instr_num);
+            write("%d | emit uop\n", instr_num);
             #endif
             emit_uop(instruction);
             break;
         case QUAD_CONV:
             #if DEBUG
-            printf("%d | emit conv\n", instr_num);
+            write("%d | emit conv\n", instr_num);
             #endif
             emit_conv(instruction);
             break;
@@ -256,9 +255,11 @@ void emit_assign(struct AssignQuad* assign)
             for (int i = 0; i < 16; i++)
                 if (assign->lval->reg_locs & (1 << (i+type_offset)))
                     append_to_reg(i+type_offset, assign->lval->type, assign->lval);
+            assign->lval->mem_loc &= ~(1 << 1);
 
             printf("registers: ");
             print_registers();
+            print_bin(assign->lval->mem_loc, 16);
             return;
         }
         case VARIABLE:{
@@ -267,6 +268,7 @@ void emit_assign(struct AssignQuad* assign)
                 get_reg(type, -1, width, rval_entry, VARIABLE);
 
             assign->lval->reg_locs = rval_entry->reg_locs;
+            assign->lval->mem_loc &= ~(1 << 1);
             return;
         }
 
@@ -282,7 +284,7 @@ void emit_assign(struct AssignQuad* assign)
         case ICONSTANT: {
             struct int_entry* rval_entry = assign->rval;
             if (!(assign->lval_info & 2)) {
-                assign->lval->mem_loc &= 1 << 1;
+                assign->lval->mem_loc &= ~(1 << 1);
                 unsigned int new_reg = get_reg(type, -1, width, rval_entry, ICONSTANT);
                 if (width == 4)
                     write("mov %s, %d\n", register_names[2][new_reg], (int)rval_entry->val);
@@ -310,13 +312,14 @@ void emit_assign(struct AssignQuad* assign)
         result = first_reg(entry);\
         clear_all_locations(entry);\
         entry->reg_locs = 0;\
-        entry->mem_loc &= 1 << 1;\
+        entry->mem_loc = 1 << 1;\
+        append_to_reg(result, entry->type, entry);\
     } while(0) \
 
 #define VAR_GET_CLEAR_STORE_COND(result, entry)\
     do {\
-        result = least_reg(entry->reg_locs);\
-        if (!(entry->mem_loc & 1 << 1))\
+        result = least_reg(entry);\
+        if (!(entry->mem_loc & (1 << 1)))\
             store(entry, result);\
         clear_all_locations(entry);\
         entry->reg_locs = 0;\
@@ -342,28 +345,26 @@ void emit_binop(struct BinOpQuad* binop)
                 struct SymTab_entry* entry = binop->op1;
                 if (in_reg(entry->reg_locs)) {
                     if (!(used_later(binop->op1_info))) {
-                        printf("%s is not alive\n", entry->key);
                         VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                     } else if (count_registers(entry->reg_locs) >= 2) {
-                        result_reg = least_reg(entry->reg_locs);
+                        result_reg = least_reg(entry);
                     } else {
-                        unsigned int temp_reg = least_reg(entry->reg_locs);
+                        unsigned int temp_reg = least_reg(entry);
                         result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
-
                         if (width == 4)
-                            write("movss %s, %s %s", register_names[4][result_reg],
-                                    size_spec[2], register_names[4][temp_reg]);
+                            write("movss %s, %s %s\n", register_names[4][result_reg-16],
+                                    size_spec[2], register_names[4][temp_reg-16]);
                         else
-                            write("movsd %s, %s %s", register_names[4][result_reg],
-                                    size_spec[3], register_names[4][temp_reg]);
+                            write("movsd %s, %s %s\n", register_names[4][result_reg-16],
+                                    size_spec[3], register_names[4][temp_reg-16]);
                     }
                 } else {
                     result_reg = get_reg(type, -1, width, entry, VARIABLE);
                     if (width == 4)
-                        write("movss %s, %s [%s%u]", register_names[4][result_reg],
+                        write("movss %s, %s [%s%u]\n", register_names[4][result_reg-16],
                                 size_spec[2], entry->key, entry->counter_value);
                     else
-                        write("movsd %s, %s [%s%u]", register_names[4][result_reg],
+                        write("movsd %s, %s [%s%u]\n", register_names[4][result_reg-16],
                                 size_spec[3], entry->key, entry->counter_value);
                 }
                 break;
@@ -389,8 +390,8 @@ void emit_binop(struct BinOpQuad* binop)
                 unsigned int op_reg = first_reg(entry);
                 clear_all_locations(entry);
                 entry->reg_locs = 0;
-                write("%s %s, %s", float_arithmetic[width == 4][binop->op_type],
-                        register_names[4][result_reg], register_names[4][op_reg]);
+                write("%s %s, %s\n", float_arithmetic[width == 4][binop->op_type],
+                        register_names[4][result_reg-16], register_names[4][op_reg-16]);
                 break;
             }
             case VARIABLE: {
@@ -401,27 +402,40 @@ void emit_binop(struct BinOpQuad* binop)
                         VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                     }
                     unsigned int op_reg = first_reg(entry);
-                    write("%s %s, %s", float_arithmetic[width == 4][binop->op_type],
-                            register_names[4][result_reg], register_names[4][op_reg]);
+                    write("%s %s, %s\n", float_arithmetic[width == 4][binop->op_type],
+                            register_names[4][result_reg], register_names[4][op_reg-16]);
 
                 } else if (used_later(binop->op2_info)) {
                     unsigned int op_reg = get_reg(type, -1, width, entry, VARIABLE);
-                    write("%s %s, %s [%s%u]", mov[loged_width], register_names[4][op_reg-16],
+                    write("%s %s, %s [%s%u]\n", mov[loged_width], register_names[4][op_reg-16],
                             size_spec[loged_width], entry->key, entry->counter_value);
-                    write("%s %s, %s", float_arithmetic[width == 4][binop->op_type],
-                            register_names[4][result_reg], register_names[4][op_reg]);
+                    write("%s %s, %s\n", float_arithmetic[width == 4][binop->op_type],
+                            register_names[4][result_reg], register_names[4][op_reg-16]);
                 } else {
-                    write("%s %s, %s [%s%u]", float_arithmetic[width == 4][binop->op_type],
-                             register_names[4][result_reg], size_spec[loged_width],
+                    write("%s %s, %s [%s%u]\n", float_arithmetic[width == 4][binop->op_type],
+                             register_names[4][result_reg], size_spec[loged_width-16],
                             entry->key, entry->counter_value);
                 }
                 break;
             }
             case FCONSTANT: {
                 struct float_entry* entry = binop->op2;
-                write("%s %s, %s [dodouboblole+%u]\n", float_arithmetic[width == 4][binop->op_type],
-                        register_names[4][result_reg-16], size_spec[loged_width],
-                        entry->offset);
+                if (binop->op1 == binop->op2) {
+                    printf("yes\n");
+                    write("%s %s, %s\n", float_arithmetic[0][binop->op_type],
+                            register_names[4][result_reg-16], register_names[4][result_reg-16]);
+                } else if (width == 4) {
+                    printf("four\n");
+                    unsigned int op_reg = get_reg(type, -1, width, entry, FCONSTANT);
+                    load_float(op_reg, entry->offset, width);
+                    write("%s %s, %s\n", float_arithmetic[0][binop->op_type],
+                            register_names[4][result_reg-16], register_names[4][op_reg-16]);
+                    clear_reg(op_reg);
+                } else {
+                    write("%s %s, %s [dodouboblole+%u]\n", float_arithmetic[0][binop->op_type],
+                            register_names[4][result_reg-16], size_spec[loged_width],
+                            entry->offset);
+                }
                 break;
             }
             default:
@@ -451,12 +465,12 @@ void emit_binop(struct BinOpQuad* binop)
                                 printf("%s is not alive\n", entry->key);
                                 VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                             } else if (count_registers(entry->reg_locs) >= 2) {
-                                result_reg = least_reg(entry->reg_locs);
+                                result_reg = least_reg(entry);
                             } else {
-                                unsigned int temp_reg = least_reg(entry->reg_locs);
+                                unsigned int temp_reg = least_reg(entry);
 
                                 result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
-                                write("mov %s, %s %s", register_names[loged_width][result_reg],
+                                write("mov %s, %s %s\n", register_names[loged_width][result_reg],
                                             size_spec[loged_width], register_names[loged_width][temp_reg]);
                             }
                         } else {
@@ -465,7 +479,7 @@ void emit_binop(struct BinOpQuad* binop)
                                 printf("EMPTY FUCK\n");
                             } else {
                                 result_reg = get_reg(type, -1, width, entry, VARIABLE);
-                                write("mov %s, %s [%s%u]", register_names[loged_width][result_reg],
+                                write("mov %s, %s [%s%u]\n", register_names[loged_width][result_reg],
                                         size_spec[loged_width], entry->key, entry->counter_value);
                             }
                         }
@@ -473,7 +487,9 @@ void emit_binop(struct BinOpQuad* binop)
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
+                        print_registers();
                         result_reg = get_reg(type, -1, width, entry, ICONSTANT);
+                        print_registers();
                         if (width == 4)
                             write("mov %s, %d\n", register_names[loged_width][result_reg], (int)entry->val);
                         else
@@ -662,6 +678,10 @@ void emit_binop(struct BinOpQuad* binop)
                         fprintf(stderr, "Internal error:SymbolType %d shouldn't be binop2\n", binop->op2_type);
                         abort();
                 }
+                if (binop->op_type == BINOP_DIV)
+                    clear_reg(3);
+                else
+                    clear_reg(0);
                 break;
             }
             case BINOP_SHL:
@@ -683,9 +703,9 @@ void emit_binop(struct BinOpQuad* binop)
 
                                 VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                             } else if (count_registers(entry->reg_locs) >= 2) {
-                                result_reg = least_reg(entry->reg_locs);
+                                result_reg = least_reg(entry);
                             } else {
-                                unsigned int temp_reg = least_reg(entry->reg_locs);
+                                unsigned int temp_reg = least_reg(entry);
                                 result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
                                 write("mov %s, %s %s\n", register_names[loged_width][result_reg],
                                             size_spec[loged_width], register_names[loged_width][temp_reg]);
@@ -765,7 +785,7 @@ void emit_binop(struct BinOpQuad* binop)
                             struct int_entry* entry = binop->op2;
                             if (width == 4)
                                 write("%s %s, %d\n", int_arithmetic[binop->op_type],
-                                        register_names[loged_width][result_reg], 
+                                        register_names[loged_width][result_reg],
                                         (int)entry->val);
 
                             else
@@ -784,8 +804,7 @@ void emit_binop(struct BinOpQuad* binop)
         }
     }
     binop->result->reg_locs = 1 << result_reg;
-    printf("q:::");
-    print_bin(binop->result->reg_locs, 32);
+
 
 }
 
@@ -810,25 +829,25 @@ void emit_uop(struct UOpQuad* uop)
                     if (!(used_later(uop->operand_info))) {
                         VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                     } else if (count_registers(entry->reg_locs) >= 2) {
-                        result_reg = least_reg(entry->reg_locs);
+                        result_reg = least_reg(entry);
                     } else {
-                        unsigned int temp_reg = least_reg(entry->reg_locs);
+                        unsigned int temp_reg = least_reg(entry);
                         result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
 
                         if (width == 4)
-                            write("movss %s, %s %s", register_names[4][result_reg],
+                            write("movss %s, %s %s\n", register_names[4][result_reg],
                                     size_spec[2], register_names[4][temp_reg]);
                         else
-                            write("movsd %s, %s %s", register_names[4][result_reg],
+                            write("movsd %s, %s %s\n", register_names[4][result_reg],
                                     size_spec[3], register_names[4][temp_reg]);
                     }
                 } else {
                     result_reg = get_reg(type, -1, width, entry, VARIABLE);
                     if (width == 4)
-                        write("movss %s, %s [%s%u]", register_names[4][result_reg],
+                        write("movss %s, %s [%s%u]\n", register_names[4][result_reg],
                                 size_spec[2], entry->key, entry->counter_value);
                     else
-                        write("movsd %s, %s [%s%u]", register_names[4][result_reg],
+                        write("movsd %s, %s [%s%u]\n", register_names[4][result_reg],
                                 size_spec[3], entry->key, entry->counter_value);
                 }
                 break;
@@ -848,9 +867,9 @@ void emit_uop(struct UOpQuad* uop)
                 fprintf(stderr, "Internal error:SymbolType %d shouldn't be uop1\n", uop->operand_type);
                 abort();
             if (width == 4)
-                write("xorps result_reg, %s [negf]", size_spec[2]);
+                write("xorps result_reg, %s [negf]\n", size_spec[2]);
             else
-                write("xorps result_reg, %s [negd]", size_spec[3]);
+                write("xorps result_reg, %s [negd]\n", size_spec[3]);
         }
     } else {
         switch (uop->operator_type) {
@@ -868,16 +887,16 @@ void emit_uop(struct UOpQuad* uop)
                             if (!(used_later(uop->operand_info))) {
                                 VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                             } else if (count_registers(entry->reg_locs) >= 2) {
-                                result_reg = least_reg(entry->reg_locs);
+                                result_reg = least_reg(entry);
                             } else {
-                                unsigned int temp_reg = least_reg(entry->reg_locs);
+                                unsigned int temp_reg = least_reg(entry);
                                 result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
-                                write("mov %s, %s %s", register_names[loged_width][result_reg],
+                                write("mov %s, %s %s\n", register_names[loged_width][result_reg],
                                             size_spec[loged_width], register_names[loged_width][temp_reg]);
                             }
                         } else {
                             result_reg = get_reg(type, -1, width, entry, VARIABLE);
-                            write("mov %s, %s [%s%u]", register_names[loged_width][result_reg],
+                            write("mov %s, %s [%s%u]\n", register_names[loged_width][result_reg],
                                     size_spec[loged_width], entry->key, entry->counter_value);
 
                         }
@@ -919,39 +938,39 @@ void emit_conv(struct ConvQuad* conv)
             int new_loged_width = log2(op_width);
             if (new_type) {
                 if (op_type) {
+                    printf("new & op\n");
                     result_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    entry->reg_locs = 0;
                     write("%s %s, %s\n", conv_float[new_loged_width-2],
-                        register_names[4][result_reg],
-                        register_names[4][result_reg]);
+                        register_names[4][result_reg-16],
+                        register_names[4][result_reg-16]);
                 } else {
+                    printf("new\n");
                     int op_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    entry->reg_locs = 0;
                     result_reg = get_reg(op_type, op_reg, new_width, entry, TEMPORARY);
                     write("%s %s, %s\n", conv_float_int[new_loged_width-2],
-                            register_names[new_loged_width][result_reg],
-                            register_names[4][op_reg]);
+                            register_names[new_loged_width][result_reg-16],
+                            register_names[4][op_reg-16]);
                 }
             } else {
                 if (op_type) {
+                    printf("op\n");
                     int op_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    entry->reg_locs = 0;
                     result_reg = get_reg(op_type, op_reg, new_width, entry, TEMPORARY);
                     write("%s %s, %s\n", conv_float_int[new_loged_width],
-                            register_names[4][result_reg],
-                            register_names[new_loged_width][op_reg]);
+                            register_names[4][result_reg-16],
+                            register_names[new_loged_width][op_reg-16]);
 
                 } else {
+                    printf("NONE \n");
                     result_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    entry->reg_locs = 0;
                     if (new_width < op_width)
-                        write("%s %s, %s", conv_signed[1],
-                                register_names[3][result_reg],
-                                register_names[2][result_reg]);
+                        write("%s %s, %s\n", conv_signed[1],
+                                register_names[3][result_reg-16],
+                                register_names[2][result_reg-16]);
 
                 }
             }
@@ -962,43 +981,48 @@ void emit_conv(struct ConvQuad* conv)
             long op_width_and_type = entry->width_and_type;
             int op_type = op_width_and_type & 1;
             int op_width = op_width_and_type >> 2;
-            int new_loged_width = log2(op_width);
+            int new_loged_width = log2(new_width);
             if (in_reg(entry->reg_locs)) {
                 int op_reg;
                 if (!(used_later(conv->op_info))) {
+                    printf("stored cond\n");
                     VAR_GET_CLEAR_STORE_COND(op_reg, entry);
                 } else if (count_registers(entry->reg_locs) >= 2) {
-                    op_reg = least_reg(entry->reg_locs);
+                    op_reg = least_reg(entry);
                 } else {
-                    unsigned int temp_reg = least_reg(entry->reg_locs);
+                    unsigned int temp_reg = least_reg(entry);
                     op_reg = get_reg(op_type, temp_reg, op_width, entry, VARIABLE);
-                    write("%s %s, %s %s", mov[new_type*new_loged_width],
+                    write("%s %s, %s %s\n", mov[new_type*new_loged_width],
                             register_names[new_loged_width][op_reg],
                             size_spec[new_loged_width],
                             register_names[new_loged_width][temp_reg]);
                 }
                 if (new_type) {
                     if (op_type) {
+                        printf("new & op\n");
                         write("%s %s, %s\n", conv_float[new_loged_width-2],
-                            register_names[4][op_reg],
-                            register_names[4][op_reg]);
+                            register_names[4][op_reg-16],
+                            register_names[4][op_reg-16]);
                         result_reg = op_reg;
                     } else {
+                        printf("new\n");
+
                         result_reg = get_reg(op_type, -1, new_width, entry, VARIABLE);
-                        write("%s %s, %s\n", conv_float_int[new_loged_width-2],
-                                register_names[new_loged_width][result_reg],
+                        write("%s %s, %s\n", conv_float_int[new_loged_width],
+                                register_names[new_loged_width][result_reg-16],
                                 register_names[4][op_reg]);
                     }
                 } else {
                     if (op_type) {
-                        result_reg = get_reg(op_type, -1, new_width, entry, VARIABLE);
-                        write("%s %s, %s\n", conv_float_int[new_loged_width],
-                                register_names[4][result_reg],
-                                register_names[new_loged_width][op_reg]);
-
+                        result_reg = get_reg(new_type, -1, new_width, entry, VARIABLE);
+                        write("%s %s, %s\n", conv_float_int[new_loged_width-2],
+                                register_names[new_loged_width][result_reg],
+                                register_names[4][op_reg-16]);
                     } else {
+                        printf("none \n");
+
                         if (new_width < op_width)
-                            write("%s %s, %s", conv_signed[1],
+                            write("%s %s, %s\n", conv_signed[1],
                                     register_names[3][op_reg],
                                     register_names[2][op_reg]);
                         result_reg = op_reg;
@@ -1009,12 +1033,12 @@ void emit_conv(struct ConvQuad* conv)
                 if (new_type) {
                     if (op_type) {
                         write("%s %s, %s [%s%u]\n", conv_float[new_loged_width-2],
-                            register_names[4][result_reg],
+                            register_names[4][result_reg-16],
                             size_spec[new_loged_width], entry->key,
                             entry->counter_value);
                     } else {
-                        write("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width-2],
-                                register_names[new_loged_width][result_reg],
+                        write("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width],
+                                register_names[new_loged_width][result_reg-16],
                                 size_spec[new_loged_width],
                                 entry->key, entry->counter_value);
                     }
@@ -1055,10 +1079,11 @@ void emit_conv(struct ConvQuad* conv)
             struct int_entry* entry = conv->op;
             result_reg = get_reg(new_type, -1, new_width, entry, ICONSTANT);
             if (new_type) {
+                printf("iconst\n");
                 unsigned int op_reg = get_reg(0, -1, new_width, entry, ICONSTANT);
                 write("mov %s, %d\n", register_names[2][op_reg], entry->val);
-                write("%s %s, %s\n", conv_float[new_loged_width-2],
-                    register_names[4][result_reg],
+                write("%s %s, %s\n", conv_float_int[new_loged_width],
+                    register_names[4][result_reg-16],
                     register_names[2][op_reg]);
             } else {
                 write("mov %s, %d\n",
@@ -1143,7 +1168,7 @@ int get_reg(unsigned int type, unsigned int not_this_reg, unsigned int width,
                 min_ind = i;
             }
         }
-        store_all(min_ind);
+        store_all(min_ind, NULL);
         registers[type_offset + min_ind].reg_width = width;
         registers[min_ind + type_offset].reg_state = REG_OCCUPIED;
         append_to_reg(type_offset + i, entry_type, entry);
@@ -1234,9 +1259,9 @@ void store(struct SymTab_entry* var, int reg)
     int width = width_and_type >> 2;
     if (type)
         if (width == 4)
-            write("movss [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg]);
+            write("movss [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg-16]);
         else
-            write("movsd [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg]);
+            write("movsd [%s%u], %s\n", var->key, var->counter_value, register_names[4][reg-16]);
     else
         write("mov [%s%u], %s\n", var->key, var->counter_value, register_names[log2(width)][reg]);
 }
@@ -1251,7 +1276,7 @@ void load_float(int reg, long float_loc, int width)
 void load(struct SymTab_entry* entry, unsigned int reg,
             unsigned int type, unsigned int width)
 {
-    write("%s %s, %s [%s%u]", mov[type*log2(width)],
+    write("%s %s, %s [%s%u]\n", mov[type*log2(width)],
             register_names[(!type)*log2(width) + type*4][reg-type*16],
             size_spec[log2(width)], entry->key, entry->counter_value);
 

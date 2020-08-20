@@ -38,8 +38,9 @@ void append_to_reg(int reg_n, enum SymbolType new_state,
 void remove_from_regs(struct SymTab_entry* entry);
 int copy_reg_to_reg(unsigned int dest, unsigned int orig,
                     struct SymTab_entry* entry);
-unsigned int least_reg(unsigned int loc);
+unsigned int least_reg(struct SymTab_entry* entry);
 void print_reg_str(unsigned int i);
+void store_allr_in_symtab(struct SymTab* symbol_table);
 
 
 // Should-be-inlined funcs:
@@ -77,7 +78,6 @@ static inline void clear_all_locations(struct SymTab_entry* entry)
         clear_reg(real_loc-1);
     }
     entry->reg_locs = 0;
-    entry->mem_loc &= 1 << 1;
 }
 
 static inline unsigned int first_reg(struct SymTab_entry* entry)
@@ -126,9 +126,10 @@ static inline unsigned int used_later(unsigned int info)
     return (info & 2) != 0;
 }
 
-static inline void store_all(unsigned int reg_n)
+static inline void store_all(unsigned int reg_n, struct SymTab_entry* entry)
 {
     for (int i = 0; i < registers[reg_n].n_vals; i++)
-        if (registers[reg_n].states[i] == REG_VARIABLE)
+        if (registers[reg_n].vals[i] != entry &&
+            registers[reg_n].states[i] == REG_VARIABLE)
             store(registers[reg_n].vals[i], reg_n);
 }
