@@ -4,7 +4,7 @@
 #include "registers.h"
 #include "symbol_table.h"
 #include "instruction_set.h"
-
+#define DEBUG 0
 struct reg_desc registers[32];
 void init_registers()
 {
@@ -43,23 +43,41 @@ void expand_reg_desc(int reg_n, int expansion)
     memcpy(registers[reg_n].vals, vals, sizeof(void*)*size);
 }
 
-void append_to_reg(int reg_n, enum RegValState new_state,
+void append_to_reg(int reg_n, enum SymbolType new_state,
                     void* new_value)
 {
-    if (registers[reg_n].size == registers[reg_n].size)
+    printf("append to reg %d\n", reg_n);
+    if (registers[reg_n].n_vals == registers[reg_n].size)
         expand_reg_desc(reg_n, 4);
-    int size = registers[reg_n].size++;
-    registers[reg_n].states[size] = new_state;
-    registers[reg_n].vals[size] = new_value;
+    int n_vals = registers[reg_n].n_vals++;
+    switch (new_state) {
+        case VARIABLE:
+            registers[reg_n].states[n_vals] = REG_VARIABLE;
+            break;
+        case TEMPORARY:
+            registers[reg_n].states[n_vals] = REG_TEMPORARY;
+            break;
+        case ICONSTANT:
+        case FCONSTANT:
+        case SCONSTANT:
+            registers[reg_n].states[n_vals] = REG_CONSTANT;
+            break;
+    }
+    registers[reg_n].vals[n_vals] = new_value;
+    registers[reg_n].reg_state = REG_OCCUPIED;
 }
+
 
 void remove_from_reg(struct SymTab_entry* entry, unsigned reg_n)
 {
     unsigned n_vals = registers[reg_n].n_vals;
-    if (n_vals-1) {
+
+    if ((n_vals-1) != 0) {
+        printf("n_vals: %d\n", n_vals);
         for (int i = 0; i < n_vals; i++)
         {
             if (registers[reg_n].vals[i] == entry) {
+                printf("shorten\n");
                 unsigned size = n_vals-i-1;
                 memcpy(registers[reg_n].vals+i, registers[reg_n].vals+i+1, sizeof(void*)*size);
                 memcpy(registers[reg_n].states+i, registers[reg_n].states+i+1, sizeof(int)*size);
@@ -68,13 +86,17 @@ void remove_from_reg(struct SymTab_entry* entry, unsigned reg_n)
         }
     } else {
         clear_reg(reg_n);
+        return;
     }
 
 }
 
 void remove_from_regs(struct SymTab_entry* entry)
 {
-    unsigned locs = entry->locs >> 1;
+    #if DEBUG
+    printf("remove %s from regs\n", entry->key);
+    #endif
+    unsigned locs = entry->reg_locs;
     for (unsigned lst = lowest_set_bit(locs), real_loc = 0;
             locs; lst = lowest_set_bit(locs)) {
         locs >>= lst+1;
@@ -82,22 +104,25 @@ void remove_from_regs(struct SymTab_entry* entry)
         #if DEBUG
         printf("clear reg #%d from %s\n", real_loc-1, entry->key);
         #endif
-        remove_from_reg(entry, real_loc-2);
+        remove_from_reg(entry, real_loc-1);
     }
 }
 
 unsigned int least_reg(unsigned int loc)
 {
+    printf("least :: ");
+    print_bin(loc, 32);
     int reg = -1;
     unsigned int min_n_vals = MAX_UINT ;
-    loc &= ~1;
     for (unsigned lst = lowest_set_bit(loc), real_loc = 0;
             loc; lst = lowest_set_bit(loc)) {
         loc >>= lst+1;
         real_loc += lst+1;
-        if (registers[real_loc-2].n_vals < min_n_vals) {
-            reg = real_loc-2;
-            min_n_vals = registers[real_loc-2].n_vals;
+        if (registers[real_loc-1].n_vals < min_n_vals) {
+            reg = real_loc-1;
+            printf("%u\n", reg);
+
+            min_n_vals = registers[real_loc-1].n_vals;
         }
     }
     if (reg == -1)
@@ -118,8 +143,8 @@ int copy_reg_to_reg(unsigned int dest, unsigned int orig, struct SymTab_entry* e
     for (int i = 0; i < registers[orig].n_vals; i++) {
         struct SymTab_entry* tmp_entry = registers[orig].vals[i];
         ret_val = tmp_entry == entry;
-        entry->locs |= 1 << (dest+1);
-        entry->locs &= ~(1 << (orig+1));
+        entry->reg_locs |= 1 << dest;
+        entry->reg_locs &= ~(1 << orig);
     }
     return ret_val;
 }
@@ -127,6 +152,7 @@ int copy_reg_to_reg(unsigned int dest, unsigned int orig, struct SymTab_entry* e
 
 void print_registers()
 {
+    #if VERBOSE
     for (int i = 0; i < 16; i++) {
         if (!(registers[i].n_vals))
             continue;
@@ -144,5 +170,20 @@ void print_registers()
             printf("%d, ", registers[16+i].states[j]);
         }
         printf("\n");
+    }
+    #else
+    for (int i = 0; i < 32; i++)
+        printf("%u", registers[31-i].reg_state != REG_FREE);
+    printf("\n");
+    #endif
+}
+
+void print_reg_str(unsigned int locs)
+{
+    for (unsigned lst = lowest_set_bit(locs), real_loc = 0;
+            locs; lst = lowest_set_bit(locs)) {
+        locs >>= lst+1;
+        real_loc += lst+1;
+        printf("%s, ", register_names[3][real_loc-1]);
     }
 }

@@ -3,7 +3,7 @@
 #include "intermediate_code.h"
 #include "hashing.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 struct SymTab_entry_entry;
 struct SymTab_entry_table;
@@ -251,22 +251,19 @@ void insert_entry(struct SymTab_entry_table* table,
                     struct SymTab_entry* real_entry,
                     char live, unsigned int next_use)
 {
-    #if DEBUG
-    printf("insert: %s\n", real_entry->key);
-    #endif
     unsigned int hashv = ptr_hash(real_entry, table->size);
     struct SymTab_entry_entry* t_entry = table->entries[hashv];
     struct SymTab_entry_entry* prev;
     if (t_entry == NULL) {
         t_entry = malloc(sizeof(struct SymTab_entry_entry));
         t_entry->next = NULL;
-        t_entry->real_entry = &(*real_entry);
+        t_entry->real_entry = real_entry;
         t_entry->info = STORE_INFO(live, next_use);
         table->entries[hashv] = t_entry;
         return;
     } else if (t_entry->real_entry == NULL) {
         t_entry->real_entry = real_entry;
-        t_entry->info =  STORE_INFO(live, next_use);
+        t_entry->info = STORE_INFO(live, next_use);
         return;
     } else if (t_entry->real_entry == real_entry) {
         t_entry->info = STORE_INFO(live, next_use);
@@ -300,7 +297,7 @@ unsigned long get_info(struct SymTab_entry_table* table,
     while (t_entry != NULL) {
         if (t_entry->real_entry == real_entry) {
             #if DEBUG
-            printf("\t%s:last: %lu live: %lu, use: %lu\n", real_entry->key, t_entry->info & 1, t_entry->info & 2, t_entry->info >> 2);
+            printf("\t%s:last: %lu live: %lu, use: %lu\n", real_entry->key, t_entry->info & 1, (t_entry->info >> 1) & 1, t_entry->info >> 2);
             #endif
             return t_entry->info;
         }
@@ -314,9 +311,6 @@ unsigned long get_info(struct SymTab_entry_table* table,
 
 void clear_entries(struct SymTab_entry_table* table)
 {
-    #if DEBUG
-    printf("\nclear\n\n");
-    #endif
     for (int i = 0; i < table->size; i++) {
         struct SymTab_entry_entry* entry = table->entries[i];
         while (entry != NULL) {

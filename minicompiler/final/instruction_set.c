@@ -2,28 +2,28 @@
 const char* register_names[5][16] = {
     {
     // General purpose registers (8 bit section)
-        "al", "cl", "dl", "bl",
+        "al", "bl", "cl", "dl"
         "spl", "bpl", "sil", "dil",
         "r8b",  "r9b",  "r10b", "r11b",
         "r12b", "r13b", "r14b", "r15b",
     },
     {
     // General purpose registers (16 bit section)
-        "ax", "cx", "dx", "bx",
+        "ax", "bx", "cx", "dx",
         "sp", "bp", "si", "di",
         "r8w",  "r9w",  "r10w", "r11w",
         "r12w", "r13w", "r14w", "r15w",
     },
     {
     // General purpose registers (32 bit section)
-        "eax", "ecx", "edx", "ebx",
+        "eax", "ebx", "ecx", "edx",
         "esp", "ebp", "esi", "edi",
         "r8d",  "r9d",  "r10d", "r11d",
         "r12d", "r13d", "r14d", "r15d",
     },
     {
     // General purpose registers (64 bit section)
-        "rax", "rcx", "rdx", "rbx",
+        "rax", "rbx", "rcx", "rdx",
         "rsp", "rbp", "rsi", "rdi",
         "r8",  "r9",  "r10", "r11",
         "r12", "r13", "r14", "r15",
@@ -82,13 +82,19 @@ const char* conv_float_int[] = {
     "cvtsi2sd"      // int -> double
 };
 
+
+
+const char* int_unary[] = {
+    "neg",
+    "not"
+};
 const char* int_arithmetic[] = {
     "add",      // <dest>, <src>
     "sub",      // <dest>, <src>
     "imul",     // <dest>, <src>    Mul <dest> with <src> and place in <dest>
                 // <src>            Mul 'a' register with <src>, result in a:d
-    "idiv"     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
-    "idiv"     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
+    "idiv",     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
+    "idiv",     // <op>             Div a:d by <op> -- res in 'a', rem in 'd'
     "and",      // <dest>, <src>
     "or",       // <dest>, <src>
     "xor",      // <dest>, <src>
@@ -97,12 +103,6 @@ const char* int_arithmetic[] = {
     "sal"       // <dest>, <imm>    Max of cl and <imm> is 64.
                 // <dest>, cl
 };
-
-const char* int_unary[] = {
-    "neg",
-    "not"
-};
-
 const char* inc_dec[] = {
     "inc",      // <op>
     "dec"       // <op>
