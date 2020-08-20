@@ -19,3 +19,10 @@ void print_w_indent(int indent, const char* fstring, ...)
     vprintf(fstring, args);
     va_end(args);
 }
+
+void print_bin(unsigned long number, int n_bits)
+{
+    for (int i = 0; i < n_bits; i++)
+        printf("%u", 0 != (number & (1 << (n_bits-1-i))));
+    printf("\n");
+}
