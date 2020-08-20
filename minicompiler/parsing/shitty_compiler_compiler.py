@@ -643,7 +643,7 @@ def generate_parse_table(lalr_kernel, goto_table, terminals, nonterminals, first
                                         if s in terminals:
                                             q = precedence.get(s)
                                             if q != None:
-                                                    if z < q:
+                                                    if z <= q:
                                                         tmp_row[terminal] = -1-item.prod_num
                                                     error = False
                                                     break
