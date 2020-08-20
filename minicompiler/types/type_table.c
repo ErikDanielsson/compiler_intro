@@ -77,7 +77,7 @@ void type_table_error(char* key)
 unsigned long get_type_and_width(struct TypeTab* type_table, char* key)
 {
     unsigned int hashv = hash(key, type_table->table_size);
-    unsigned long type = (strcmp(key, "fofloloatot") == 0);
+    unsigned long type = (strcmp(key, "fofloloatot") == 0 || strcmp(key, "dodouboblole") == 0);
     struct TypeTab_entry* entry = type_table->entries[hashv];
     while (entry != NULL) {
         if (strcmp(entry->key, key) == 0)
