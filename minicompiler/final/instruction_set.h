@@ -28,7 +28,7 @@ extern const char* int_control[];
 
 extern const char* float_control[];
 
-extern const char* cond_jumps[];
+extern const char* cond_jumps[2][6];
 
 extern const char* stack[];
 

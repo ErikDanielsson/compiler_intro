@@ -49,6 +49,7 @@ void write(char* fstring, ...)
 
 void load_int();
 void load_float(int reg, long float_loc, int width);
+void load_var(int reg, struct SymTab_entry* var, int type, int width);
 void load(struct SymTab_entry* entry, unsigned int reg, unsigned int type, unsigned int width);
 int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, unsigned int loged_width);
 int get_free_reg(unsigned int type);
@@ -67,7 +68,7 @@ void codegen()
 void allocr(struct SymTab* symbol_table);
 static inline void write_float_consts()
 {
-    write("\tdodouboblole dq ");
+    write("\td_consts dq ");
     if (float_table->start) {
         struct entry_list* entry_l = float_table->start;
         for (; entry_l->next != NULL; entry_l = entry_l->next)
@@ -152,17 +153,18 @@ void write_code(struct IC_entry* main)
         set.entries[i] = NULL;\
 
 struct int_set set;
-void visit_block(struct BasicBlock* block);
+void visit_block(struct BasicBlock* block, struct SymTab* symbol_table);
 void write_main(struct IC_entry* main)
 {
 
     CREATE_INT_SET(set);
     write("global main\n");
     write("main:\n");
-    visit_block(main->basic_block_list[0]);
-    store_allr_in_symtab(main->symbol_table);
-    write("nop\n");
-    write("\n\n");
+    for (int i = 0; i < main->n_blocks; i++)
+        visit_block(main->basic_block_list[i], main->symbol_table);
+
+
+
 }
 
 void write_func(struct IC_entry* func)
@@ -175,15 +177,33 @@ void write_func(struct IC_entry* func)
 }
 
 void emit_instruction(void* instruction, enum QuadType type);
-void visit_block(struct BasicBlock* block)
+void emit_assign(struct AssignQuad* assign);
+void emit_binop(struct BinOpQuad* binop);
+void emit_uop(struct UOpQuad* assign);
+void emit_conv(struct ConvQuad* binop);
+void emit_cond(struct CondQuad* cond,
+            struct BasicBlock* true, struct BasicBlock* false);
+void emit_uncond(struct BasicBlock* target);
+int instr_num;
+void visit_block(struct BasicBlock* block, struct SymTab* symbol_table)
 {
+    write("L%p:\n", block);
+    instr_num = 0;
     struct QuadList* curr = block->instructions;
     for (; TRUE; curr = curr->next) {
         if (curr->next == NULL)
             break;
         emit_instruction(curr->instruction, curr->type);
     }
+    store_allr_in_symtab(symbol_table);
 
+    if (block->jump_type != -1)
+        if (block->jump_type == QUAD_UNCOND)
+            emit_uncond(*(block->jump));
+        else
+            emit_cond(block->condition, *(block->true), *(block->false));
+    for (int i = 0; i < 32; i++)
+        clear_reg(i);
 
 }
 
@@ -191,7 +211,7 @@ void emit_assign(struct AssignQuad* assign);
 void emit_binop(struct BinOpQuad* binop);
 void emit_uop(struct UOpQuad* assign);
 void emit_conv(struct ConvQuad* binop);
-int instr_num = 0;
+
 void emit_instruction(void* instruction, enum QuadType type)
 {
     switch (type) {
@@ -247,8 +267,6 @@ void emit_assign(struct AssignQuad* assign)
             struct SymTab_entry* rval_entry = assign->rval;
 
             assign->lval->reg_locs = rval_entry->reg_locs;
-            printf("reg locs: %u\n", rval_entry->reg_locs);
-
             clear_all_locations(rval_entry);
             printf("reg locs: %u, %u\n", assign->lval->reg_locs,assign->lval->reg_locs & 1);
             int type_offset = 16 * type;
@@ -257,16 +275,20 @@ void emit_assign(struct AssignQuad* assign)
                     append_to_reg(i+type_offset, assign->lval->type, assign->lval);
             assign->lval->mem_loc &= ~(1 << 1);
 
-            printf("registers: ");
-            print_registers();
-            print_bin(assign->lval->mem_loc, 16);
             return;
         }
         case VARIABLE:{
             struct SymTab_entry* rval_entry = assign->rval;
-            if (!in_reg(rval_entry->reg_locs))
-                get_reg(type, -1, width, rval_entry, VARIABLE);
+            if (!in_reg(rval_entry->reg_locs)) {
+                unsigned int temp_reg = get_reg(type, -1, width, rval_entry, VARIABLE);
+                load_var(temp_reg, rval_entry, type, width);
+                rval_entry->reg_locs |= 1 << temp_reg;
+            }
 
+            printf("registers:");
+            print_bin(rval_entry->reg_locs, 32);
+            printf("\n");
+            print_registers();
             assign->lval->reg_locs = rval_entry->reg_locs;
             assign->lval->mem_loc &= ~(1 << 1);
             return;
@@ -371,8 +393,6 @@ void emit_binop(struct BinOpQuad* binop)
             }
             case FCONSTANT: {
                 struct float_entry* entry = binop->op1;
-                printf("fconstant: ");
-                print_registers();
                 result_reg = get_reg(type, -1, width, entry, FCONSTANT);
                 /*
                  * Should add live and use info of float consts to reduce
@@ -422,7 +442,7 @@ void emit_binop(struct BinOpQuad* binop)
                             register_names[4][result_reg-16], register_names[4][op_reg-16]);
                 } else {
                     write("%s %s, %s [%s%u]\n", float_arithmetic[width != 4][binop->op_type],
-                             register_names[4][result_reg-16], size_spec[loged_width-16],
+                             register_names[4][result_reg-16], size_spec[loged_width],
                             entry->key, entry->counter_value);
                 }
                 break;
@@ -441,7 +461,7 @@ void emit_binop(struct BinOpQuad* binop)
                             register_names[4][result_reg-16], register_names[4][op_reg-16]);
                     clear_reg(op_reg);
                 } else {
-                    write("%s %s, %s [dodouboblole+%u]\n", float_arithmetic[width != 4][binop->op_type],
+                    write("%s %s, %s [d_consts+%u]\n", float_arithmetic[width != 4][binop->op_type],
                             register_names[4][result_reg-16], size_spec[loged_width],
                             entry->offset);
                 }
@@ -844,19 +864,19 @@ void emit_uop(struct UOpQuad* uop)
                         result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
 
                         if (width == 4)
-                            write("movss %s, %s %s\n", register_names[4][result_reg],
-                                    size_spec[2], register_names[4][temp_reg]);
+                            write("movss %s, %s %s\n", register_names[4][result_reg-16],
+                                    size_spec[2], register_names[4][temp_reg-16]);
                         else
-                            write("movsd %s, %s %s\n", register_names[4][result_reg],
-                                    size_spec[3], register_names[4][temp_reg]);
+                            write("movsd %s, %s %s\n", register_names[4][result_reg-16],
+                                    size_spec[3], register_names[4][temp_reg-16]);
                     }
                 } else {
                     result_reg = get_reg(type, -1, width, entry, VARIABLE);
                     if (width == 4)
-                        write("movss %s, %s [%s%u]\n", register_names[4][result_reg],
+                        write("movss %s, %s [%s%u]\n", register_names[4][result_reg-16],
                                 size_spec[2], entry->key, entry->counter_value);
                     else
-                        write("movsd %s, %s [%s%u]\n", register_names[4][result_reg],
+                        write("movsd %s, %s [%s%u]\n", register_names[4][result_reg-16],
                                 size_spec[3], entry->key, entry->counter_value);
                 }
                 break;
@@ -875,11 +895,12 @@ void emit_uop(struct UOpQuad* uop)
             default:
                 fprintf(stderr, "Internal error:SymbolType %d shouldn't be uop1\n", uop->operand_type);
                 abort();
-            if (width == 4)
-                write("xorps result_reg, %s [negf]\n", size_spec[2]);
-            else
-                write("xorps result_reg, %s [negd]\n", size_spec[3]);
+
         }
+    if (width == 4)
+        write("xorps %s, %s [negf]\n", register_names[4][result_reg-16], size_spec[2]);
+    else
+        write("xorps %s, %s [negd]\n",register_names[4][result_reg-16], size_spec[3]);
     } else {
         switch (uop->operator_type) {
             case UOP_NEG:
@@ -933,11 +954,11 @@ void emit_uop(struct UOpQuad* uop)
 
 void emit_conv(struct ConvQuad* conv)
 {
-    long width_and_type = conv->conversion_type;
-    int new_type = width_and_type & 1;
-    int new_width = width_and_type >> 2;
-    int new_loged_width = log2(new_width);
-    int result_reg;
+    unsigned long width_and_type = conv->conversion_type;
+    unsigned int new_type = width_and_type & 1;
+    unsigned int new_width = width_and_type >> 2;
+    unsigned int new_loged_width = log2(new_width);
+    unsigned int result_reg;
     int clear_reg_on_exit = -1;
     switch (conv->op_type) {
         case TEMPORARY: {
@@ -1047,15 +1068,15 @@ void emit_conv(struct ConvQuad* conv)
                             size_spec[new_loged_width], entry->key,
                             entry->counter_value);
                     } else {
-                        write("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width],
-                                register_names[new_loged_width][result_reg-16],
+                        write("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width-2],
+                                register_names[4][result_reg-16],
                                 size_spec[new_loged_width],
                                 entry->key, entry->counter_value);
                     }
                 } else {
                     if (op_type) {
-                        write("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width],
-                                register_names[4][result_reg],
+                        write("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width-2],
+                                register_names[4][result_reg-16],
                                 size_spec[new_loged_width],
                                 entry->key, entry->counter_value);
 
@@ -1074,11 +1095,11 @@ void emit_conv(struct ConvQuad* conv)
             struct float_entry* entry = conv->op;
             result_reg  = get_reg(new_type, -1, new_width, entry, FCONSTANT);
             if (new_type) {
-                write("cvtsd2ss %s, %s [dodouboblole+%u]\n",
+                write("cvtsd2ss %s, %s [d_consts+%u]\n",
                     register_names[4][result_reg],
                     size_spec[new_loged_width], entry->offset);
             } else {
-                write("cvtsd2si %s, %s [dodouboblole+%u]\n",
+                write("cvtsd2si %s, %s [d_consts+%u]\n",
                         register_names[new_loged_width][result_reg],
                         size_spec[new_loged_width],
                         entry->offset);
@@ -1108,6 +1129,249 @@ void emit_conv(struct ConvQuad* conv)
     }
     conv->result->reg_locs = 1 << result_reg;
     return;
+}
+
+#define VAR_FLOAT_OP1_REG(var, info, reg_name, width, type)\
+    do {\
+        struct SymTab_entry* entry = var;\
+        if (in_reg(entry->reg_locs)) {\
+            if (!(used_later(info))) {\
+                VAR_GET_CLEAR_STORE_COND(reg_name, entry);\
+            } else if (count_registers(entry->reg_locs) >= 2) {\
+                reg_name = least_reg(entry);\
+            } else {\
+                unsigned int temp_reg = least_reg(entry);\
+                reg_name = get_reg(type, temp_reg, width, entry, VARIABLE);\
+                if (width == 4)\
+                    write("movss %s, %s %s\n", register_names[4][reg_name-16],\
+                            size_spec[2], register_names[4][temp_reg-16]);\
+                else\
+                    write("movsd %s, %s %s\n", register_names[4][reg_name-16],\
+                            size_spec[3], register_names[4][temp_reg-16]);\
+            }\
+        } else {\
+            reg_name = get_reg(type, -1, width, entry, VARIABLE);\
+            if (width == 4)\
+                write("movss %s, %s [%s%u]\n", register_names[4][reg_name-16],\
+                        size_spec[2], entry->key, entry->counter_value);\
+            else\
+                write("movsd %s, %s [%s%u]\n", register_names[4][reg_name-16],\
+                        size_spec[3], entry->key, entry->counter_value);\
+        }\
+    } while (0)\
+
+
+void emit_cond(struct CondQuad* cond,
+            struct BasicBlock* true, struct BasicBlock* false)
+{
+    struct SymTab_entry* op1;
+    unsigned int type;
+    unsigned int width;
+    if (cond->op1_type == VARIABLE || cond->op1_type == TEMPORARY) {
+        unsigned long w_n_t = ((struct SymTab_entry*)cond->op1)->width_and_type;
+        type = w_n_t & 1;
+        width = w_n_t >> 2;
+    } else if (cond->op2_type == VARIABLE || cond->op2_type == TEMPORARY) {
+        unsigned long w_n_t = ((struct SymTab_entry*)cond->op2)->width_and_type;
+        type = w_n_t & 1;
+        width = w_n_t >> 2;
+    } else {
+        fprintf(stderr, "Internal error:No constant folding on dumb comparisons yet huh?\n");
+        exit(-1);
+    }
+    unsigned int loged_width = log2(width);
+    if (type) {
+        unsigned int op1_reg;
+        switch (cond->op1_type) {
+
+            case TEMPORARY: {
+                struct SymTab_entry* entry = cond->op1;
+                op1_reg = first_reg(entry);
+                break;
+            }
+                break;
+            case VARIABLE: {
+                VAR_FLOAT_OP1_REG(cond->op1, cond->op1_info, op1_reg, width, type);
+                break;
+            }
+            case FCONSTANT: {
+                struct float_entry* entry = cond->op1;
+                op1_reg = get_reg(type, -1, width, entry, FCONSTANT);
+                load_float(op1_reg, entry->offset, width);
+                break;
+            }
+            default:
+                fprintf(stderr, "Internal error:Did not expect SymbolType %d in cond float op1 switch\n", cond->op1_type);
+                exit(-1);
+        }
+        switch (cond->op2_type) {
+            case TEMPORARY: {
+                    struct SymTab_entry* entry = cond->op2;
+                    unsigned int temp_reg = first_reg(entry);
+                    write("%s %s, %s\n", float_control[loged_width-2],
+                        register_names[4][op1_reg-16], register_names[4][temp_reg-16]);
+                    break;
+                }
+
+            case VARIABLE: {
+                struct SymTab_entry* entry = cond->op2;
+                if (in_reg(entry->reg_locs)) {
+                    unsigned int op2_reg;
+                    if (!(used_later(cond->op2_info))) {
+                        VAR_GET_CLEAR_STORE_COND(op2_reg, entry);
+                    } else if (count_registers(entry->reg_locs) >= 2) {
+                        op2_reg = least_reg(entry);
+                    } else {
+                        op2_reg = get_reg(type, op1_reg, width, entry, VARIABLE);
+                        unsigned int temp_reg = first_reg(entry);
+                        write("%s %s, %s\n", mov[loged_width],
+                                register_names[4][op1_reg-16], register_names[4][temp_reg-16]);
+                    }
+                    write("%s %s, %s", float_control[loged_width-2],
+                        register_names[4][op1_reg-16], register_names[4][op2_reg-16]);
+                } else if (used_later(cond->op2_info)) {
+                    unsigned int op2_reg = get_reg(type, op1_reg, width, entry, VARIABLE);
+                    write("%s %s, %s [%s%u]\n", mov[loged_width], register_names[4][op2_reg-16],
+                            size_spec[loged_width], entry->key, entry->counter_value);
+                    write("%s %s, %s\n", float_control[loged_width-2],
+                        register_names[4][op1_reg-16], register_names[4][op2_reg-16]);
+                } else {
+                    write("%s %s, %s [%s%u]\n", float_control[loged_width-2],
+                        register_names[4][op1_reg-16], size_spec[loged_width],
+                            entry->key, entry->counter_value);
+                }
+                break;
+            }
+
+            case FCONSTANT: {
+                struct float_entry* entry = cond->op2;
+                if (width == 4)
+                    write("%s %s, [f_consts+%u]\n", float_control[loged_width-2],
+                            register_names[4][op1_reg-16], entry->offset);
+                else
+                    write("%s %s, [d_consts+%u]\n", float_control[loged_width-2],
+                            register_names[4][op1_reg-16], entry->offset);
+                break;
+            }
+            default:
+                fprintf(stderr, "Internal error:Did not expect SymbolType %d in float op2 switch\n",
+                        cond->op2_type);
+                exit(-1);
+        }
+        write("%s L%p\n", cond_jumps[1][cond->op_type], true);
+        write("jmp L%p\n", false);
+    } else {
+        unsigned int op1_reg;
+        switch (cond->op1_type) {
+            case TEMPORARY: {
+                struct SymTab_entry* entry = cond->op1;
+                op1_reg = first_reg(entry);
+                break;
+            }
+
+            case VARIABLE: {
+                struct SymTab_entry* entry = cond->op1;
+                if (in_reg(entry->reg_locs)) {
+                    if (!(used_later(cond->op1_info))) {
+                        VAR_GET_CLEAR_STORE_COND(op1_reg, entry);
+                    } else if (count_registers(entry->reg_locs) >= 2) {
+                        op1_reg = least_reg(entry);
+                    } else {
+                        unsigned int temp_reg = least_reg(entry);
+                        op1_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
+                        write("mov %s, %s %s\n", register_names[loged_width][op1_reg],
+                                size_spec[2], register_names[loged_width][temp_reg]);
+                    }
+                } else {
+                    op1_reg = get_reg(type, -1, width, entry, VARIABLE);
+                    write("mov %s, %s [%s%u]\n", register_names[loged_width][op1_reg],
+                            size_spec[2], entry->key, entry->counter_value);
+                }
+                break;
+            }
+
+            case ICONSTANT: {
+                struct int_entry* entry = cond->op1;
+                op1_reg = get_reg(type, -1, width, entry, ICONSTANT);
+                if (width == 4)
+                    write("mov %s, %d\n", register_names[loged_width][op1_reg], (int)entry->val);
+                else
+                    write("mov %s, %ld\n", register_names[loged_width][op1_reg], entry->val);
+                break;
+            }
+            default:
+                fprintf(stderr, "Internal error:Did not expect SymbolType %d in int op1 switch\n",
+                        cond->op1_type);
+                exit(-1);
+        }
+        switch (cond->op2_type) {
+            case TEMPORARY: {
+                struct SymTab_entry* entry = cond->op2;
+                unsigned int temp_reg = first_reg(entry);
+                write("%s %s, %s\n", float_control[0],
+                    register_names[loged_width][op1_reg],
+                    register_names[loged_width][temp_reg]);
+                break;
+            }
+
+            case VARIABLE: {
+                struct SymTab_entry* entry = cond->op2;
+                if (in_reg(entry->reg_locs)) {
+                    unsigned int op2_reg;
+                    if (!(used_later(cond->op2_info))) {
+                        VAR_GET_CLEAR_STORE_COND(op2_reg, entry);
+                    } else if (count_registers(entry->reg_locs) >= 2) {
+                        op2_reg = least_reg(entry);
+                    } else {
+                        op2_reg = get_reg(type, op1_reg, width, entry, VARIABLE);
+                        unsigned int temp_reg = first_reg(entry);
+                        write("mov %s, %s\n", register_names[loged_width][op1_reg],
+                                register_names[loged_width][temp_reg]);
+                    }
+                    write("%s %s, %s\n", int_control[0],
+                        register_names[loged_width][op1_reg],
+                        register_names[loged_width][op2_reg]);
+                } else if (used_later(cond->op2_info)) {
+                    unsigned int op2_reg = get_reg(type, op1_reg, width, entry, VARIABLE);
+                    write("mov %s, %s [%s%u]\n", register_names[loged_width][op2_reg],
+                            size_spec[loged_width], entry->key, entry->counter_value);
+                    write("%s %s, %s", int_control[0],
+                        register_names[loged_width][op1_reg],
+                        register_names[loged_width][op2_reg]);
+                } else {
+                    write("%s %s, %s [%s%u]\n", int_control[0],
+                        register_names[loged_width][op1_reg], size_spec[loged_width],
+                            entry->key, entry->counter_value);
+                }
+                break;
+            }
+
+            case ICONSTANT: {
+                struct int_entry* entry = cond->op2;
+                if (width == 4)
+                    write("%s %s, %d\n", int_control[0],
+                            register_names[loged_width][op1_reg],
+                            (int)entry->val);
+                else
+                    write("%s %s, %ld\n", int_control[0],
+                            register_names[loged_width][op1_reg],
+                            entry->val);
+                break;
+            }
+
+            default:
+            fprintf(stderr, "Internal error:Did not expect SymbolType %d in int op2 switch\n",
+                    cond->op2_type);
+                exit(-1);
+        }
+    }
+    write("%s L%p\n", cond_jumps[0][cond->op_type], true);
+    write("jmp L%p\n", false);
+}
+
+void emit_uncond(struct BasicBlock* target)
+{
+    write("jmp L%p\n", target);
 }
 
 
@@ -1279,7 +1543,7 @@ void store(struct SymTab_entry* var, int reg)
 
 void load_float(int reg, long float_loc, int width)
 {
-    write("movsd %s, [dodouboblole+%ld]\n", register_names[4][reg-16], float_loc);
+    write("movsd %s, [d_consts+%ld]\n", register_names[4][reg-16], float_loc);
     if (width == 4)
         write("%s %s, %s\n", conv_float[1], register_names[4][reg-16], register_names[4][reg-16]);
 }

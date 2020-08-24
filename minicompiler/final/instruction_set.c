@@ -124,34 +124,37 @@ const char* float_arithmetic[2][4] = {
 };
 
 const char* int_control[] = {
-    "cmp"       // <op1>, <op2>. Compare op1 and op2, result in rFlags
+    "cmp",       // <op1>, <op2>. Compare op1 and op2, result in rFlags
     "test"      // <op1>, <op2>. 'and' op1 and op2, result in rFlags.
                 // Will only be used for zero comparisions.
 };
 
 const char* float_control[] = {
-    "ucomiss",  // <op32>, <op32>.  Compare op1 and Compare op1 and op2,
+    "ucomiss",  // <op32>, <op32>.  Compare op1 and op2,
                 // result in rFlags
-    "ucomisd"   // <op64>, <op64>.  Compare op1 and Compare op1 and op2,
+    "ucomisd"   // <op64>, <op64>.  Compare op1 and op2,
                 // result in rFlags
 };
 
-const char* cond_jumps[] = {
-    "je",       // Based on flags set by comparision: <op1> == <op2>
-    "jne"       // Based on flags set by comparision: <op1> != <op2>
-
-    // For signed ints:
-    "jl",       // Based on flags set by comparision: <op1> < <op2>
-    "jle",      // Based on flags set by comparision: <op1> <= <op2>
-    "jge",      // Based on flags set by comparision: <op1> > <op2>
-    "jg",       // Based on flags set by comparision: <op1> >= <op2>
-
-    // For unsigned ints and floats:
-    "jb",       // Based on flags set by comparision: <op1> <  <op2>
-    "jbe",      // Based on flags set by comparision: <op1> <=  <op2>
-    "ja",       // Based on flags set by comparision: <op1> > <op2>
-    "jae",      // Based on flags set by comparision: <op1> >= <op2>
-
+const char* cond_jumps[2][6] = {
+    {
+        "je",       // Based on flags set by comparision: <op1> == <op2>
+        "jne",       // Based on flags set by comparision: <op1> != <op2>
+        // For signed ints:
+        "jl",       // Based on flags set by comparision: <op1> < <op2>
+        "jle",      // Based on flags set by comparision: <op1> <= <op2>
+        "jge",      // Based on flags set by comparision: <op1> > <op2>
+        "jg",       // Based on flags set by comparision: <op1> >= <op2>
+    },
+    {
+        "je",       // Based on flags set by comparision: <op1> == <op2>
+        "jne",       // Based on flags set by comparision: <op1> != <op2>
+        // For unsigned ints and floats:
+        "jb",       // Based on flags set by comparision: <op1> <  <op2>
+        "jbe",      // Based on flags set by comparision: <op1> <=  <op2>
+        "ja",       // Based on flags set by comparision: <op1> > <op2>
+        "jae",      // Based on flags set by comparision: <op1> >= <op2>
+    }
 };
 
 const char* stack[] = {

@@ -189,6 +189,8 @@ void store_allr_in_symtab(struct SymTab* symbol_table)
             if (!(entry->mem_loc & (1 << 1))) {
                 printf("store it\n");
                 store(entry, first_reg(entry));
+                clear_all_locations(entry);
+                entry->mem_loc |= (1 << 1);
             }
 
             entry = entry->next;
