@@ -22,7 +22,7 @@
 
 #define STACK_SIZE 8192
 #define DEBUG 0
-#define TREEBUILDER 1
+#define TREEBUILDER 0
 #define LABELS 0
 
 char grammar_error = FALSE;
@@ -2498,6 +2498,7 @@ void free_Expr(struct Expr* node)
             free_token(node->binary_op);
             free_Expr(node->right);
             break;
+        case EXPR_CAST:
         case EXPR_UOP:
         case EXPR_NOT:
             free_token(node->unary_op);
