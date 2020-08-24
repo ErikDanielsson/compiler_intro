@@ -111,15 +111,16 @@ struct ConvQuad {
 
 
 enum RelopType {
-    RELOP_LESS,
-    RELOP_MORE,
-    RELOP_LESS_EQ,
-    RELOP_MORE_EQ,
     RELOP_EQ,
-    RELOP_NOT_EQ
+    RELOP_NOT_EQ,
+    RELOP_LESS,
+    RELOP_LESS_EQ,
+    RELOP_MORE,
+    RELOP_MORE_EQ
 };
 
 struct CondQuad {
+    unsigned long width_and_type;
     enum SymbolType op1_type;
     void*  op1;
     unsigned long op1_info;

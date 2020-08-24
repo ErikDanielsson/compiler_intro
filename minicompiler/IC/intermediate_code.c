@@ -419,7 +419,7 @@ void print_BasicBlock(struct BasicBlock* bb, int indent)
 }
 void printr(struct BasicBlock** bb, int indent, long max_bb)
 {
-    if (bb == NULL)
+    if (bb == NULL || indent > 5)
         return;
     print_BasicBlock(*bb, indent);
     if ((*bb)->bbnum == max_bb-1)

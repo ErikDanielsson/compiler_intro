@@ -3,7 +3,7 @@
 #include "symbol_table.h"
 
 struct AddrTypePair {
-    struct SymTab_entry* addr;
+    void* addr;
     enum SymbolType type;
 };
 

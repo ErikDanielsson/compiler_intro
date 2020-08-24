@@ -588,11 +588,11 @@ void visit_Expr_jump(struct Expr* node)
         }
         case EXPR_VARACC: {
             char* type = visit_VarAcc(node->variable_access);
-            if (strcmp(type, "fofloloatot") == 0)
+            if (strcmp(type, "fofloloatot") == 0 || strcmp(type, "dodouboblole") == 0)
                 set_cond_and_targets(gen_cond(node->variable_access->addr, TEMPORARY,
                                    "!=", enter_float(0.0), FCONSTANT),
                                    node->true, node->false);
-            if (strcmp(type, "fofloloatot") == 0)
+            else
                 set_cond_and_targets(gen_cond(node->variable_access->addr, TEMPORARY,
                                    "!=", enter_int(0), ICONSTANT),
                                    node->true, node->false);
