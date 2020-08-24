@@ -195,6 +195,7 @@ void visit_block(struct BasicBlock* block, struct SymTab* symbol_table)
             break;
         emit_instruction(curr->instruction, curr->type);
     }
+
     store_allr_in_symtab(symbol_table);
 
     if (block->jump_type != -1)
@@ -219,9 +220,7 @@ void emit_instruction(void* instruction, enum QuadType type)
             #if DEBUG
             printf("%d | emit assign\n", instr_num);
             #endif
-
             emit_assign(instruction);
-
             break;
         case QUAD_BINOP:
             #if DEBUG
@@ -267,28 +266,26 @@ void emit_assign(struct AssignQuad* assign)
             struct SymTab_entry* rval_entry = assign->rval;
 
             assign->lval->reg_locs = rval_entry->reg_locs;
+            assign->lval->mem_loc &= ~(1 << 1);
+
             clear_all_locations(rval_entry);
-            printf("reg locs: %u, %u\n", assign->lval->reg_locs,assign->lval->reg_locs & 1);
             int type_offset = 16 * type;
             for (int i = 0; i < 16; i++)
                 if (assign->lval->reg_locs & (1 << (i+type_offset)))
-                    append_to_reg(i+type_offset, assign->lval->type, assign->lval);
-            assign->lval->mem_loc &= ~(1 << 1);
-
+                    append_to_reg(i+type_offset,
+                                    assign->lval->type,
+                                    assign->lval);
             return;
         }
         case VARIABLE:{
             struct SymTab_entry* rval_entry = assign->rval;
+
             if (!in_reg(rval_entry->reg_locs)) {
                 unsigned int temp_reg = get_reg(type, -1, width, rval_entry, VARIABLE);
                 load_var(temp_reg, rval_entry, type, width);
                 rval_entry->reg_locs |= 1 << temp_reg;
             }
 
-            printf("registers:");
-            print_bin(rval_entry->reg_locs, 32);
-            printf("\n");
-            print_registers();
             assign->lval->reg_locs = rval_entry->reg_locs;
             assign->lval->mem_loc &= ~(1 << 1);
             return;
@@ -308,17 +305,13 @@ void emit_assign(struct AssignQuad* assign)
             if (!(assign->lval_info & 2)) {
                 assign->lval->mem_loc &= ~(1 << 1);
                 unsigned int new_reg = get_reg(type, -1, width, rval_entry, ICONSTANT);
-                if (width == 4)
-                    write("mov %s, %d\n", register_names[2][new_reg], (int)rval_entry->val);
-                else
-                    write("mov %s, %ld\n", register_names[3][new_reg], rval_entry->val);
+                load_int_to_reg(r_val_entry, loged_width, new_reg);
                 assign->lval->reg_locs |= 1 << new_reg;
             } else {
-                assign->lval->mem_loc = 1 << 1;
-                if (width == 4)
-                    write("mov %s [%s%u], %d\n", size_spec[2], assign->lval->key, assign->lval->counter_value, (int)rval_entry->val);
-                else
-                    write("mov %s [%s%u], %ld\n", size_spec[3], assign->lval->key, assign->lval->counter_value, rval_entry->val);
+                assign->lval->mem_loc |= 1 << 1;
+                char memstr_buff[800];
+                get_memstr(&memstr_buff, assign->lval->mem_loc & 1, assign->lval);
+                load_int_to_mem(rval_entry->val, loged_width, memstr_buff);
             }
             return;
         }
