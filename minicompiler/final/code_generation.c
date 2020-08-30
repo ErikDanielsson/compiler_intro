@@ -19,7 +19,7 @@
  * architecture. Should rewrite_asm it later to generate an ".o" file directly
  */
 //---------------------------------------
-void load_int_to_reg(struct int_entry* entry, unsigned int loged_width, unsigned int reg_n)
+void mov_int_const_reg(struct int_entry* entry, unsigned int loged_width, unsigned int reg_n)
 {
     write_asm("mov %s, ", register_names[loged_width][reg_n]);
     switch (loged_width) {
@@ -133,6 +133,42 @@ static inline void mov_int_mem_reg(unsigned int dest, char* src, unsigned int lo
 {
     write_asm("mov %s, %s %s\n", register_names[loged_width][dest], size_spec[loged_width], src);
 }
+
+static inline void divmod_int_reg(unsigned int divisor, unsigned int loged_width)
+{
+    write_asm("idiv %s\n", register_names[loged_width][divisor]);
+}
+
+static inline void divmod_int_mem(char* divisor, unsigned int loged_width)
+{
+    write("idiv %s %s\n", size_spec[loged_width], divisor);
+}
+
+static inline void shift_int_reg(enum BinOpType operator, unsigned int dest, unsigned int loged_width)
+{
+    write_asm("%s %s, cl\n", int_arithmetic[operator], register_names[loged_width][dest]);
+}
+
+static inline void shift_int_const(enum BinOpType operator, unsigned int dest, struct int_entry* entry, unsigned int loged_width)
+{
+    write_asm("%s %s, %s ", int_arithmetic[operator], register_names[loged_width][dest], size_spec[loged_width]);
+    switch (loged_width) {
+        case 0:
+        case 1:
+        default:
+            fprintf(stderr, "Internal error:8 and 16 bit ints are currently not supported\n");
+            exit(-1);
+        case 2:
+            write_asm("%d", (int)entry->val);
+            break;
+        case 3:
+            write_asm("%ld", (long)entry->val);
+            break;
+    }
+    write_asm("\n");
+}
+
+
 
 //---------------------------------------
 
@@ -319,6 +355,7 @@ void visit_block(struct BasicBlock* block, struct SymTab* symbol_table)
             emit_uncond(*(block->jump));
         else
             emit_cond(block->condition, *(block->true), *(block->false));
+
     for (int i = 0; i < 32; i++)
         clear_reg(i);
 
@@ -400,11 +437,11 @@ void emit_assign(struct AssignQuad* assign)
             if (!in_reg(rval_entry->reg_locs)) {
                 unsigned int temp_reg = get_reg(type, -1, width, rval_entry, VARIABLE);
                 char memstr_buff[800];
-                get_memstr(&memstr_buff[0], rval_entry->mem_loc & 1, entry);
+                get_memstr(&memstr_buff[0], rval_entry->mem_loc & 1, rval_entry);
                 if (type)
-                    mov_float_mem_reg(dest, memstr_buff, loged_width);
+                    mov_float_mem_reg(temp_reg, memstr_buff, loged_width);
                 else
-                    mov_int_mem_reg(dest, memstr_buff, loged_width);
+                    mov_int_mem_reg(temp_reg, memstr_buff, loged_width);
                 rval_entry->reg_locs |= 1 << temp_reg;
             }
 
@@ -427,7 +464,7 @@ void emit_assign(struct AssignQuad* assign)
             if (!(assign->lval_info & 2)) {
                 assign->lval->mem_loc &= ~(1 << 1);
                 unsigned int new_reg = get_reg(type, -1, width, rval_entry, ICONSTANT);
-                load_int_to_reg(rval_entry, loged_width, new_reg);
+                mov_int_const_reg(rval_entry, loged_width, new_reg);
                 assign->lval->reg_locs |= 1 << new_reg;
             } else {
                 assign->lval->mem_loc |= 1 << 1;
@@ -541,7 +578,7 @@ void emit_binop(struct BinOpQuad* binop)
                     char memstr_buff[800];
                     get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
                     mov_float_mem_reg(op_reg, memstr_buff, loged_width);
-                    float_arith(binop->op_typec, result_reg, op_reg, loged_width);
+                    float_arith_reg_reg(binop->op_type, result_reg, op_reg, loged_width);
                 } else {
                     char memstr_buff[800];
                     get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
@@ -560,7 +597,7 @@ void emit_binop(struct BinOpQuad* binop)
                     clear_reg(op_reg);
                 } else {
                     char floatstr_buff[800];
-                    sprintf("[d_consts+%u]", entry->offset);
+                    sprintf(floatstr_buff, "[d_consts+%u]", entry->offset);
                     float_arith_reg_mem(binop->op_type, result_reg, floatstr_buff, loged_width);
                 }
                 break;
@@ -600,15 +637,15 @@ void emit_binop(struct BinOpQuad* binop)
                         } else {
                             result_reg = get_reg(type, -1, width, entry, VARIABLE);
                             char memstr_buff[800];
-                            get_memstr(&memstr_buff[0], rval_entry->mem_loc & 1, entry);
-                            mov_int_mem_reg(dest, memstr_buff, loged_width)
+                            get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                            mov_int_mem_reg(result_reg, memstr_buff, loged_width);
                         }
                         break;
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
                         result_reg = get_reg(type, -1, width, entry, ICONSTANT);
-                        load_int_to_reg(entry, loged_width, result_reg);
+                        mov_int_const_reg(entry, loged_width, result_reg);
                         break;
                     }
                     default:
@@ -637,8 +674,8 @@ void emit_binop(struct BinOpQuad* binop)
                         } else if (used_later(binop->op2_info)) {
                             unsigned int op_reg = get_reg(type, -1, width, entry, VARIABLE);
                             char memstr_buff[800];
-                            get_memstr(&memstr_buff[0], rval_entry->mem_loc & 1, entry);
-                            mov_int_mem_reg(dest, memstr_buff, loged_width)
+                            get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                            mov_int_mem_reg(op_reg, memstr_buff, loged_width);
                             int_arith_reg_reg(binop->op_type, result_reg, op_reg, loged_width);
                             entry->reg_locs |= 1 << op_reg;
 
@@ -699,13 +736,13 @@ void emit_binop(struct BinOpQuad* binop)
                         } else {
                             char memstr_buff[800];
                             get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
-                            mov_int_mem_reg(dest, memstr_buff, loged_width);
+                            mov_int_mem_reg(0, memstr_buff, loged_width);
                         }
                         break;
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
-                        load_int_to_reg(entry, loged_width, 0);
+                        mov_int_const_reg(entry, loged_width, 0);
                         break;
                     }
                     default:
@@ -717,9 +754,8 @@ void emit_binop(struct BinOpQuad* binop)
                 switch (binop->op2_type) {
                     case TEMPORARY: {
                         struct SymTab_entry* entry = binop->op2;
-                        unsigned int divisior = first_reg(entry);
-
-                        write_asm("idiv %s\n", register_names[loged_width][divisior]);
+                        unsigned int divisor = first_reg(entry);
+                        divmod_int_reg(divisor, loged_width);
                         clear_all_locations(entry);
                         entry->reg_locs = 0;
                         break;
@@ -730,32 +766,22 @@ void emit_binop(struct BinOpQuad* binop)
                         if (in_reg(entry->reg_locs)) {
                             struct SymTab_entry* entry = binop->op2;
                             divisor = first_reg(entry);
-                            write_asm("idiv %s\n",
-                                    register_names[loged_width][divisor]);
+                            divmod_int_reg(divisor, loged_width);
                         } else if (used_later(binop->op2_info) &&
                                 (divisor = get_free_reg(type)) != -1) {
-                            write_asm("idiv %s\n",
-                                    register_names[loged_width][divisor]);
+                            divmod_int_reg(divisor, loged_width);
                         } else {
-                            write_asm("idiv %s [%s%u]\n",
-                                size_spec[loged_width],
-                                entry->key,
-                                entry->counter_value);
+                            char memstr_buff[800];
+                            get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                            divmod_int_mem(memstr_buff, loged_width);
                         }
                         break;
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op2;
-                        unsigned int op_reg = get_reg(type, -1, width, entry, ICONSTANT);
-                        if (width == 4)
-                            write_asm("mov %s, %d\n",
-                                register_names[loged_width][op_reg],
-                                (int)entry->val);
-                        else
-                            write_asm("mov %s, %ld\n",
-                                register_names[loged_width][op_reg],
-                                entry->val);
-                        write_asm("idiv %s\n", register_names[loged_width][op_reg]);
+                        unsigned int divisor = get_reg(type, -1, width, entry, ICONSTANT);
+                        mov_int_const_reg(entry, loged_width, divisor);
+                        divmod_int_reg(divisor, loged_width);
                         break;
                     }
                     default:
@@ -783,32 +809,26 @@ void emit_binop(struct BinOpQuad* binop)
                         struct SymTab_entry* entry = binop->op1;
                         if (in_reg(entry->reg_locs)) {
                             if (!(used_later(binop->op1_info))) {
-                                printf("%s is not alive\n", entry->key);
-
                                 VAR_GET_CLEAR_STORE_COND(result_reg, entry);
                             } else if (count_registers(entry->reg_locs) >= 2) {
                                 result_reg = least_reg(entry);
                             } else {
                                 unsigned int temp_reg = least_reg(entry);
                                 result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
-                                write_asm("mov %s, %s %s\n", register_names[loged_width][result_reg],
-                                            size_spec[loged_width], register_names[loged_width][temp_reg]);
+                                mov_int_reg_reg(result_reg, temp_reg, loged_width);
                             }
                         } else {
                             result_reg = get_reg(type, -1, width, entry, VARIABLE);
-                            write_asm("mov %s, %s [%s%u]\n", register_names[loged_width][result_reg],
-                                    size_spec[loged_width], entry->key, entry->counter_value);
-
+                            char memstr_buff[800];
+                            get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                            mov_int_mem_reg(result_reg, memstr_buff, loged_width);
                         }
                         break;
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
                         result_reg = get_reg(type, -1, width, entry, ICONSTANT);
-                        if (width == 4)
-                            write_asm("mov %s, %d\n", register_names[loged_width][result_reg], (int)entry->val);
-                        else
-                            write_asm("mov %s, %ld\n", register_names[loged_width][result_reg], entry->val);
+                        mov_int_const_reg(entry, loged_width, result_reg);
                         break;
                     }
                     default:
@@ -822,12 +842,11 @@ void emit_binop(struct BinOpQuad* binop)
                         case TEMPORARY: {
                             struct SymTab_entry* entry = binop->op2;
                             unsigned int temp_reg = first_reg(entry);
-                            write_asm("mov %s, %s\n", register_names[loged_width][2],
-                                    register_names[loged_width][temp_reg]);
+                            if (temp_reg != 2)
+                                mov_int_reg_reg(2, temp_reg, loged_width);
                             clear_all_locations(entry);
                             entry->reg_locs = 0;
-                            write_asm("%s %s, cl\n", int_arithmetic[binop->op_type],
-                                    register_names[loged_width][result_reg]);
+                            shift_int_reg(binop->op_type, result_reg, loged_width);
                             break;
                         }
                         case VARIABLE: {
@@ -836,46 +855,32 @@ void emit_binop(struct BinOpQuad* binop)
                                 if (!(used_later(binop->op2_info))) {
                                     unsigned int temp_reg;
                                     VAR_GET_CLEAR_STORE_COND(temp_reg, entry);
-
-                                    write_asm("mov %s, %s\n", register_names[loged_width][2],
-                                            register_names[loged_width][temp_reg]);
-                                    write_asm("%s %s, cl\n", int_arithmetic[binop->op_type],
-                                            register_names[loged_width][result_reg]);
+                                    if (temp_reg != 2)
+                                        mov_int_reg_reg(2, temp_reg, loged_width);
+                                    shift_int_reg(binop->op_type, result_reg, loged_width);
                                 }  else {
                                     unsigned int temp_reg = first_reg(entry);
-                                    write_asm("mov %s, %s\n", register_names[loged_width][2],
-                                            register_names[loged_width][temp_reg]);
-                                    write_asm("%s %s, cl\n", int_arithmetic[binop->op_type],
-                                            register_names[loged_width][result_reg]);
+                                    if (temp_reg != 2)
+                                        mov_int_reg_reg(2, temp_reg, loged_width);
+                                    shift_int_reg(binop->op_type, result_reg, loged_width);
                                 }
                             } else if (used_later(binop->op2_info)) {
                                 unsigned int temp_reg = get_reg(type, -1, width, entry, VARIABLE);
                                 load(entry, temp_reg, width, type);
-                                write_asm("mov %s, %s\n", register_names[loged_width][2],
-                                        register_names[loged_width][temp_reg]);
-                                write_asm("%s %s, cl\n", int_arithmetic[binop->op_type],
-                                        register_names[loged_width][result_reg]);
+                                if (temp_reg != 2)
+                                    mov_int_reg_reg(2, temp_reg, loged_width);
+                                shift_int_reg(binop->op_type, result_reg, loged_width);
                             } else {
-                                write_asm("mov %s, %s [%s%u]\n",
-                                        register_names[loged_width][2],
-                                        size_spec[loged_width],
-                                        entry->key, entry->counter_value);
-                                write_asm("%s %s, cl\n", int_arithmetic[binop->op_type],
-                                        register_names[loged_width][result_reg]);
+                                char memstr_buff[800];
+                                get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                                mov_int_mem_reg(2, memstr_buff, loged_width);
+                                shift_int_reg(binop->op_type, result_reg, loged_width);
                             }
                             break;
                         }
                         case ICONSTANT: {
                             struct int_entry* entry = binop->op2;
-                            if (width == 4)
-                                write_asm("%s %s, %d\n", int_arithmetic[binop->op_type],
-                                        register_names[loged_width][result_reg],
-                                        (int)entry->val);
-
-                            else
-                                write_asm("%s %s, %ld\n", int_arithmetic[binop->op_type],
-                                        register_names[loged_width][result_reg],
-                                        entry->val);
+                            shift_int_const(binop->op_type, result_reg, entry, loged_width);
                             break;
                         }
                         default:
