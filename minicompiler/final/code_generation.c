@@ -40,7 +40,7 @@ void mov_int_const_reg(struct int_entry* entry, unsigned int loged_width, unsign
 
 void load_int_to_mem(long entry_val, unsigned int loged_width, char* mem_loc_str)
 {
-    write_asm("mov %s %s", size_spec[loged_width], mem_loc_str);
+    write_asm("mov %s %s, ", size_spec[loged_width], mem_loc_str);
     switch (loged_width) {
         case 0:
         case 1:
@@ -151,7 +151,7 @@ static inline void shift_int_reg(enum BinOpType operator, unsigned int dest, uns
 
 static inline void shift_int_const(enum BinOpType operator, unsigned int dest, struct int_entry* entry, unsigned int loged_width)
 {
-    write_asm("%s %s, %s ", int_arithmetic[operator], register_names[loged_width][dest], size_spec[loged_width]);
+    write_asm("%s %s, ", int_arithmetic[operator], register_names[loged_width][dest]);
     switch (loged_width) {
         case 0:
         case 1:
@@ -168,7 +168,10 @@ static inline void shift_int_const(enum BinOpType operator, unsigned int dest, s
     write_asm("\n");
 }
 
-
+static inline void float_neg(unsigned int op, unsigned int loged_width)
+{
+    write_asm("xorps %s, %s\n", register_names[4][op-16], size_spec[loged_width]);
+}
 
 //---------------------------------------
 
@@ -922,22 +925,15 @@ void emit_uop(struct UOpQuad* uop)
                     } else {
                         unsigned int temp_reg = least_reg(entry);
                         result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
-
-                        if (width == 4)
-                            write_asm("movss %s, %s %s\n", register_names[4][result_reg-16],
-                                    size_spec[2], register_names[4][temp_reg-16]);
-                        else
-                            write_asm("movsd %s, %s %s\n", register_names[4][result_reg-16],
-                                    size_spec[3], register_names[4][temp_reg-16]);
+                        char memstr_buff[800];
+                        get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                        mov_float_mem_reg(result_reg, memstr_buff, loged_width);
                     }
                 } else {
                     result_reg = get_reg(type, -1, width, entry, VARIABLE);
-                    if (width == 4)
-                        write_asm("movss %s, %s [%s%u]\n", register_names[4][result_reg-16],
-                                size_spec[2], entry->key, entry->counter_value);
-                    else
-                        write_asm("movsd %s, %s [%s%u]\n", register_names[4][result_reg-16],
-                                size_spec[3], entry->key, entry->counter_value);
+                    char memstr_buff[800];
+                    get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                    mov_float_mem_reg(result_reg, memstr_buff, loged_width);
                 }
                 break;
             }
@@ -957,10 +953,7 @@ void emit_uop(struct UOpQuad* uop)
                 exit(-1);
 
         }
-    if (width == 4)
-        write_asm("xorps %s, %s [negf]\n", register_names[4][result_reg-16], size_spec[2]);
-    else
-        write_asm("xorps %s, %s [negd]\n",register_names[4][result_reg-16], size_spec[3]);
+    float_neg(result_reg, loged_width);
     } else {
         switch (uop->operator_type) {
             case UOP_NEG:
@@ -981,24 +974,20 @@ void emit_uop(struct UOpQuad* uop)
                             } else {
                                 unsigned int temp_reg = least_reg(entry);
                                 result_reg = get_reg(type, temp_reg, width, entry, VARIABLE);
-                                write_asm("mov %s, %s %s\n", register_names[loged_width][result_reg],
-                                            size_spec[loged_width], register_names[loged_width][temp_reg]);
+                                mov_int_reg_reg(result_reg, temp_reg, loged_width);
                             }
                         } else {
                             result_reg = get_reg(type, -1, width, entry, VARIABLE);
-                            write_asm("mov %s, %s [%s%u]\n", register_names[loged_width][result_reg],
-                                    size_spec[loged_width], entry->key, entry->counter_value);
-
+                            char memstr_buff[800];
+                            get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                            mov_int_mem_reg(result_reg, memstr_buff, loged_width);
                         }
                         break;
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = uop->operand;
                         result_reg = get_reg(type, -1, width, entry, ICONSTANT);
-                        if (width == 4)
-                            write_asm("mov %s, %d\n", register_names[loged_width][result_reg], (int)entry->val);
-                        else
-                            write_asm("mov %s, %ld\n", register_names[loged_width][result_reg], entry->val);
+                        mov_int_const_reg(result_reg, entry, loged_width);
                         break;
                     }
                     default:
