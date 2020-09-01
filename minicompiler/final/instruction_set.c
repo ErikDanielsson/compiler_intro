@@ -67,7 +67,7 @@ const char* conv_in_a[] = {
 
 const char* conv_signed[] = {
     "movsx",        // <reg16-64>, <op8-16>     Convert to size of register
-    "movsx"         // <reg64>, <op32>
+    "movsxd"         // <reg64>, <op32>
 };
 
 const char* conv_float[] = {

@@ -673,16 +673,16 @@ void visit_AStmt(struct AStmt* node)
                 break;
             case '*':
                 if (strcmp(var_type, "fofloloatot") == 0)
-                    append_triple(gen_binop(var_entry, VARIABLE, '*', enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
+                    append_triple(gen_binop(var_entry, VARIABLE, SHL, enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
                 else
-                    append_triple(gen_binop(var_entry, VARIABLE, '*', enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
+                    append_triple(gen_binop(var_entry, VARIABLE, SHL, enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
                 append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN, 1);
                 break;
             case '/':
                 if (strcmp(var_type, "fofloloatot") == 0)
-                    append_triple(gen_binop(var_entry, VARIABLE, '/', enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
+                    append_triple(gen_binop(var_entry, VARIABLE, SHR, enter_float(1.0), FCONSTANT, temp), QUAD_BINOP, 1);
                 else
-                    append_triple(gen_binop(var_entry, VARIABLE, '/', enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
+                    append_triple(gen_binop(var_entry, VARIABLE, SHR, enter_int(1), ICONSTANT, temp), QUAD_BINOP, 1);
                 append_triple(gen_assignment(var_entry, temp, TEMPORARY), QUAD_ASSIGN, 1);
                 break;
             default:
@@ -699,11 +699,12 @@ void visit_AStmt(struct AStmt* node)
         atp1.addr = node->expr->addr;
         atp1.type = node->expr->addr_type;
         widen(&atp1, var_type, expr_type);
+        printf("shiting:: %s : %lu\n", var_type, var_entry->width_and_type >> 2);
         if (node->assignment_type->type != '=') {
             /*
              * This is a bit of a hack
              */
-            struct SymTab_entry* temp = newtemp(expr_type);
+            struct SymTab_entry* temp = newtemp(var_type);
             enum TokenType op_type;
             switch (node->assignment_type->lexeme[0]) {
                 case '+':

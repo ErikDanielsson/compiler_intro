@@ -19,7 +19,7 @@
  * architecture. Should rewrite_asm it later to generate an ".o" file directly
  */
 //---------------------------------------
-void mov_int_const_reg(struct int_entry* entry, unsigned int loged_width, unsigned int reg_n)
+void mov_int_const_reg(unsigned int reg_n, struct int_entry* entry, unsigned int loged_width)
 {
     write_asm("mov %s, ", register_names[loged_width][reg_n]);
     switch (loged_width) {
@@ -172,6 +172,47 @@ static inline void float_neg(unsigned int op, unsigned int loged_width)
 {
     write_asm("xorps %s, %s\n", register_names[4][op-16], size_spec[loged_width]);
 }
+
+static inline void conv_float_float_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width)
+{
+    write_asm("%s %s, %s\n", conv_float[new_loged_width-2], register_names[4][dest-16], register_names[4][src-16]);
+}
+
+static inline void conv_int_float_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    printf("new %d old %d\n", old_loged_width, new_loged_width);
+    write_asm("%s %s, %s\n", conv_float_int[new_loged_width], register_names[4][dest-16], register_names[old_loged_width][src]);
+}
+
+static inline void conv_float_int_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    write_asm("%s %s, %s\n", conv_float_int[old_loged_width], register_names[new_loged_width][dest], register_names[4][src-16]);
+}
+
+static inline void conv_int_int_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    if (new_loged_width > old_loged_width)
+        write_asm("%s %s, %s\n", conv_signed[1], register_names[new_loged_width][dest], register_names[old_loged_width][src]);
+}
+
+static inline void conv_float_float_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    write_asm("%s %s, %s %s\n", conv_float[new_loged_width-2], register_names[4][dest-16], size_spec[old_loged_width], src);
+}
+static inline void conv_int_float_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    write_asm("%s %s, %s %s\n", conv_float_int[old_loged_width-2], register_names[4][dest-16], size_spec[old_loged_width], src);
+}
+static inline void conv_float_int_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    write_asm("%s %s, %s %s\n");
+}
+static inline void conv_int_int_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
+{
+    if (new_loged_width < old_loged_width)
+        write_asm("%s %s, %s %s\n");
+}
+
 
 //---------------------------------------
 
@@ -467,7 +508,7 @@ void emit_assign(struct AssignQuad* assign)
             if (!(assign->lval_info & 2)) {
                 assign->lval->mem_loc &= ~(1 << 1);
                 unsigned int new_reg = get_reg(type, -1, width, rval_entry, ICONSTANT);
-                mov_int_const_reg(rval_entry, loged_width, new_reg);
+                mov_int_const_reg(new_reg, rval_entry, loged_width);
                 assign->lval->reg_locs |= 1 << new_reg;
             } else {
                 assign->lval->mem_loc |= 1 << 1;
@@ -648,7 +689,7 @@ void emit_binop(struct BinOpQuad* binop)
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
                         result_reg = get_reg(type, -1, width, entry, ICONSTANT);
-                        mov_int_const_reg(entry, loged_width, result_reg);
+                        mov_int_const_reg(result_reg, entry, loged_width);
                         break;
                     }
                     default:
@@ -711,9 +752,21 @@ void emit_binop(struct BinOpQuad* binop)
                 unsigned int op1_in_a = free_reg(0, binop->op1, type, loged_width);
                 unsigned int op1_in_d = free_reg(3, binop->op1, type, loged_width);
 
-                if (op1_in_a)
+                if (op1_in_a){
+                    if (binop->op1_type == TEMPORARY) {
+                        struct SymTab_entry* entry = binop->op1;
+                        clear_all_locations(entry);
+                        entry->reg_locs = 0;
+                    }
                     goto binop_select_2nd_op;
+                }
+
                 if (op1_in_d) {
+                    if (binop->op1_type == TEMPORARY) {
+                        struct SymTab_entry* entry = binop->op1;
+                        clear_all_locations(entry);
+                        entry->reg_locs = 0;
+                    }
                     mov_int_reg_reg(0, 3, loged_width);
                     goto binop_select_2nd_op;
                 }
@@ -745,7 +798,7 @@ void emit_binop(struct BinOpQuad* binop)
                     }
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
-                        mov_int_const_reg(entry, loged_width, 0);
+                        mov_int_const_reg(0, entry, loged_width);
                         break;
                     }
                     default:
@@ -783,7 +836,7 @@ void emit_binop(struct BinOpQuad* binop)
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op2;
                         unsigned int divisor = get_reg(type, -1, width, entry, ICONSTANT);
-                        mov_int_const_reg(entry, loged_width, divisor);
+                        mov_int_const_reg(divisor, entry, loged_width);
                         divmod_int_reg(divisor, loged_width);
                         break;
                     }
@@ -799,13 +852,15 @@ void emit_binop(struct BinOpQuad* binop)
             }
             case BINOP_SHL:
             case BINOP_SHR: {
-                unsigned int op2_in_c = 0;;
+                unsigned int op2_in_c = 0;
                 if (binop->op2_type != ICONSTANT)
                     op2_in_c = free_reg(2, binop->op2, type, loged_width);
                 switch (binop->op1_type) {
                     case TEMPORARY: {
                         struct SymTab_entry* entry = binop->op1;
                         LOAD_TEMP_TO_RES(result_reg, entry);
+                        clear_all_locations(entry);
+                        entry->reg_locs = 0;
                         break;
                     }
                     case VARIABLE: {
@@ -831,7 +886,7 @@ void emit_binop(struct BinOpQuad* binop)
                     case ICONSTANT: {
                         struct int_entry* entry = binop->op1;
                         result_reg = get_reg(type, -1, width, entry, ICONSTANT);
-                        mov_int_const_reg(entry, loged_width, result_reg);
+                        mov_int_const_reg(result_reg, entry, loged_width);
                         break;
                     }
                     default:
@@ -840,15 +895,23 @@ void emit_binop(struct BinOpQuad* binop)
                 }
                 if (op2_in_c) {
                     write_asm("%s %s, cl\n", int_arithmetic[binop->op_type], register_names[loged_width][result_reg]);
+                    if (binop->op2_type == TEMPORARY) {
+                        struct SymTab_entry* entry = binop->op2;
+                        clear_all_locations(entry);
+                        entry->reg_locs = 0;
+                    }
                 } else {
                     switch (binop->op2_type) {
                         case TEMPORARY: {
                             struct SymTab_entry* entry = binop->op2;
                             unsigned int temp_reg = first_reg(entry);
-                            if (temp_reg != 2)
+                            if (temp_reg != 2) {
                                 mov_int_reg_reg(2, temp_reg, loged_width);
+                                entry->reg_locs |= 1 << 2;
+                            }
                             clear_all_locations(entry);
                             entry->reg_locs = 0;
+                            print_registers();
                             shift_int_reg(binop->op_type, result_reg, loged_width);
                             break;
                         }
@@ -1015,39 +1078,28 @@ void emit_conv(struct ConvQuad* conv)
             long op_width_and_type = entry->width_and_type;
             int op_type = op_width_and_type & 1;
             int op_width = op_width_and_type >> 2;
-            int new_loged_width = log2(op_width);
+            int op_loged_width = log2(op_width);
             if (new_type) {
                 if (op_type) {
                     result_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    write_asm("%s %s, %s\n", conv_float[new_loged_width-2],
-                        register_names[4][result_reg-16],
-                        register_names[4][result_reg-16]);
+                    conv_float_float_reg_reg(result_reg, result_reg, new_loged_width);
                 } else {
                     int op_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    result_reg = get_reg(op_type, op_reg, new_width, entry, TEMPORARY);
-                    write_asm("%s %s, %s\n", conv_float_int[new_loged_width-2],
-                            register_names[new_loged_width][result_reg-16],
-                            register_names[4][op_reg-16]);
+                    result_reg = get_reg(new_type, op_reg, new_width, entry, TEMPORARY);
+                    conv_int_float_reg_reg(result_reg, op_reg, new_loged_width, op_loged_width);
                 }
             } else {
                 if (op_type) {
                     int op_reg = first_reg(entry);
                     clear_all_locations(entry);
                     result_reg = get_reg(op_type, op_reg, new_width, entry, TEMPORARY);
-                    write_asm("%s %s, %s\n", conv_float_int[new_loged_width],
-                            register_names[4][result_reg-16],
-                            register_names[new_loged_width][op_reg-16]);
-
+                    conv_float_int_reg_reg(result_reg, op_reg, new_loged_width, op_loged_width);
                 } else {
                     result_reg = first_reg(entry);
                     clear_all_locations(entry);
-                    if (new_width < op_width)
-                        write_asm("%s %s, %s\n", conv_signed[1],
-                                register_names[3][result_reg-16],
-                                register_names[2][result_reg-16]);
-
+                    conv_int_int_reg_reg(result_reg, result_reg, new_loged_width, op_loged_width);
                 }
             }
             break;
@@ -1057,84 +1109,58 @@ void emit_conv(struct ConvQuad* conv)
             long op_width_and_type = entry->width_and_type;
             int op_type = op_width_and_type & 1;
             int op_width = op_width_and_type >> 2;
-            int new_loged_width = log2(new_width);
+            int op_loged_width = log2(op_width);
             if (in_reg(entry->reg_locs)) {
                 int op_reg;
                 if (!(used_later(conv->op_info))) {
-                    printf("stored cond\n");
                     VAR_GET_CLEAR_STORE_COND(op_reg, entry);
                 } else if (count_registers(entry->reg_locs) >= 2) {
                     op_reg = least_reg(entry);
                 } else {
                     unsigned int temp_reg = least_reg(entry);
                     op_reg = get_reg(op_type, temp_reg, op_width, entry, VARIABLE);
-                    write_asm("%s %s, %s\n", mov[op_type*new_loged_width],
-                            register_names[new_loged_width*(!op_type)+4*op_type][op_reg-16*op_type],
-                            register_names[new_loged_width*(!op_type)+4*op_type][temp_reg-16*op_type]);
+                    if (op_type)
+                        mov_float_reg_reg(op_reg, temp_reg, op_loged_width);
+                    else
+                        mov_int_reg_reg(op_reg, temp_reg, op_loged_width);
                     append_reg_to_symbol(entry, op_reg);
                 }
+                printf("MMMM\n");
                 if (new_type) {
                     if (op_type) {
-                        printf("new & op\n");
-                        write_asm("%s %s, %s\n", conv_float[new_loged_width-2],
-                            register_names[4][op_reg-16],
-                            register_names[4][op_reg-16]);
+                        conv_float_float_reg_reg(op_reg, op_reg, new_loged_width);
                         result_reg = op_reg;
                         clear_reg(op_reg);
                     } else {
-                        printf("new\n");
-
-                        result_reg = get_reg(op_type, -1, new_width, entry, VARIABLE);
-                        write_asm("%s %s, %s\n", conv_float_int[new_loged_width],
-                                register_names[new_loged_width][result_reg-16],
-                                register_names[4][op_reg]);
+                        result_reg = get_reg(new_type, -1, new_width, entry, VARIABLE);
+                        conv_int_float_reg_reg(result_reg, op_reg, new_loged_width, op_loged_width);
                     }
                 } else {
                     if (op_type) {
                         result_reg = get_reg(new_type, -1, new_width, entry, VARIABLE);
-                        write_asm("%s %s, %s\n", conv_float_int[new_loged_width-2],
-                                register_names[new_loged_width][result_reg],
-                                register_names[4][op_reg-16]);
+                        conv_float_int_reg_reg(result_reg, op_reg, new_loged_width, op_loged_width);
                     } else {
-                        printf("none \n");
-
-                        if (new_width < op_width)
-                            write_asm("%s %s, %s\n", conv_signed[1],
-                                    register_names[3][op_reg],
-                                    register_names[2][op_reg]);
+                        conv_int_int_reg_reg(op_reg, op_reg, new_loged_width, op_loged_width);
                         result_reg = op_reg;
                         clear_reg(op_reg);
                     }
                 }
             } else {
                 result_reg = get_reg(new_type, -1, new_width, entry, VARIABLE);
-                if (new_type) {
-                    if (op_type) {
-                        write_asm("%s %s, %s [%s%u]\n", conv_float[new_loged_width-2],
-                            register_names[4][result_reg-16],
-                            size_spec[new_loged_width], entry->key,
-                            entry->counter_value);
-                    } else {
-                        write_asm("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width-2],
-                                register_names[4][result_reg-16],
-                                size_spec[new_loged_width],
-                                entry->key, entry->counter_value);
-                    }
-                } else {
-                    if (op_type) {
-                        write_asm("%s %s, %s [%s%u]\n", conv_float_int[new_loged_width-2],
-                                register_names[4][result_reg-16],
-                                size_spec[new_loged_width],
-                                entry->key, entry->counter_value);
+                char memstr_buff[800];
+                get_memstr(&memstr_buff[0], entry->mem_loc & 1, entry);
+                if (new_type)
+                    if (op_type)
+                        conv_float_float_mem_reg(result_reg, memstr_buff, new_loged_width, op_loged_width);
+                    else
+                        conv_int_float_mem_reg(result_reg, memstr_buff, new_loged_width, op_loged_width);
+                else
+                    if (op_type)
+                        conv_float_int_mem_reg(result_reg, memstr_buff, new_loged_width, op_loged_width);
+                    else
+                        conv_int_int_mem_reg(result_reg, memstr_buff, new_loged_width, op_loged_width);
 
-                    } else {
-                        if (new_width < op_width)
-                            write_asm("%s %s, %s [%s%u]\n", conv_signed[1],
-                                    register_names[3][result_reg],
-                                    size_spec[new_loged_width],
-                                    entry->key, entry->counter_value);
-                    }
-                }
+
             }
             break;
         }
@@ -1519,7 +1545,8 @@ static inline void free_reg_reserved_error(unsigned int reg, unsigned int type)
 
 int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, unsigned int loged_width)
 {
-    printf("get reg\n");
+    if (entry->reg_locs & (1 << reg))
+        return 1;
     switch (get_reg_state(reg)) {
         case REG_FREE:
             #if DEBUG
@@ -1557,6 +1584,7 @@ int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, un
             free_reg_reserved_error(reg, type);
         }
     }
+    return 0;
 }
 
 
