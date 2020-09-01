@@ -29,6 +29,8 @@ struct Line curr_line = { 0 };
 struct Line next_line = { 0 };
 char* forward;
 char* lexeme_begin;
+char lexeme_buffer[800];
+char* lexeme_ptr = lexeme_buffer;
 
 int line_num = 1;
 int column_num = 1;
@@ -238,12 +240,50 @@ void read_from_buffert()
         *forward = 0x04;
         return;
     } else {
-    n_read = get_line();
+        n_read = get_line();
     }
     forward = curr_line.line;
 }
 
+int isconsonant(char a)
+{
+
+    if (0x41 <= a && a <= 0x7A) {
+        a %= 0x20;
+        if ((0x02 <= a && a <= 0x04) ||
+            (0x06 <= a && a <= 0x08) ||
+            (0x0A <= a && a <= 0x0E) ||
+            (0x10 <= a && a <= 0x14) ||
+            (0x16 <= a && a <= 0x18) ||
+            (0x1A == a))
+            return 1;
+    }
+    return 0;
+
+}
+void get_raw_char();
+char* get_lexeme();
 void get_char()
+{
+    if (isconsonant(*forward)) {
+        printf("0'%c'\n", *forward);
+        char saved = *forward;
+        get_raw_char();
+        if (*forward != 'o')
+            error("Nononon popyroratote lolanongog idod", 1, "exoxpopecoctotedod 'o'", 1, line_num, column_num, 0, 0);
+        get_raw_char();
+        printf("1'%c'\n", *forward);
+        if (*forward != saved)
+            error("Nononon popyroratote lolanongog idod", 2, "exoxpopecoctotedod '???'", 1, line_num, column_num-1, 0, 0);
+        get_raw_char();
+
+        printf("2'%c'\n", *forward);
+    } else {
+        get_raw_char();
+    }
+}
+
+void get_raw_char()
 {
     forward++;
     if (*forward == 0x00) {
