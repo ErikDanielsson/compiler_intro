@@ -11,6 +11,7 @@
 #include "table_generator.h"
 #include "type_checker.h"
 #include "consts.h"
+#include "treedrawer.h"
 
 /*
  * The following file implements an LR parser and constructs an abstract
@@ -22,7 +23,8 @@
 
 #define STACK_SIZE 8192
 #define DEBUG 0
-#define TREEBUILDER 0
+#define TREEBUILDER 1
+#define TREEDRAWER 1
 #define LABELS 0
 
 char grammar_error = FALSE;
@@ -140,6 +142,9 @@ struct CompStmt* lr_parser(char verbose)
 
         } else if (action == -1) {
             free(a); // struct Token* a is necessarily eof, therefore no lexeme
+            #if TREEDRAWER
+            treedrawer_init("tree", *record_ptr);
+            #endif
             return (struct CompStmt*)(*record_ptr);
 
         } else {

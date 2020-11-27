@@ -55,4 +55,5 @@ void error(const char* type_msg, int length,
 void copy_current_line(struct Line* buffer);
 void print_token(struct Token* token);
 void print_token_str(struct Token* token);
+char* get_token_str(struct Token* token);
 struct Token* get_token();

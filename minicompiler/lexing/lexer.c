@@ -266,18 +266,15 @@ char* get_lexeme();
 void get_char()
 {
     if (isconsonant(*forward)) {
-        printf("0'%c'\n", *forward);
         char saved = *forward;
         get_raw_char();
         if (*forward != 'o')
             error("Nononon popyroratote lolanongog idod", 1, "exoxpopecoctotedod 'o'", 1, line_num, column_num, 0, 0);
         get_raw_char();
-        printf("1'%c'\n", *forward);
         if (*forward != saved)
             error("Nononon popyroratote lolanongog idod", 2, "exoxpopecoctotedod '???'", 1, line_num, column_num-1, 0, 0);
         get_raw_char();
 
-        printf("2'%c'\n", *forward);
     } else {
         get_raw_char();
     }
@@ -397,6 +394,31 @@ void print_token_str(struct Token* token)
         printf("'%lf'", token->f_val);
     else
         printf("'%s'", token->lexeme);
+}
+
+char* get_token_str(struct Token* token)
+{
+    if (token->type < 128) {
+        char* str = malloc(sizeof(char)*2);
+        sprintf(str, "%c", token->c_val);
+        return str;
+    }
+    else if (token->type == ICONST) {
+        char* str = malloc(sizeof(char)*20);
+        sprintf(str, "%ld", token->i_val);
+        return str;
+    }
+        
+    else if (token->type == FCONST) {
+        char* str = malloc(sizeof(char)*20);
+        sprintf(str, "%lf", token->f_val);
+        return str;
+    }
+    else {
+        char* str = malloc(sizeof(char)*strlen(token->lexeme)+1);
+        strcpy(str, token->lexeme);
+        return str;
+    }
 }
 
 struct Token* get_token()
