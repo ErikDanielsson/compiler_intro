@@ -335,10 +335,6 @@ class Node:
         s = "\n".join(i.string(n+1) for i in self.nodes)
         return str(self.type)+"\n"+' '*n + s
     def append(self, node):
-        self.nodes.append(node)
-
-class Leaf:
-    def __init__(self, value):
         self.value = value
     def __str__(self):
         return str(self.value)
@@ -534,20 +530,19 @@ def LR_CLOSURE(lalr_set, first, nullable):
         for item in closure:
             next_symbol = item.next_symbol()
             if (items.get(next_symbol) != None):
-                for slr_item in items[next_symbol]:
-                    if slr_item.index == 0:
-                        new_item = slr_item.get_LR_item()
-                        next_next_symbol = item.next_next_symbol()
-                        if next_next_symbol is not None:
-                            for terminal in first[next_next_symbol]:
-                                new_item.add(terminal)
-                            if nullable[next_next_symbol]:
-                                new_item.union(item.lookaheads)
-                        else:
+                for slr_item in filter(lambda x: x.index == 0, items[next_symbol]):
+                    new_item = slr_item.get_LR_item()
+                    next_next_symbol = item.next_next_symbol()
+                    if next_next_symbol is not None:
+                        for terminal in first[next_next_symbol]:
+                            new_item.add(terminal)
+                        if nullable[next_next_symbol]:
                             new_item.union(item.lookaheads)
-                        if new_item not in closure:
-                            tmp_set.add(new_item)
-                            added = True
+                    else:
+                        new_item.union(item.lookaheads)
+                    if new_item not in closure:
+                        tmp_set.add(new_item)
+                        added = True
         closure.union(tmp_set)
     return closure
 
@@ -630,32 +625,30 @@ def generate_parse_table(lalr_kernel, goto_table, terminals, nonterminals, first
             if x:
                 tmp_row[terminal] = x
 
-            for item in item_set:
-                if item.index == len(item.body):
-                    if terminal in item:
-                        x = tmp_row.get(terminal)
-                        if x:
-                            if x > 0:
-                                z = precedence.get(terminal)
-                                error = True
-                                if z != None:
-                                    for s in item.body[::-1]:
-                                        if s in terminals:
-                                            q = precedence.get(s)
-                                            if q != None:
-                                                    if z <= q:
-                                                        tmp_row[terminal] = -1-item.prod_num
-                                                    error = False
-                                                    break
-                                if error:
-                                    log(f"shift/reduce conflict on symbol " \
-                                        f"{terminal} in:\n{item_set}.\n"
-                                        f"Will resolve by shifting\n")
+        for item in filter(lambda item: item.index == len(item.body), item_set):
+            for terminal in filter(lambda term: term in item, terminals):
+                x = tmp_row.get(terminal)
+                if x:
+                    if x > 0:
+                        z = precedence.get(terminal)
+                        error = True
+                        if z != None:
+                            for s in filter(lambda s: s in terminals, item.body[::-1]):
+                                q = precedence.get(s)
+                                if q != None:
+                                    if z <= q:
+                                        tmp_row[terminal] = -1-item.prod_num
+                                    error = False
+                                    break
+                        if error:
+                            log(f"shift/reduce conflict on symbol " \
+                                f"{terminal} in:\n{item_set}.\n"
+                                f"Will resolve by shifting\n")
 
-                            else:
-                                log(f"reduce/reduce conflict on symbol {terminal} in\n{item_set}")
-                        else:
-                            tmp_row[terminal] = -1-item.prod_num
+                    else:
+                        log(f"reduce/reduce conflict on symbol {terminal} in\n{item_set}")
+                else:
+                    tmp_row[terminal] = -1-item.prod_num
         for nonterminal in nonterminals:
             x = row.get(nonterminal)
             if x:
