@@ -8,20 +8,29 @@
 #include "type_checker.h"
 #include "io.h"
 #include "constant_table.h"
-
 #define IC_TABLE_SIZE 97
+
+/*
+ * Construction of basic blocks and CFG from AST.
+ */
+
+
 struct IC_table* intermediate_code;
 /*
- * Since functions can only be nested in main we only need a stack of size 2
+ * Due to the an choice of scoping in the language, all functions are declared 
+ * in the 'main' function which just looks like a script. However, only one level
+ * of nesting in functions are allowed -- you can not nest a function in a 
+ * non-main function. Since functions (subroutines) are somewhat special in assembly
+ * they need to be distinguished from other code. Hence we need a stack of depth 2
+ * which we push (pop) when we enter (leave) the scope of a function.
  */
+
 struct IC_entry* entry_stack[2];
 struct IC_entry** top_entry = entry_stack;
 struct BasicBlock* block_stack[2];
 struct BasicBlock** curr_block = block_stack;
 struct QuadList* instr_stack[2];
 struct QuadList** curr_instr_ptr = instr_stack;
-
-
 
 struct BasicBlock** newlabel()
 {
@@ -54,8 +63,6 @@ void append_label(struct BasicBlock** new)
     }
 }
 
-
-
 void init_IC_generator()
 {
     intermediate_code = create_IC_table(IC_TABLE_SIZE);
@@ -69,44 +76,46 @@ void leave_IC_generator()
     (*top_entry)->symbol_table = get_main_SymTab();
 }
 
+/*
+ * Construct a new basic block and append it to the current function scope.
+ */
+
+struct BasicBlock* construct_bb(int n_blocks);
 struct BasicBlock* new_bb()
 {
-
     int n_blocks = (*top_entry)->n_blocks;
+    struct BasicBlock* new_block = construct_bb(n_blocks);
     if (n_blocks) {
         struct BasicBlock* tmp_blocks[n_blocks];
         memcpy(tmp_blocks, (*top_entry)->basic_block_list, sizeof(struct BasicBlock*)*n_blocks);
         free((*top_entry)->basic_block_list);
         (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*)*(n_blocks+1));
         memcpy((*top_entry)->basic_block_list, tmp_blocks, sizeof(struct BasicBlock*)*n_blocks);
-        (*top_entry)->basic_block_list[n_blocks] = malloc(sizeof(struct BasicBlock));
-        (*top_entry)->basic_block_list[n_blocks]->bbnum = n_blocks;
-        (*top_entry)->basic_block_list[n_blocks]->instructions = malloc(sizeof(struct QuadList));
-        (*top_entry)->basic_block_list[n_blocks]->jump_type = -1;
-        (*top_entry)->basic_block_list[n_blocks]->jump = NULL;
-        (*top_entry)->basic_block_list[n_blocks]->true = NULL;
-        (*top_entry)->basic_block_list[n_blocks]->false = NULL;
-        *curr_instr_ptr = (*top_entry)->basic_block_list[n_blocks]->instructions;
-        (*curr_instr_ptr)->next = NULL;
+        (*top_entry)->basic_block_list[n_blocks] = new_block;
         (*top_entry)->n_blocks++;
-        *curr_block = (*top_entry)->basic_block_list[n_blocks];
-        return *curr_block;
+        *curr_block = new_block;
     } else {
-        (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*));
-        (*top_entry)->basic_block_list[0] = malloc(sizeof(struct BasicBlock));
-        (*top_entry)->basic_block_list[0]->bbnum = 0;
-        (*top_entry)->basic_block_list[0]->instructions = malloc(sizeof(struct QuadList));
-        (*top_entry)->basic_block_list[0]->jump_type = -1;
-        (*top_entry)->basic_block_list[0]->jump = NULL;
-        (*top_entry)->basic_block_list[0]->true = NULL;
-        (*top_entry)->basic_block_list[0]->false = NULL;
-        *curr_instr_ptr = (*top_entry)->basic_block_list[n_blocks]->instructions;
-        (*curr_instr_ptr)->next = NULL;
+        (*top_entry)->basic_block_list[0] = new_block;
         (*top_entry)->n_blocks = 1;
-        *curr_block = (*top_entry)->basic_block_list[0];
-        return *curr_block;
+        *curr_block = new_block;
     }
+    return new_block;
 }
+
+struct BasicBlock construct_bb(int n_blocks)
+{
+    struct BasicBlock* new_block = malloc(sizeof(struct BasicBlock));
+    new_block->bbnum = n_blocks;
+    new_block->instructions = malloc(sizeof(struct QuadList));
+    new_block->jump_type = -1;
+    new_block->jump = NULL;
+    new_block->true = NULL;
+    new_block->false = NULL;
+    *curr_instr_ptr = new_block->instructions;
+    (*curr_instr_ptr)->next = NULL;
+    return new_block;
+}
+ 
 
 void enter_function(char* name)
 {
@@ -125,6 +134,10 @@ void leave_function(struct SymTab* symbol_table)
     curr_instr_ptr--;
     curr_block--;
 }
+
+/*
+ * Functions for appending instructions (triples) into basic blocks.
+ */
 
 void append_triple(void* triple, enum QuadType type, char init_flags)
 {
@@ -146,6 +159,9 @@ inline int check_triple_flag(struct QuadList* list, int flag_n)
     return list->flags & (1 << (flag_n - 1));
 }
 
+/*
+ * Sets the jump targets of basic blocks. Of course, only on of the jumps can be set.
+ */
 void set_uncond_target(struct BasicBlock** target_addr)
 {
     (*curr_block)->jump_type = QUAD_UNCOND;
@@ -160,6 +176,9 @@ void set_cond_and_targets(struct CondQuad* cond, struct BasicBlock** true_addr, 
     (*curr_block)->false = false_addr;
 }
 
+/*
+ * Functions for generating the instructions from information in the symbol table
+ */
 struct AssignQuad* gen_assignment(struct SymTab_entry* lval,  void* rval, enum SymbolType rval_type)
 {
     struct AssignQuad* triple = malloc(sizeof(struct AssignQuad));

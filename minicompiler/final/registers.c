@@ -5,6 +5,12 @@
 #include "symbol_table.h"
 #include "instruction_set.h"
 #define DEBUG 0
+
+/*
+ * Helper functions for code generation which keep track of the status
+ * of the registers.
+ */
+
 struct reg_desc registers[32];
 void init_registers()
 {
@@ -28,6 +34,9 @@ void clear_and_set_reg(int reg_n, enum RegValState new_state,
     registers[reg_n].vals[0] = new_value;
 }
 
+/*
+ * Expands the number of variable that can be held in a register.
+ */
 void expand_reg_desc(int reg_n, int expansion)
 {
     int size = registers[reg_n].size;
@@ -42,11 +51,12 @@ void expand_reg_desc(int reg_n, int expansion)
     memcpy(registers[reg_n].states, states, sizeof(enum RegValState)*size);
     memcpy(registers[reg_n].vals, vals, sizeof(void*)*size);
 }
-
+/*
+ * Appends a symbol to a registers and sets it priority status according to symbol type.
+ */
 void append_to_reg(int reg_n, enum SymbolType new_state,
                     void* new_value)
 {
-    printf("append to reg %d\n", reg_n);
     if (registers[reg_n].n_vals == registers[reg_n].size)
         expand_reg_desc(reg_n, 4);
     int n_vals = registers[reg_n].n_vals++;
@@ -67,7 +77,9 @@ void append_to_reg(int reg_n, enum SymbolType new_state,
     registers[reg_n].reg_state = REG_OCCUPIED;
 }
 
-
+/*
+ * Removes a variable from the selected registers.
+ */
 void remove_from_reg(struct SymTab_entry* entry, unsigned reg_n)
 {
     unsigned n_vals = registers[reg_n].n_vals;
@@ -90,7 +102,9 @@ void remove_from_reg(struct SymTab_entry* entry, unsigned reg_n)
     }
 
 }
-
+/*
+ * Removes a variable from all registers in which it is stored.
+ */
 void remove_from_regs(struct SymTab_entry* entry)
 {
     #if DEBUG
@@ -108,10 +122,12 @@ void remove_from_regs(struct SymTab_entry* entry)
     }
 }
 
+/*
+ * Returns the register which is 'least in use'. 
+ */
 unsigned int least_reg(struct SymTab_entry* entry)
 {
     unsigned int loc = entry->reg_locs;
-    printf("least :: ");
     print_bin(loc, 32);
     int reg = -1;
     unsigned int min_n_vals = MAX_UINT ;
@@ -133,6 +149,9 @@ unsigned int least_reg(struct SymTab_entry* entry)
     return reg;
 }
 
+/*
+ * Copies the contents of register to another destination.
+ */
 int copy_reg_to_reg(unsigned int dest, unsigned int orig, struct SymTab_entry* entry)
 {
     int ret_val = 0;
@@ -179,20 +198,19 @@ void print_registers()
     #endif
 }
 
+/*
+ * Recursively stores all variables in symbol table and its childs.
+ */
 void store_allr_in_symtab(struct SymTab* symbol_table)
 {
     for (int i = 0; i < symbol_table->table_size; i++) {
         struct SymTab_entry* entry = symbol_table->entries[i];
         while (entry != NULL) {
-            printf("%s%u\t", entry->key, entry->counter_value);
-            print_bin(entry->mem_loc, 16);
             if (!(entry->mem_loc & (1 << 1))) {
-                printf("store it\n");
                 store(entry, first_reg(entry));
                 clear_all_locations(entry);
                 entry->mem_loc |= (1 << 1);
             }
-
             entry = entry->next;
         }
     }

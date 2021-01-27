@@ -4,6 +4,10 @@
 #include "type_table.h"
 #include "hashing.h"
 
+/*
+ * Yet another hash table implementation...
+ */
+
 struct TypeTab* create_TypeTab(int table_size)
 {
     struct TypeTab* type_table = malloc(sizeof(struct TypeTab));

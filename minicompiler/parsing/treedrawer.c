@@ -3,6 +3,10 @@
 #include <string.h>
 #include "treedrawer.h"
 
+/*
+ * Converts AST into dot format which is the compile to png.
+ */
+
 char* file_name;
 FILE* tree_file_desc;
 char* get_identifier();
@@ -24,17 +28,25 @@ void draw_FLoop(struct FLoop* node, char* name);
 
 void treedrawer_init(char* basename, struct CompStmt* root)
 {
-    int len = strlen(basename) + 4;
-    file_name = malloc(sizeof(char) * len);
-    char* c = ".gv";
-    sprintf(filename, "%s.gv", basename);
-    tree_file_desc = fopen(filename, "w");
-    fprintf(tree_file_desc, "digraph {\n");
+    printf("BASENAME: %s!\n", basename);
+    int len = strlen(basename);
+    char file_name[len+4];
+    sprintf(file_name, "%s.gv", basename);
+    
+    tree_file_desc = fopen(file_name, "w");
+    fprintf(tree_file_desc, "graph {\n");
     char* root_name = get_identifier();
     write_new_node(root_name, "root");
     draw_CompStmt(root, root_name);
     fprintf(tree_file_desc, "}\n");
     fclose(tree_file_desc);
+    len *= 2;
+    len += strlen("/bin/dot -Tpng .png -o .gv") + 1;
+    char cmd_name[len];
+    sprintf(cmd_name, "/bin/dot -Tpng %s.gv -o %s.png", basename, basename);
+    system(cmd_name);
+    sprintf(cmd_name, "/bin/rm %s.gv", basename);
+    system(cmd_name);
 }
 
 long id_counter = 0;
@@ -58,9 +70,10 @@ void write_new_node(char* name, char* label)
 {
     fprintf(tree_file_desc, "%s [label = \"%s\"]\n", name, label);
 }
+
 void write_new_edge(char* start, char* end)
 {
-    fprintf(tree_file_desc, "%s -> %s\n", start, end);
+    fprintf(tree_file_desc, "%s -- %s\n", start, end);
 }
 
 

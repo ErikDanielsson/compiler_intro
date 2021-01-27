@@ -6,6 +6,10 @@
 #include "hashing.h"
 #define MAX_ID_SIZE 256
 
+/*
+ * Implementation of hashtable
+ */
+
 struct KeywordTab* create_KeywordTab(int table_size)
 {
     struct KeywordTab* keywords = malloc(sizeof(struct KeywordTab) * 1);

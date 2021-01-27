@@ -15,7 +15,7 @@
 #include "type_table.h"
 
 /*
- *  Intermediate code generation
+ *  Intermediate code generation. Uses functions in 'intermediate_code.c' to generate a CFG from the AST.
  */
 
  int temp_num = 0;
@@ -49,6 +49,9 @@ char* max(char* type1, char* type2)
     return (a > b) ? type1 : type2;
 }
 
+/*
+ * Tries to implicitly cast to a wider type. Generates error if types don't match.
+ */
 void widen(struct AddrTypePair* a,  char* type1, char* type2)
 {
     check_type_defined(type1);
@@ -65,11 +68,11 @@ void widen(struct AddrTypePair* a,  char* type1, char* type2)
     } else {
         widening_error(type1, type2);
     }
-
-
-
 }
 
+/*
+ * Appends a cast instructions in current basic block
+ */
 void cast(struct AddrTypePair* a, char* caster)
 {
     struct SymTab_entry* temp_entry = newtemp(caster);
@@ -78,10 +81,11 @@ void cast(struct AddrTypePair* a, char* caster)
     a->type = TEMPORARY;
 }
 
+
 char* relop_inv(char* relop)
 {
     /*
-     * Determines inverse by predetermined hash values
+     * Determines inverse by predetermined hash values... 
      */
     switch(max_hash(relop)) {
         case 0x390caefb:
@@ -107,6 +111,10 @@ char* relop_inv(char* relop)
             exit(-1);
     }
 }
+
+/*
+ * Tree traversal functions.
+ */
 
 void visit_CompStmt(struct CompStmt* node)
 {
@@ -224,7 +232,10 @@ void visit_FuncDecl(struct FuncDecl* node)
     leave_function(pop_Env_func());
     in_function = FALSE;
 }
-
+/*
+ * Generates code for right value in the assignment. The long code
+ * for conditional binops is due to short circuiting.
+ */
 char* visit_Expr_rval(struct Expr* node, char* var_type)
 {
     switch (node->type) {
@@ -619,7 +630,6 @@ char* visit_VarAcc(struct VarAcc* node)
 
 char* visit_FuncCall(struct FuncCall* node)
 {
-
     struct FuncDecl* decl = check_func_declared(node);
     int n_args = node->n_args;
     if (n_args != decl->n_params)
@@ -636,15 +646,19 @@ char* visit_FuncCall(struct FuncCall* node)
     }
     char* type = decl->type->lexeme;
     struct SymTab_entry* temp = newtemp(type);
-    struct BasicBlock** next = newlabel();
+    //struct BasicBlock** next = newlabel();
 
-    set_uncond_target(next);
-    *next = new_bb();
+    //set_uncond_target(next);
+    //*next = new_bb();
 
     append_triple(gen_funccall(temp, node->func->lexeme), QUAD_FUNC, 1);
 
     node->addr = temp;
     node->addr_type = TEMPORARY;
+    
+    struct BasicBlock** next = newlabel();
+    set_uncond_target(next);
+    *next = new_bb();
 
     return type;
 

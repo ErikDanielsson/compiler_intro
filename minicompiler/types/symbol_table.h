@@ -28,6 +28,7 @@ struct SymTab_entry {
 
 struct SymTab {
     int table_size;
+    unsigned int saturation;
     int n_childs;
     char* name;
     struct SymTab_entry** entries;

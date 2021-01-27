@@ -18,17 +18,27 @@ char on_last_buffert = FALSE;
 char read_done = FALSE;
 char* eof = "eof";
 
-// Two buffers but fit into one, two extra chars for eof i.e 0x04
+/*
+ * Two buffers in one array. Two extra chars for eof i.e. '0x04'.
+ */
 char buffer[2*BUFFERSIZE+2];
 char* buffer_ptr = buffer;
+
+/*
+ * Buffers for lines for context in error messages
+ */
 #if CONTEXT
 struct Line prev_lines[CONTEXT];
 #endif
 struct Line last_line = { 0 };
 struct Line curr_line = { 0 };
 struct Line next_line = { 0 };
+
 char* forward;
 char* lexeme_begin;
+/*
+ * Buffer for the last lexeme. Not memory safe.
+ */
 char lexeme_buffer[800];
 char* lexeme_ptr = lexeme_buffer;
 
@@ -38,6 +48,9 @@ int column_num = 1;
 struct KeywordTab* keywords;
 int error_flag = 0;
 
+/*
+ * Main error function. Called from parser and typechecker.
+ */
 void error(const char* type_msg, int length,
        const char* expected, int fatal,
        int line, int column,
@@ -166,13 +179,19 @@ void token_error(int length, char* expected, int fatal)
     error("unidentified token", length, expected, fatal, line_num, column_num, 0, 0);
 }
 
+/*
+ * Copies the current line to the error buffer.
+ */
 void copy_current_line(struct Line* buffer)
 {
     strcpy((*buffer).line, curr_line.line);
     (*buffer).num = curr_line.num;
 }
 
-int get_line()
+/*
+ * Refills the buffert from file.
+ */
+int read_from_file()
 {
     next_line.num = line_num;
     int i;
@@ -203,7 +222,7 @@ int get_line()
             } else if (buffer_ptr == buffer+2*BUFFERSIZE+1) {
                 int r = read(file_desc, buffer, BUFFERSIZE);
                 buffer[r] = 0x04;
-                buffer_ptr = buffer;
+                buffer_ptr = buffer
             } else {
                 last_buffert = TRUE;
                 next_line.line[i] = 0x00;
@@ -218,8 +237,10 @@ int get_line()
     return i;
 }
 
+/*
+ * Reads the next line from the buffert.
+ */
 int n_read = LINELENGTH-1;
-
 void read_from_buffert()
 {
     #if CONTEXT
@@ -240,7 +261,7 @@ void read_from_buffert()
         *forward = 0x04;
         return;
     } else {
-        n_read = get_line();
+        n_read = read_from_file();
     }
     forward = curr_line.line;
 }
@@ -263,6 +284,10 @@ int isconsonant(char a)
 }
 void get_raw_char();
 char* get_lexeme();
+
+/*
+ * Reads a char and syntax checks its.
+ */
 void get_char()
 {
     if (isconsonant(*forward)) {
@@ -280,6 +305,9 @@ void get_char()
     }
 }
 
+/*
+ * Reads a char from the current line.
+ */
 void get_raw_char()
 {
     forward++;
@@ -294,6 +322,9 @@ void get_raw_char()
         column_num++;
 }
 
+/*
+ * Extracts the lexeme from the buffer.
+ */
 char* get_lexeme()
 {
     int length = forward-lexeme_begin;
@@ -313,10 +344,9 @@ void init_lexer()
 {
     forward = curr_line.line;
     lexeme_begin = curr_line.line;
-    // Initialize last char of both buffers to eof?
     int r = read(file_desc, buffer, BUFFERSIZE);
     buffer[r] = 0x04;
-    n_read = get_line();
+    n_read = read_from_file();
     read_from_buffert();
 
     keywords = create_KeywordTab(25);
@@ -402,25 +432,24 @@ char* get_token_str(struct Token* token)
         char* str = malloc(sizeof(char)*2);
         sprintf(str, "%c", token->c_val);
         return str;
-    }
-    else if (token->type == ICONST) {
+    } else if (token->type == ICONST) {
         char* str = malloc(sizeof(char)*20);
         sprintf(str, "%ld", token->i_val);
         return str;
-    }
-        
-    else if (token->type == FCONST) {
+    } else if (token->type == FCONST) {
         char* str = malloc(sizeof(char)*20);
         sprintf(str, "%lf", token->f_val);
         return str;
-    }
-    else {
+    } else {
         char* str = malloc(sizeof(char)*strlen(token->lexeme)+1);
         strcpy(str, token->lexeme);
         return str;
     }
 }
 
+/*
+ * Main lexing algorithm
+ */
 struct Token* get_token()
 {
     struct Token* token = malloc(sizeof(struct Token));

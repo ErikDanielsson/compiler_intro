@@ -68,7 +68,5 @@ SUBDIR =
 cfg:
 	CFLAGS= -emit-llvm -S
 
-
-
 cl:
 	find . -name '*.[py|c|h]' -type f | xargs wc

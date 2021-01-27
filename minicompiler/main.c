@@ -21,37 +21,37 @@ int main(int argc, const char** argv)
 {
     const char* table_file = "parsing/parsing_table.txt";
     filename = argv[1];
+    char basename[strlen(filename)];
+    char c;
+    int i;
+    for (i = 0; (c = filename[i]) != '.' && i < strlen(filename); i++)
+        basename[i] = c;
+    basename[i] = 0x00;
     file_desc = open(filename, O_RDONLY);
     init_lexer();
     #if VERBOSE
     KeywordTab_dump(keywords);
     #endif
     generate_parse_table(table_file);
-
-    #if VERBOSE
-    printf("parsing...\n");
-    #endif
-    struct CompStmt* tree = lr_parser(1);
-
+    
+    struct CompStmt* tree = lr_parser(1, basename);
 
     close(file_desc);
     if (!grammar_error) {
+        printf("hej\n");
         init_type_checker();
         generate_IC(tree);
         printf("IC generation done\n\n");
-        #if VERBOSE
-        print_Env_tree();
 
+
+        #if VERBOSE
         #endif
-        print_CFG();
+
         live_and_use();
-        char basename[strlen(filename)];
-        char c;
-        int i;
-        for (i = 0; (c = filename[i]) != '.' && i < strlen(filename); i++)
-            basename[i] = c;
-        basename[i] = 0x00;
+        print_CFG();
         generate_assembly(basename);
+        
+        print_IC_tree(intermediate_code);
         destroy_CFG();
         destroy_Env_tree();
     }

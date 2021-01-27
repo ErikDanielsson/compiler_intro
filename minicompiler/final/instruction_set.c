@@ -1,4 +1,8 @@
-// Registers
+
+/*
+ * This file help the codegen translate IC to x86 assembly. 
+ * All register and instruction names are kept in this file.
+ */
 const char* register_names[5][16] = {
     {
     // General purpose registers (8 bit section)
@@ -36,6 +40,13 @@ const char* register_names[5][16] = {
         "xmm12","xmm13","xmm14","xmm15"
     }
 };
+
+/*
+ * The first 6 integer arguments to a function is placed in the following
+ * registers. If the function takes more arguments they are placed on the stack.
+ * Floating points arguments are placed in xmm0...7, and then on the stack.
+ */
+unsigned char int_arg_regs = {7, 6, 3, 2, 8, 9};
 
 const char* size_spec[4] = {
     "byte",

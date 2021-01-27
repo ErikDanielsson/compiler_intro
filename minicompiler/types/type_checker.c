@@ -8,11 +8,11 @@
 #include "constant_table.h"
 #include "tree_climber.h"
 #define TABLESIZE 127
-/*
+
+/*  
  *  The type checker enters type names during parsing, and checks whether they
  *  are used correctly during treewalk of IC generation
  */
-
 
 /*
  * Functions for handling errors that might be found during type checking.
@@ -94,6 +94,11 @@ struct SymTab* get_main_SymTab()
     return symbol_table_stack[0];
 }
 
+/*
+ * We push a new symbol table onto the symbol table stack when we enter a new scope.
+ * Once we leave the scope we pop the stack an link the popped symbol table with it's parent.
+ */
+
 void push_Env(char* name)
 {
     if (top_symtab-symbol_table_stack == NESTINGDEPTH-1)
@@ -172,8 +177,9 @@ void destroy_Env_tree()
     SymTab_destroyr(symbol_table_stack[0]);
 }
 
-
-
+/*
+ * Enters type definitions into type table
+ */
 void enter_type_def(char* type_name, struct SymTab* struct_env)
 {
     if (TypeTab_check_and_set(type_table, type_name, struct_env))
@@ -193,7 +199,6 @@ void check_type_defined(char* type_name)
         type_error(TRUE, "type '%s' is not declared", type_name);
 }
 
-
 void check_and_set_var(struct VarDecl* node)
 {
     unsigned long width_and_type = get_type_and_width(type_table, node->type->lexeme);
@@ -203,8 +208,7 @@ void check_and_set_var(struct VarDecl* node)
     *offset += (width_and_type >> 2);
 }
 
-void
-check_and_set_func(struct FuncDecl* node)
+void check_and_set_func(struct FuncDecl* node)
 {
     if (SymTab_check_and_set(*top_symtab, node->name->lexeme, FUNCTION, node, 0, 0, 0))
         type_error(TRUE, "Redefinition of function '%s' at %d:%d\n",
@@ -213,14 +217,15 @@ check_and_set_func(struct FuncDecl* node)
                     node->name->column);
 }
 
+/*
+ * Functions for checking if symbols are declared before they are used
+ */
 char* check_var_declared(struct VarAcc* varacc)
 {
     struct SymTab_entry* entry = SymTab_getr(*top_symtab, varacc->variable->lexeme, VARIABLE);
     if (entry == NULL)
         undeclared_var_error(varacc);
     struct VarDecl* node = entry->symbol;
-
-
     return node->type->lexeme;
 }
 
@@ -233,6 +238,9 @@ struct FuncDecl* check_func_declared(struct FuncCall* funccall)
     return node;
 }
 
+/*
+ * Returns the current instance of a variable
+ */
 struct SymTab_entry* get_curr_name_entry(char* name)
 {
     struct SymTab_entry* entry = SymTab_getr(*top_symtab, name, VARIABLE);
@@ -241,32 +249,18 @@ struct SymTab_entry* get_curr_name_entry(char* name)
     return SymTab_getr(*top_symtab, name, TEMPORARY);
 }
 
+/*
+ * Gets type info encoded in a long
+ */
 unsigned long get_type_info(char* type)
 {
     return get_type_and_width(type_table, type);
 }
-void int_operator_on_float_error(enum TokenType op)
-{
-    char op_string[3];
-    switch (op) {
-        case '~':
-        case '%':
-        case '^':
-        case '&':
-        case '|':
-            sprintf(op_string, "%c", op);
-            break;
-        case SHR:
-            sprintf(op_string, ">>");
-            break;
-        case SHL:
-            sprintf(op_string, "<<");
-            break;
-    }
-    fprintf(stderr, "\033[1;31merror\033[0m:Operator '%s' cannot be applied on float operands\n", op_string);
-    exit(-1);
-}
 
+/*
+ * Checking the operand types for binary and unary operators.
+ */
+void int_operator_on_float_error(enum TokenType op);
 void check_binop_and_types(enum TokenType binop_type, char* type1, char* type2)
 {
     switch (binop_type) {
@@ -312,10 +306,35 @@ void check_uop_and_types(enum TokenType uop_type, char* type)
     }
 }
 
+void int_operator_on_float_error(enum TokenType op)
+{
+    char op_string[3];
+    switch (op) {
+        case '~':
+        case '%':
+        case '^':
+        case '&':
+        case '|':
+            sprintf(op_string, "%c", op);
+            break;
+        case SHR:
+            sprintf(op_string, ">>");
+            break;
+        case SHL:
+            sprintf(op_string, "<<");
+            break;
+    }
+    fprintf(stderr, "\033[1;31merror\033[0m:Operator '%s' cannot be applied on float operands\n", op_string);
+    exit(-1);
+}
 
 struct ConstTab* int_table;
 struct ConstTab* float_table;
 struct ConstTab* string_table;
+
+/*
+ * Functions for entering symbols into tables.
+ */
 
 struct int_entry* enter_int(long val)
 {
