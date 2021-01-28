@@ -4,7 +4,6 @@ compound_statement -> compound_statement statement | statement
 
 statement -> variable_declaration ';'
 statement -> struct_declaration
-statement -> function_declaration ';'
 statement -> function_definition
 statement -> assignment_statement ';'
 statement -> function_call ';'
@@ -21,12 +20,6 @@ struct_declaration -> 'STRUCT' 'ID' '{' declaration_list '}'
 
 declaration_list -> declaration_list variable_declaration ';'
 declaration_list -> variable_declaration ';'
-
-function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')'
-function_declaration -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')'
-function_declaration -> 'DEFINE' 'ID' 'ID' '(' params ')'
-function_declaration -> 'DEFINE' 'ID' 'ID' '(' ')'
-
 
 function_definition -> 'DEFINE' 'ID' empty_indices 'ID' '(' params ')' '{' compound_statement '}'
 function_definition -> 'DEFINE' 'ID' empty_indices 'ID' '(' ')' '{' compound_statement '}'
