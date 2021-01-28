@@ -1,3 +1,4 @@
+#pragma once
 struct int_set {
     int size;
     struct int_set_entry** entries;

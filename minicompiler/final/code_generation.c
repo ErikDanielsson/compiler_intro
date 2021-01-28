@@ -11,6 +11,7 @@
 #include "instruction_set.h"
 #include "int_set.h"
 #include "registers.h"
+#include "write_asm.h"
 
 #define DEBUG 1
 #define SCREEN 0
@@ -18,257 +19,7 @@
  * The code generator will generate Intel syntax assembly for the x86-64
  * architecture. Should rewrite it later to generate an ".o" file directly
  */
-//---------------------------------------
 
-static inline void _2nd_op_const(long val, unsigned int loged_width)
-{
-    switch (loged_width) {
-        case 0:
-        case 1:
-        default:
-            fprintf(stderr, "Internal error:8 and 16 bit ints are currently not supported\n");
-            exit(-1);
-        case 2:
-            write_asm("%d", (int)val);
-            break;
-        case 3:
-            write_asm("%ld", (long)val);
-            break;
-    }
-}
-
-static inline void mov_int_const_reg(unsigned int reg_n, long val, unsigned int loged_width)
-{
-    write_asm("mov %s, ", register_names[loged_width][reg_n]);
-    _2nd_op_const(val, loged_width);
-    write_asm("\n");
-}
-
-static inline void mov_int_const_mem(long val, unsigned int loged_width, char* mem_loc_str)
-{
-    write_asm("mov %s %s, ", size_spec[loged_width], mem_loc_str);
-    _2nd_op_const(val, loged_width);
-    write_asm("\n");
-}
-
-static inline void get_memstr(char* memstr_loc, unsigned int isstatic, struct SymTab_entry* entry)
-{
-    if (isstatic)
-        sprintf(memstr_loc, "[%s%u]", entry->key, entry->counter_value);
-    else
-        sprintf(memstr_loc, "[rbp+%ld]", entry->offset);
-}
-
-/*
- * Functions which emit instuctions into the .asm file.
- */
-
-static inline void mov_float_reg_reg(unsigned int dest, unsigned int src, unsigned int loged_width)
-{
-    write_asm("%s %s, %s %s\n", mov[loged_width], register_names[4][dest-16],
-            size_spec[loged_width], register_names[4][src-16]);
-}
-
-static inline void mov_float_mem_reg(unsigned int dest, char* src, unsigned int loged_width)
-{
-    write_asm("%s %s, %s %s\n", mov[loged_width], register_names[4][dest-16],
-            size_spec[loged_width], src);
-}
-
-static inline void float_arith_reg_reg(enum BinOpType operator, unsigned int op1,
-                                        unsigned int op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s\n", float_arithmetic[loged_width-2][operator],
-            register_names[4][op1-16], register_names[4][op2-16]);
-}
-
-static inline void float_arith_reg_mem(enum BinOpType operator, unsigned int op1,
-                                    char* op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s %s\n", float_arithmetic[loged_width-2][operator],
-            register_names[4][op1-16],size_spec[loged_width], op2);
-}
-
-static inline void int_arith_reg_reg(enum BinOpType operator, unsigned int op1, unsigned int op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s\n", int_arithmetic[operator], register_names[loged_width][op1],
-                            register_names[loged_width][op2]);
-}
-
-static inline void int_arith_reg_mem(enum BinOpType operator, unsigned int op1, struct SymTab_entry* entry, unsigned int loged_width)
-{
-    write_asm("%s %s, %s [%s%u]\n", int_arithmetic[operator],
-             register_names[loged_width][op1], size_spec[loged_width],
-            entry->key, entry->counter_value);
-}
-
-static inline void int_arith_reg_const(enum BinOpType operator, unsigned int op1, long val, unsigned int loged_width)
-{
-    write_asm("%s %s, ", int_arithmetic[operator], register_names[loged_width][op1]);
-    _2nd_op_const(val, loged_width);
-    write_asm("\n");
-}
-
-static inline void mov_int_reg_reg(unsigned int dest, unsigned int src, unsigned int loged_width)
-{
-    write_asm("mov %s, %s\n", register_names[loged_width][dest],
-                                register_names[loged_width][src]);
-}
-
-static inline void mov_int_mem_reg(unsigned int dest, char* src, unsigned int loged_width)
-{
-    write_asm("mov %s, %s %s\n", register_names[loged_width][dest], size_spec[loged_width], src);
-}
-
-static inline void divmod_int_reg(unsigned int divisor, unsigned int loged_width)
-{
-    write_asm("idiv %s\n", register_names[loged_width][divisor]);
-}
-
-static inline void divmod_int_mem(char* divisor, unsigned int loged_width)
-{
-    write_asm("idiv %s %s\n", size_spec[loged_width], divisor);
-}
-
-static inline void shift_int_reg(enum BinOpType operator, unsigned int dest, unsigned int loged_width)
-{
-    write_asm("%s %s, cl\n", int_arithmetic[operator], register_names[loged_width][dest]);
-}
-
-static inline void shift_int_const(enum BinOpType operator, unsigned int dest, long val, unsigned int loged_width)
-{
-    write_asm("%s %s, ", int_arithmetic[operator], register_names[loged_width][dest]);
-    _2nd_op_const(val, loged_width);
-    write_asm("\n");
-}
-
-static inline void float_neg(unsigned int op, unsigned int loged_width)
-{
-    unsigned int temp_int_reg = get_reg(0, -1, 1 << loged_width, NULL, TEMPORARY);
-    unsigned int temp_float_reg = get_reg(1, op, 1 << loged_width, NULL, TEMPORARY);
-    if (loged_width-2) {
-        mov_int_const_reg(temp_int_reg, 0x8000000000000000, loged_width);
-        write_asm("movd %s, %s\n", register_names[4][temp_float_reg-16], register_names[loged_width][temp_int_reg]);
-        write_asm("xorpd %s, %s\n", register_names[4][op-16], register_names[4][temp_float_reg-16]);
-
-    }
-    else {
-        mov_int_const_reg(temp_int_reg, 0x80000000, loged_width);
-        write_asm("movd %s, %s\n", register_names[4][temp_float_reg-16], register_names[loged_width][temp_int_reg]);
-        write_asm("xorps %s, %s\n", register_names[4][op-16], register_names[4][temp_float_reg-16]);
-    }
-    clear_reg(temp_int_reg);
-    clear_reg(temp_float_reg);
-}
-
-static inline void unary_int(unsigned int op, unsigned int op_type, unsigned int loged_width)
-{
-    write_asm("%s %s\n", int_unary[op_type], register_names[loged_width][op]);
-}
-
-static inline void conv_float_float_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width)
-{
-    write_asm("%s %s, %s\n", conv_float[new_loged_width-2], register_names[4][dest-16], register_names[4][src-16]);
-}
-
-static inline void conv_int_float_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    printf("new %d old %d\n", old_loged_width, new_loged_width);
-    write_asm("%s %s, %s\n", conv_float_int[new_loged_width], register_names[4][dest-16], register_names[old_loged_width][src]);
-}
-
-static inline void conv_float_int_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    write_asm("%s %s, %s\n", conv_float_int[old_loged_width], register_names[new_loged_width][dest], register_names[4][src-16]);
-}
-
-static inline void conv_int_int_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    if (new_loged_width > old_loged_width)
-        write_asm("%s %s, %s\n", conv_signed[1], register_names[new_loged_width][dest], register_names[old_loged_width][src]);
-}
-
-static inline void conv_float_float_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    write_asm("%s %s, %s %s\n", conv_float[new_loged_width-2], register_names[4][dest-16], size_spec[old_loged_width], src);
-}
-
-static inline void conv_int_float_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    write_asm("%s %s, %s %s\n", conv_float_int[old_loged_width-2], register_names[4][dest-16], size_spec[old_loged_width], src);
-}
-
-static inline void conv_float_int_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    write_asm("%s %s, %s %s\n");
-}
-
-static inline void conv_int_int_mem_reg(unsigned int dest, char* src, unsigned int new_loged_width, unsigned int old_loged_width)
-{
-    if (new_loged_width < old_loged_width)
-        write_asm("%s %s, %s %s\n");
-}
-
-static inline void conv_float_float_const_reg(unsigned int dest, unsigned int offset)
-{
-    write_asm("%s %s, [d_const+%u]\n", conv_float[1], register_names[4][dest-16], offset);
-}
-
-static inline void conv_float_int_const_reg(unsigned int dest, unsigned int offset, unsigned int loged_width)
-{
-    write_asm("%s %s, [d_const+%u]\n", conv_float_int[1], register_names[loged_width][dest], offset);
-}
-
-static inline void float_control_reg_reg(unsigned int op1, unsigned int op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s\n", float_control[loged_width-2], register_names[4][op1-16], register_names[4][op2-16]);
-}
-
-static inline void float_control_mem_reg(unsigned int op1, char* op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s\n", float_control[loged_width-2], register_names[4][op1-16],op2);
-}
-
-static inline void float_control_const_reg(unsigned int op1, unsigned int offset, unsigned int loged_width)
-{
-    if (loged_width == 2)
-        write_asm("%s %s, [f_consts+%u]\n", float_control[loged_width-2], register_names[4][op1-16], offset);
-    else
-        write_asm("%s %s, [d_consts+%u]\n", float_control[loged_width-2], register_names[4][op1-16], offset);
-}
-
-static inline void int_control_reg_reg(unsigned int op1, unsigned int op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s\n", int_control[0], register_names[loged_width][op1], register_names[loged_width][op2]);
-}
-
-static inline void int_control_mem_reg(unsigned int op1, char* op2, unsigned int loged_width)
-{
-    write_asm("%s %s, %s\n", int_control[0], register_names[loged_width][op1], op2);
-}
-
-static inline void int_control_const_reg(unsigned int op1, long val, unsigned int loged_width)
-{
-    if (val == 0) {
-        write_asm("%s %s, %s\n", int_control[1], register_names[loged_width][op1], register_names[loged_width][op1]);
-    } else {
-        write_asm("%s %s, ", int_control[0], register_names[loged_width][op1]);
-        _2nd_op_const(val, loged_width);
-        write_asm("\n");
-    }
-}
-
-static inline void cond_jump(unsigned int jump_type, void* target, unsigned int type)
-{
-    write_asm("%s L%p\n", cond_jumps[!type][jump_type], target);
-}
-static inline void uncond_jump(void* target)
-{
-    write_asm("jmp L%p\n", target);
-}
-//---------------------------------------
-
-FILE* asm_file_desc;
 void codegen();
 void generate_assembly(const char* basename)
 {
@@ -277,10 +28,11 @@ void generate_assembly(const char* basename)
     char filename[strlen(basename)+5];
     sprintf(filename, "%s.asm", basename);
     #if SCREEN
-    asm_file_desc = stdout;/
+    FILE* asm_file_desc = stdout;
     #else
-    asm_file_desc = fopen(filename, "w");
+    FILE* asm_file_desc = fopen(filename, "w");
     #endif
+    init_asm_writer(asm_file_desc);
     init_registers();
     codegen();
     #if !SCREEN
@@ -288,21 +40,9 @@ void generate_assembly(const char* basename)
     #endif
 }
 
-void write_asm(char* fstring, ...)
-{
-    va_list args;
-    va_start(args, fstring);
-    vfprintf(asm_file_desc, fstring, args);
-    va_end(args);
-}
-
 void load_int();
 void load_float(int reg, long float_loc, int width);
 void load(struct SymTab_entry* entry, unsigned int reg, unsigned int type, unsigned int width);
-int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, unsigned int loged_width);
-int get_free_reg(unsigned int type);
-int get_reg(unsigned int type, unsigned int not_this_reg, unsigned int width,
-            void* entry, enum SymbolType entry_type);
 
 void alloc_statics(struct SymTab* main_symbol_table);
 void write_asm_code(struct IC_entry* main);
@@ -1050,7 +790,7 @@ void emit_uop(struct UOpQuad* uop)
                 LOAD_TEMP_TO_RES(result_reg, entry);
                 break;
             }
-            case VARIABLE: 
+            case VARIABLE:{
                 struct SymTab_entry* entry = uop->operand;
                 if (in_reg(entry->reg_locs)) {
                     if (!(used_later(uop->operand_info))) {
@@ -1408,7 +1148,7 @@ void emit_cond(struct CondQuad* cond,
 
             case ICONSTANT: {
                 struct int_entry* entry = cond->op1;
-                op1_reg = jet_reg(type, -1, width, entry, ICONSTANT);
+                op1_reg = get_reg(type, -1, width, entry, ICONSTANT);
                 mov_int_const_reg(op1_reg, entry->val, loged_width);
                 break;
             }
@@ -1510,147 +1250,6 @@ void emit_param(struct ParamQuad* param)
                         ;
     }
 }
-
-/*
- * Functions for assigning variables to registers. Should be moved to 'registers.c'
- */
-
-void all_registers_are_reserved_error()
-{
-    fprintf(stderr, "internal error:All registers are reserved....\n");
-    exit(-1);
-}
-
-void temp_not_computed_error(struct SymTab_entry* entry)
-{
-    fprintf(stderr, "internal error:Temporary '%s' has not been computed but wants register\n", entry->key);
-    exit(-1);
-}
-
-int get_reg(unsigned int type, unsigned int not_this_reg, unsigned int width,
-            void* entry, enum SymbolType entry_type)
-{
-    const int type_offset = type * 16;
-    for (int i = 0; i < 16; i++)
-        if (type_offset+i != not_this_reg &&
-            get_reg_state(type_offset+i) == REG_FREE) {
-            registers[type_offset + i].reg_state = REG_OCCUPIED;
-            registers[type_offset + i].reg_width = width;
-            append_to_reg(type_offset + i, entry_type, entry);
-            return type_offset+i;
-        }
-
-
-    unsigned int scores[16] = { 0 };
-    for (int i = 0; i < 16; i++) {
-
-        if (i+type_offset == not_this_reg) {
-            scores[i] = MAX_UINT;
-            continue;
-        }
-        switch (get_reg_state(type_offset+i)) {
-            case REG_RESERVED:
-                scores[i] = MAX_UINT;
-                break;
-            case REG_SAVED:
-                /*
-                 * Pushing and popping the stack is two memory accesses.
-                 */
-                scores[i] = 2;
-                break;
-            case REG_OCCUPIED:
-                for (int j = 0; j < registers[type_offset+i].n_vals; i++) {
-                    if (registers[type_offset+i].states[j] != REG_CONSTANT) {
-                        struct SymTab_entry* tmp_entry = registers[type_offset+i].vals[j];
-                        if (in_reg(tmp_entry->reg_locs))
-                            continue;
-                        scores[i]++;
-                    }
-
-                }
-        }
-        int min_score = scores[0];
-        int min_ind = 0;
-        for (int i = 1; i < 16; i++) {
-            if (scores[i] < min_score) {
-                min_score = scores[i];
-                min_ind = i;
-            }
-        }
-        store_all(min_ind, NULL);
-        registers[type_offset + min_ind].reg_width = width;
-        registers[min_ind + type_offset].reg_state = REG_OCCUPIED;
-        append_to_reg(type_offset + i, entry_type, entry);
-        return min_ind + type_offset;
-    }
-}
-
-int get_free_reg(unsigned int type)
-{
-    const int type_offset = type * 16;
-    for (int i = 0; i < 16; i++)
-        if (get_reg_state(type_offset+i) == REG_FREE)
-            return type_offset+i;
-    return -1;
-}
-
-static inline void free_reg_reserved_error(unsigned int reg, unsigned int type)
-{
-    fprintf(stderr, "Internal error:Register '%s' needed for computation is reserved\n",
-    register_names[4*type + 3*(!type)][reg- 16*type]);
-}
-
-#define MOV_REG_REG(reg1, reg2, type, loged_width)\
-    do {\
-        write_asm("%s %s, %s\n", mov[type*loged_width],\
-            register_names[loged_width*(!type)+4*type][reg1-16*type],\
-            register_names[loged_width*(!type)+4*type][reg2-16*type]);\
-    } while(0)\
-
-int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, unsigned int loged_width)
-{
-    if (entry->reg_locs & (1 << reg))
-        return 1;
-    switch (get_reg_state(reg)) {
-        case REG_FREE:
-            #if DEBUG
-            printf("register '%d' is free\n", reg);
-                    //register_names[reg >= 16 + 2][reg - 16 * (reg >= 16)]);
-            #endif
-            registers[reg].reg_state = REG_OCCUPIED;
-            return 0;
-        case REG_OCCUPIED: {
-            #if DEBUG
-            printf("register '%s' is occupied\n",
-                register_names[loged_width*(!type)+4*type][reg-16*type]);
-            #endif
-            unsigned int dest = get_reg(type, reg, registers[reg].reg_width, entry, entry->type);
-            int entry_in_reg = copy_reg_to_reg(dest, reg, entry);
-            unsigned int loged_width = log2(registers[reg].reg_width);
-            MOV_REG_REG(dest, reg, type, loged_width);
-            registers[reg].reg_state = REG_OCCUPIED;
-            return entry_in_reg;
-        }
-
-        case REG_SAVED: {
-            // push register
-            // indicate popping in epilouge
-            #if DEBUG
-            printf("register is saved\n");
-            #endif
-            registers[reg].reg_state = REG_OCCUPIED;
-        }
-        case REG_RESERVED: {
-            #if DEBUG
-            printf("register is reserved\n");
-            #endif
-            unsigned int type = entry->width_and_type & 1;
-            free_reg_reserved_error(reg, type);
-        }
-    }
-    return 0;
-}
-
 
 void store(struct SymTab_entry* var, int reg)
 {

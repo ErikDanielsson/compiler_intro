@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "registers.h"
+#include "write_asm.h"
 #include "symbol_table.h"
 #include "instruction_set.h"
 #define DEBUG 0
@@ -123,7 +124,7 @@ void remove_from_regs(struct SymTab_entry* entry)
 }
 
 /*
- * Returns the register which is 'least in use'. 
+ * Returns the register in which a the given symbol is stored which is 'least in use'. 
  */
 unsigned int least_reg(struct SymTab_entry* entry)
 {
@@ -167,9 +168,133 @@ int copy_reg_to_reg(unsigned int dest, unsigned int orig, struct SymTab_entry* e
         entry->reg_locs &= ~(1 << orig);
     }
     return ret_val;
+
+}
+/*
+ * Returns a free (or freed) register to be used in computation.
+ * Generates spill if needed.
+ */
+int get_reg(unsigned int type, unsigned int not_this_reg, unsigned int width,
+            void* entry, enum SymbolType entry_type)
+{
+    const int type_offset = type * 16;
+    for (int i = 0; i < 16; i++) {
+        if (type_offset+i != not_this_reg &&
+            get_reg_state(type_offset+i) == REG_FREE) {
+            registers[type_offset + i].reg_state = REG_OCCUPIED;
+            registers[type_offset + i].reg_width = width;
+            append_to_reg(type_offset + i, entry_type, entry);
+            return type_offset+i;
+        }
+    }
+    unsigned int scores[16] = { 0 };
+    for (int i = 0; i < 16; i++) {
+
+        if (i+type_offset == not_this_reg) {
+            scores[i] = MAX_UINT;
+            continue;
+        }
+        switch (get_reg_state(type_offset+i)) {
+            case REG_RESERVED:
+                scores[i] = MAX_UINT;
+                break;
+            case REG_SAVED:
+                /*
+                 * Pushing and popping the stack is two memory accesses.
+                 */
+                scores[i] = 2;
+                break;
+            case REG_OCCUPIED:
+                for (int j = 0; j < registers[type_offset+i].n_vals; i++) {
+                    if (registers[type_offset+i].states[j] != REG_CONSTANT) {
+                        struct SymTab_entry* tmp_entry = registers[type_offset+i].vals[j];
+                        if (in_reg(tmp_entry->reg_locs))
+                            continue;
+                        scores[i]++;
+                    }
+                }
+        }
+        int min_score = scores[0];
+        int min_ind = 0;
+        for (int i = 1; i < 16; i++) {
+            if (scores[i] < min_score) {
+                min_score = scores[i];
+                min_ind = i;
+            }
+        }
+        store_all(min_ind, NULL);
+        registers[type_offset + min_ind].reg_width = width;
+        registers[min_ind + type_offset].reg_state = REG_OCCUPIED;
+        append_to_reg(type_offset + i, entry_type, entry);
+        return min_ind + type_offset;
+    }
 }
 
+int get_free_reg(unsigned int type)
+{
+    const int type_offset = type * 16;
+    for (int i = 0; i < 16; i++)
+        if (get_reg_state(type_offset+i) == REG_FREE)
+            return type_offset+i;
+    return -1;
+}
 
+static inline void free_reg_reserved_error(unsigned int reg, unsigned int type)
+{
+    fprintf(stderr, "Internal error:Register '%s' needed for computation is reserved\n",
+    register_names[4*type + 3*(!type)][reg- 16*type]);
+}
+
+#define MOV_REG_REG(reg1, reg2, type, loged_width)\
+    do {\
+        write_asm("%s %s, %s\n", mov[type*loged_width],\
+            register_names[loged_width*(!type)+4*type][reg1-16*type],\
+            register_names[loged_width*(!type)+4*type][reg2-16*type]);\
+    } while(0)\
+
+int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, unsigned int loged_width)
+{
+    if (entry->reg_locs & (1 << reg))
+        return 1;
+    switch (get_reg_state(reg)) {
+        case REG_FREE:
+            #if DEBUG
+            printf("register '%d' is free\n", reg);
+                    //register_names[reg >= 16 + 2][reg - 16 * (reg >= 16)]);
+            #endif
+            registers[reg].reg_state = REG_OCCUPIED;
+            return 0;
+        case REG_OCCUPIED: {
+            #if DEBUG
+            printf("register '%s' is occupied\n",
+                register_names[loged_width*(!type)+4*type][reg-16*type]);
+            #endif
+            unsigned int dest = get_reg(type, reg, registers[reg].reg_width, entry, entry->type);
+            int entry_in_reg = copy_reg_to_reg(dest, reg, entry);
+            unsigned int loged_width = log2(registers[reg].reg_width);
+            MOV_REG_REG(dest, reg, type, loged_width);
+            registers[reg].reg_state = REG_OCCUPIED;
+            return entry_in_reg;
+        }
+
+        case REG_SAVED: {
+            // push register
+            // indicate popping in epilouge
+            #if DEBUG
+            printf("register is saved\n");
+            #endif
+            registers[reg].reg_state = REG_OCCUPIED;
+        }
+        case REG_RESERVED: {
+            #if DEBUG
+            printf("register is reserved\n");
+            #endif
+            unsigned int type = entry->width_and_type & 1;
+            free_reg_reserved_error(reg, type);
+        }
+    }
+    return 0;
+}
 void print_registers()
 {
     #if VERBOSE

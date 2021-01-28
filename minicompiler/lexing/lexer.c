@@ -222,7 +222,7 @@ int read_from_file()
             } else if (buffer_ptr == buffer+2*BUFFERSIZE+1) {
                 int r = read(file_desc, buffer, BUFFERSIZE);
                 buffer[r] = 0x04;
-                buffer_ptr = buffer
+                buffer_ptr = buffer;
             } else {
                 last_buffert = TRUE;
                 next_line.line[i] = 0x00;

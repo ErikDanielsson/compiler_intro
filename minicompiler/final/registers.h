@@ -3,7 +3,7 @@
 #include "code_generation.h"
 #include "consts.h"
 #include "io.h"
-#define DEBUG 0
+
 enum RegValState {
     REG_VARIABLE,
     REG_TEMPORARY,
@@ -41,6 +41,12 @@ int copy_reg_to_reg(unsigned int dest, unsigned int orig,
 unsigned int least_reg(struct SymTab_entry* entry);
 void print_reg_str(unsigned int i);
 void store_allr_in_symtab(struct SymTab* symbol_table);
+
+int free_reg(unsigned int reg, struct SymTab_entry* entry, unsigned int type, unsigned int loged_width);
+int get_free_reg(unsigned int type);
+int get_reg(unsigned int type, unsigned int not_this_reg, unsigned int width,
+            void* entry, enum SymbolType entry_type);
+
 
 
 // Should-be-inlined funcs:
