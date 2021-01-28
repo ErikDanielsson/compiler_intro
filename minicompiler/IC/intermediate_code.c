@@ -83,8 +83,13 @@ void leave_IC_generator()
 struct BasicBlock* construct_bb(int n_blocks);
 struct BasicBlock* new_bb()
 {
+    printf("hej");
     int n_blocks = (*top_entry)->n_blocks;
     struct BasicBlock* new_block = construct_bb(n_blocks);
+    if (new_block == NULL) {
+        printf("Block was null\n");
+        exit(-1);
+    }
     if (n_blocks) {
         struct BasicBlock* tmp_blocks[n_blocks];
         memcpy(tmp_blocks, (*top_entry)->basic_block_list, sizeof(struct BasicBlock*)*n_blocks);
@@ -95,6 +100,7 @@ struct BasicBlock* new_bb()
         (*top_entry)->n_blocks++;
         *curr_block = new_block;
     } else {
+        (*top_entry)->basic_block_list = malloc(sizeof(struct BasicBlock*));
         (*top_entry)->basic_block_list[0] = new_block;
         (*top_entry)->n_blocks = 1;
         *curr_block = new_block;
@@ -102,7 +108,7 @@ struct BasicBlock* new_bb()
     return new_block;
 }
 
-struct BasicBlock construct_bb(int n_blocks)
+struct BasicBlock* construct_bb(int n_blocks)
 {
     struct BasicBlock* new_block = malloc(sizeof(struct BasicBlock));
     new_block->bbnum = n_blocks;
