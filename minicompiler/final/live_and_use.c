@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "intermediate_code.h"
 #include "hashing.h"
-#define DEBUG 1
+#define DEBUG 0
 
 /*
  * Computes live and use info for symbols. This is needed for register

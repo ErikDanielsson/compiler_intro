@@ -12,7 +12,7 @@ MAIN_OBJ =  main.o
 
 all:
 	make table
-	make a.out
+	make compiler
 
 table:
 	cd parsing && python shitty_compiler_compiler.py grammar -w parsing_table.txt ../lexing/token_types.txt node_types.txt -c -s
@@ -23,7 +23,7 @@ disassemble: $(wildcard *.out)
 	>$(basename $<).asm
 
 %.asm : %.pyr
-	./a.out $<
+	./compiler $<
 
 %.o : %.c
 	$(CC) -c -I $(DEPS) $(CFLAGS) -o $@ $<
@@ -35,8 +35,8 @@ disassemble: $(wildcard *.out)
 	$(CC) -o  $@ $<
 
 
-a.out : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(CODEGEN_OBJ) $(MAIN_OBJ)
-	$(CC) $(CFLAGS) -o  a.out $^
+compiler : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(CODEGEN_OBJ) $(MAIN_OBJ)
+	$(CC) $(CFLAGS) -o  compiler $^
 
 GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp .*.dot *.ll *.s *.gch
 GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
@@ -46,9 +46,9 @@ clean:
 
 new_profile:
 	make clean
-	make a.out
-	./a.out big.pyr
-	gprof a.out gmon.out > analysis.txt
+	make compiler
+	./compiler big.pyr
+	gprof compiler gmon.out > analysis.txt
 	cat analysis.txt
 
 TEMPLATE = simple

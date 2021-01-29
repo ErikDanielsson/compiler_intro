@@ -83,7 +83,6 @@ void leave_IC_generator()
 struct BasicBlock* construct_bb(int n_blocks);
 struct BasicBlock* new_bb()
 {
-    printf("hej");
     int n_blocks = (*top_entry)->n_blocks;
     struct BasicBlock* new_block = construct_bb(n_blocks);
     if (new_block == NULL) {

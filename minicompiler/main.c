@@ -38,20 +38,12 @@ int main(int argc, const char** argv)
 
     close(file_desc);
     if (!grammar_error) {
-        printf("hej\n");
         init_type_checker();
         generate_IC(tree);
-        printf("IC generation done\n\n");
-
-
-        #if VERBOSE
-        #endif
 
         live_and_use();
-        print_CFG();
         generate_assembly(basename);
         
-        print_IC_tree(intermediate_code);
         destroy_CFG();
         destroy_Env_tree();
     }

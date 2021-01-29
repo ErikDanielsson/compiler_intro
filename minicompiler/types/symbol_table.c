@@ -19,8 +19,6 @@ struct SymTab* create_SymTab(int table_size, struct SymTab* parent, char* name)
     symbol_table->saturation = 0;
     symbol_table->name = name;
     symbol_table->entries = malloc(sizeof(struct SymTab_entry*) * table_size);
-    printf("CREATE TABLE WITH NAME: %s\n\n", name);
-    printf("ENTRIES: %p\n\n", symbol_table->entries);
     for (int i = 0; i < table_size; i++) {
         symbol_table->entries[i] = NULL;
     }

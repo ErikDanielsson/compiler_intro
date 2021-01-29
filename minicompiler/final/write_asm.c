@@ -171,7 +171,6 @@ void conv_float_float_reg_reg(unsigned int dest, unsigned int src, unsigned int 
 
 void conv_int_float_reg_reg(unsigned int dest, unsigned int src, unsigned int new_loged_width, unsigned int old_loged_width)
 {
-    printf("new %d old %d\n", old_loged_width, new_loged_width);
     write_asm("%s %s, %s\n", conv_float_int[new_loged_width], register_names[4][dest-16], register_names[old_loged_width][src]);
 }
 

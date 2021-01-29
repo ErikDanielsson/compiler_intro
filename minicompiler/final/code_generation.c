@@ -13,7 +13,7 @@
 #include "registers.h"
 #include "write_asm.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #define SCREEN 0
 /*
  * The code generator will generate Intel syntax assembly for the x86-64
@@ -23,8 +23,6 @@
 void codegen();
 void generate_assembly(const char* basename)
 {
-    for (int i = 0; i < 9; i++)
-        printf("%s\n", int_arithmetic[i]);
     char filename[strlen(basename)+5];
     sprintf(filename, "%s.asm", basename);
     #if SCREEN
@@ -51,8 +49,7 @@ void codegen()
     struct IC_entry* main = IC_table_get_entry(intermediate_code, "main");
     alloc_statics(main->symbol_table);
     write_asm_code(main);
-}
-
+} 
 void allocr(struct SymTab* symbol_table);
 static inline void write_asm_float_consts()
 {

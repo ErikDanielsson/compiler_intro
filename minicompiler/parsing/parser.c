@@ -23,8 +23,8 @@
 
 #define STACK_SIZE 8192
 #define DEBUG 0
-#define TREEBUILDER 1
-#define TREEDRAWER 1
+#define TREEBUILDER 0
+#define TREEDRAWER 0
 #define LABELS 0
 
 char grammar_error = FALSE;

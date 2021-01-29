@@ -86,11 +86,8 @@ void remove_from_reg(struct SymTab_entry* entry, unsigned reg_n)
     unsigned n_vals = registers[reg_n].n_vals;
 
     if ((n_vals-1) != 0) {
-        printf("n_vals: %d\n", n_vals);
-        for (int i = 0; i < n_vals; i++)
-        {
+        for (int i = 0; i < n_vals; i++) {
             if (registers[reg_n].vals[i] == entry) {
-                printf("shorten\n");
                 unsigned size = n_vals-i-1;
                 memcpy(registers[reg_n].vals+i, registers[reg_n].vals+i+1, sizeof(void*)*size);
                 memcpy(registers[reg_n].states+i, registers[reg_n].states+i+1, sizeof(int)*size);

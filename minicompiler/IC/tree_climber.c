@@ -713,7 +713,6 @@ void visit_AStmt(struct AStmt* node)
         atp1.addr = node->expr->addr;
         atp1.type = node->expr->addr_type;
         widen(&atp1, var_type, expr_type);
-        printf("shiting:: %s : %lu\n", var_type, var_entry->width_and_type >> 2);
         if (node->assignment_type->type != '=') {
             /*
              * This is a bit of a hack
