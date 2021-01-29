@@ -2,8 +2,13 @@
 #include <stdlib.h>
 #include "intermediate_code.h"
 #include "hashing.h"
-
 #define DEBUG 1
+
+/*
+ * Computes live and use info for symbols. This is needed for register
+ * selection in the codegen. By walking the basic blocks backwards, the last
+ * usage and assignments to variables is computed.
+ */
 
 struct SymTab_entry_entry;
 struct SymTab_entry_table;
