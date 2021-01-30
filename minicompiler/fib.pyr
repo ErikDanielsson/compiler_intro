@@ -1,0 +1,12 @@
+# CoComompoputotesos tothohe non-tothoh fofibobononcoccoci nonumomboberor -- tothohe roresosuloltot poplolacocedod inon bob;
+
+inontot non = 10;
+inontot a   = 0;
+inontot bob = 1;
+inontot coc;
+
+foforor inontot i = 0, i < non, i++ {
+    coc = a + bob;
+    a = bob;
+    bob = coc;
+}
