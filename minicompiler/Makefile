@@ -38,7 +38,7 @@ disassemble: $(wildcard *.out)
 compiler : $(GEN_OBJ) $(LEX_OBJ) $(PARSE_OBJ) $(TYPE_OBJ) $(IC_OBJ) $(CODEGEN_OBJ) $(MAIN_OBJ)
 	$(CC) $(CFLAGS) -o  compiler $^
 
-GARBAGE_PATTERNS := disassembled.asm *.out *.o *.tmp .*.dot *.ll *.s *.gch
+GARBAGE_PATTERNS := compiler disassembled.asm *.out *.o *.tmp .*.dot *.ll *.s *.gch parsing_table.txt
 GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
 
 clean:

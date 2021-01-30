@@ -28,7 +28,6 @@ void draw_FLoop(struct FLoop* node, char* name);
 
 void treedrawer_init(char* basename, struct CompStmt* root)
 {
-    printf("BASENAME: %s!\n", basename);
     int len = strlen(basename);
     char file_name[len+4];
     sprintf(file_name, "%s.gv", basename);
@@ -162,7 +161,6 @@ void draw_VarAcc(struct VarAcc* node, char* name)
 void draw_Expr(struct Expr* node, char* name)
 {
     char* node_name = get_identifier();
-    printf("%p\n", node);
     switch (node->type) {
         case EXPR_BINOP:
         case EXPR_RELOP:
@@ -203,7 +201,6 @@ void draw_AStmt(struct AStmt* node, char* name)
     write_new_node(node_name, get_token_str(node->assignment_type));
     write_new_edge(name, node_name);
     draw_VarAcc(node->variable_access, node_name);
-    printf("%p\n", node->expr);
     if (node->assignment_type->type != SUFFIXOP) 
         draw_Expr(node->expr, node_name);
 }
@@ -270,6 +267,7 @@ void draw_FLoop(struct FLoop* node, char* name)
     write_new_node(node_name, "For");
     write_new_edge(name, node_name);
     write_new_node(init_name, "init");
+    write_new_edge(init_name, node_name);
     if (node->type == VARIABLE_DECLARATION)
         draw_VarDecl(node->init_stmt, init_name);
     else 
@@ -278,6 +276,7 @@ void draw_FLoop(struct FLoop* node, char* name)
     write_new_edge(node_name, bool_name);
     draw_Expr(node->boolean, bool_name);
     write_new_node(update_name, "update");
+    write_new_edge(node_name, update_name);
     draw_AStmt(node->update_statement, update_name);
 
     draw_CompStmt(node->body, node_name);

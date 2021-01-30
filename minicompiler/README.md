@@ -3,7 +3,7 @@ A small (and not fully finished) compiler from my language pyrate to
 x86 assembly. Pyrate is a C-like language based on the Swedish 
 language game "Rövarspråket": every consonant of every word is doubled 
 and an 'o' is inserted in between.
-To compile the compiler run `make compiler`. 
+To compile the grammar and the compiler run `make all`. 
 
 Run `./compiler <file>` to compile the pyrate file to assembly.
 However, you need an assembler for Intel syntax assembly to translate
