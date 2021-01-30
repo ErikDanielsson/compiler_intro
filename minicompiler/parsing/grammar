@@ -1,3 +1,4 @@
+# Grammar for pyrate. Compiled to transition table by 'shitty_compiler_compiler.py"
 start -> compound_statement
 
 compound_statement -> compound_statement statement | statement
